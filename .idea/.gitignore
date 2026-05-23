@@ -1,0 +1,3 @@
+# Per-machine IDE state — only runConfigurations/ is tracked, everything else
+# is ignored via the root .gitignore. This file exists so the directory itself
+# remains visible to git.

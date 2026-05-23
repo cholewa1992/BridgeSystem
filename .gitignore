@@ -1,0 +1,58 @@
+# ── JVM / Maven ────────────────────────────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+.mvn/wrapper/maven-wrapper.jar
+
+# ── Node / Vite ────────────────────────────────────────────────────────────
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+coverage/
+.eslintcache
+
+# ── IDE ────────────────────────────────────────────────────────────────────
+# Ignore most of .idea/ but track shared run configurations
+.idea/*
+!.idea/.gitignore
+!.idea/runConfigurations/
+*.iml
+*.ipr
+*.iws
+.vscode/
+!.vscode/extensions.json
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+.factorypath
+
+# ── OS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Env / secrets ──────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+
+# ── Build / logs ───────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Docker / k8s ───────────────────────────────────────────────────────────
+.docker/
+
+# ── Helm ───────────────────────────────────────────────────────────────────
+helm/**/charts/
+helm/**/*.tgz

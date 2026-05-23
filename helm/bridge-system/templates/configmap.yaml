@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bridge-system.fullname" . }}-config
+  labels:
+    {{- include "bridge-system.labels" . | nindent 4 }}
+data:
+  WEBAUTHN_RP_ID: {{ .Values.webauthn.rpId | quote }}
+  WEBAUTHN_RP_NAME: {{ .Values.webauthn.rpName | quote }}
+  WEBAUTHN_ORIGINS: {{ .Values.webauthn.origins | quote }}
+  CORS_ORIGINS: {{ .Values.cors.allowedOrigins | quote }}
+  COOKIE_SECURE: {{ .Values.cookie.secure | quote }}

@@ -1,0 +1,17 @@
+Bridge System {{ .Chart.AppVersion }} installed as release "{{ .Release.Name }}".
+
+{{- if .Values.ingress.enabled }}
+
+Open the app:
+  https://{{ .Values.ingress.host }}
+{{- else }}
+
+No Ingress configured. Port-forward to test:
+  kubectl port-forward svc/{{ include "bridge-system.frontendName" . }} 8080:80
+{{- end }}
+
+WebAuthn rpId is: {{ .Values.webauthn.rpId }}
+Origins:          {{ .Values.webauthn.origins }}
+
+If the rpId is not a registrable suffix of every origin, browsers will reject
+the WebAuthn ceremony.
