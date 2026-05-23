@@ -1,15 +1,16 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Postgres (compose)" type="docker-deploy" factoryName="docker-compose.yml" server-name="Docker">
-    <deployment type="docker-compose.yml">
-      <settings>
-        <option name="services">
-          <list>
-            <option value="postgres" />
-          </list>
-        </option>
-        <option name="sourceFilePath" value="docker-compose.yml" />
-      </settings>
-    </deployment>
+  <configuration default="false" name="Postgres (compose)" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/scripts/start-postgres.sh" />
+    <option name="SCRIPT_OPTIONS" value="" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="/bin/sh" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="true" />
+    <option name="EXECUTE_SCRIPT_FILE" value="true" />
     <method v="2" />
   </configuration>
 </component>
