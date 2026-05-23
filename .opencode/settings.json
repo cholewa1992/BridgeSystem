@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__mcp-registry__search_mcp_registry",
+      "mcp__mcp-registry__list_connectors",
+      "Bash(npm run *)",
+      "Bash(opencode --version)",
+      "Bash(opencode mcp *)",
+      "Bash(git -C /Users/jbc/repos/BridgeSystem *)"
+    ]
+  }
+}
