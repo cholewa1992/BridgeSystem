@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/cholewa1992/bridge-system-frontend:latest
+          image: ghcr.io/cholewa1992/bridge-system-frontend:0.1.0
           ports:
             - containerPort: 80
           resources:

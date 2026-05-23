@@ -7,9 +7,22 @@ image:
     repository: ghcr.io/cholewa1992/bridge-system-frontend
     tag: ""
 
+# Static replica counts — ignored when autoscaling.*.enabled is true.
 replicas:
   backend: 2
   frontend: 2
+
+autoscaling:
+  backend:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+  frontend:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
 
 resources:
   backend:

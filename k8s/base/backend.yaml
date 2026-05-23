@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: ghcr.io/cholewa1992/bridge-system-backend:latest
+          image: ghcr.io/cholewa1992/bridge-system-backend:0.1.0
           ports:
             - containerPort: 8080
           envFrom:
