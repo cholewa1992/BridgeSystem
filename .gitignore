@@ -14,6 +14,7 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+*.tsbuildinfo
 .vite/
 coverage/
 .eslintcache
@@ -45,6 +46,7 @@ desktop.ini
 .env.local
 .env.*.local
 *.pem
+application-local.properties
 
 # ── Build / logs ───────────────────────────────────────────────────────────
 *.log

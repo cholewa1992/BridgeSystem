@@ -5,12 +5,11 @@
     <option name="MAIN_CLASS_NAME" value="com.bridgesystem.BridgeSystemApplication" />
     <module name="bridge-system-api" />
     <envs>
+      <env name="SPRING_PROFILES_ACTIVE" value="local" />
       <env name="DB_URL" value="jdbc:postgresql://localhost:5432/bridge" />
       <env name="DB_USER" value="bridge" />
       <env name="DB_PASSWORD" value="bridge" />
       <env name="WEBAUTHN_RP_ID" value="localhost" />
-      <env name="WEBAUTHN_ORIGINS" value="http://localhost:5173,http://localhost:8080" />
-      <env name="CORS_ORIGINS" value="http://localhost:5173" />
     </envs>
     <method v="2">
       <option name="Make" enabled="true" />
