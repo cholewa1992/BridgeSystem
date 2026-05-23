@@ -454,17 +454,20 @@ function PickerButton({
   disabled,
   onClick,
   style,
+  title,
 }: {
   children: React.ReactNode;
   selected: boolean;
   disabled?: boolean;
   onClick: () => void;
   style?: React.CSSProperties;
+  title?: string;
 }) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
+      title={title}
       style={{
         minWidth: 36,
         padding: '6px 10px',
