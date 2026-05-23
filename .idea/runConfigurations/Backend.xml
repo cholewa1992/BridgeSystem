@@ -1,7 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Backend" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
-    <option name="ALTERNATIVE_JRE_PATH" value="$PROJECT_DIR$/../../java/jdk-21.0.9+10" />
+  <configuration default="false" name="Backend" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="/Users/jbc/Library/Java/JavaVirtualMachines/ms-21.0.10/Contents/Home" />
     <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="com.bridgesystem.BridgeSystemApplication" />
+    <module name="bridge-system-api" />
     <envs>
       <env name="DB_URL" value="jdbc:postgresql://localhost:5432/bridge" />
       <env name="DB_USER" value="bridge" />
@@ -10,8 +12,6 @@
       <env name="WEBAUTHN_ORIGINS" value="http://localhost:5173,http://localhost:8080" />
       <env name="CORS_ORIGINS" value="http://localhost:5173" />
     </envs>
-    <module name="bridge-system-api" />
-    <option name="SPRING_BOOT_MAIN_CLASS" value="com.bridgesystem.BridgeSystemApplication" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
