@@ -5,9 +5,11 @@ import { deleteSystem, getSystem, updateSystem } from '../api/systems';
 import {
   ROOT_ID,
   addChainContext,
+  canDropNode,
   deleteNode as treeDelete,
   editChainContext,
   findNode,
+  moveNode,
   newId,
   pathTo,
   rootFromTree,
@@ -38,6 +40,8 @@ export function SystemEditor() {
   const [selected, setSelected] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [rootDragOver, setRootDragOver] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [systemName, setSystemName] = useState('');
   const [showShare, setShowShare] = useState(false);
@@ -152,6 +156,18 @@ export function SystemEditor() {
     setEditing(false);
     markDirty();
   };
+
+  const handleMove = useCallback((newParentId: string) => {
+    if (!root || !draggingId) return;
+    setRoot(moveNode(root, draggingId, newParentId));
+    setDraggingId(null);
+    markDirty();
+  }, [root, draggingId]);
+
+  const canDropHere = useCallback((targetParentId: string): boolean => {
+    if (!root || !draggingId) return false;
+    return canDropNode(root, draggingId, targetParentId);
+  }, [root, draggingId]);
 
   const deleteSelected = () => {
     if (!root || !selected) return;
@@ -312,7 +328,45 @@ export function SystemEditor() {
             )}
           </div>
 
-          <BidTree node={root} depth={0} selectedId={selected} onSelect={select} />
+          {!readOnly && draggingId && canDropHere(ROOT_ID) && (
+            <div
+              onDragOver={(e) => { e.preventDefault(); setRootDragOver(true); }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) setRootDragOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setRootDragOver(false);
+                handleMove(ROOT_ID);
+              }}
+              style={{
+                marginBottom: 8,
+                padding: '6px 10px',
+                border: `1px dashed ${rootDragOver ? 'var(--accent)' : 'var(--border-strong)'}`,
+                borderRadius: 'var(--radius-sm)',
+                background: rootDragOver ? 'var(--accent-soft)' : 'transparent',
+                color: 'var(--fg-muted)',
+                fontSize: 12,
+                textAlign: 'center',
+                cursor: 'copy',
+              }}
+            >
+              Move here as opening bid
+            </div>
+          )}
+
+          <BidTree
+            node={root}
+            depth={0}
+            selectedId={selected}
+            onSelect={select}
+            readOnly={readOnly}
+            draggingId={draggingId}
+            onDragStart={setDraggingId}
+            onDragEnd={() => setDraggingId(null)}
+            onDrop={handleMove}
+            canDrop={canDropHere}
+          />
 
           {addingTo === ROOT_ID && openingChain && (
             <div style={{ marginTop: 12 }}>

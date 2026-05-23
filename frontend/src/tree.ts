@@ -81,6 +81,33 @@ export function treeFromRoot(root: BidNode): BidTreeRoot {
   return { children: root.children };
 }
 
+function isBidValidInContext(bid: string, ctx: ChainContext): boolean {
+  if (bid === 'X') return ctx.lastContractBid !== null && !ctx.hasActiveDouble && !ctx.hasActiveRedouble;
+  if (bid === 'XX') return ctx.hasActiveDouble && !ctx.hasActiveRedouble;
+  const p = parseBid(bid);
+  if (!p) return false;
+  return isValidContinuation(p, ctx.lastContractBid ? parseBid(ctx.lastContractBid) : null);
+}
+
+export function canDropNode(root: BidNode, nodeId: string, targetParentId: string): boolean {
+  const node = findNode(root, nodeId);
+  if (!node) return false;
+  if (findNode(node, targetParentId) !== null) return false;
+  const path = pathTo(root, nodeId);
+  if (path && path.length >= 2 && path[path.length - 2].id === targetParentId) return false;
+  const ctx = addChainContext(root, targetParentId);
+  return node.bids.every((bid) => isBidValidInContext(bid, ctx));
+}
+
+export function moveNode(root: BidNode, nodeId: string, newParentId: string): BidNode {
+  const node = findNode(root, nodeId);
+  if (!node) return root;
+  return updateNode(deleteNode(root, nodeId), newParentId, (n) => ({
+    ...n,
+    children: [...n.children, node],
+  }));
+}
+
 // ── Bid parsing / ordering ────────────────────────────────────────────────
 
 /**
