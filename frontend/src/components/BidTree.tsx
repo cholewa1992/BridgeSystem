@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clsx } from 'clsx';
 import type { BidNode } from '../types';
 import { BidLabel } from './BidLabel';
 
@@ -40,22 +41,8 @@ export function BidTree(props: Props) {
   const isSelected = props.selectedId === node.id;
   const showHandle = !props.readOnly && (hovered || !!props.draggingId);
 
-  const rowBg = isValidDrop
-    ? 'var(--accent-soft)'
-    : isSelected
-    ? 'var(--accent-soft)'
-    : hovered
-    ? 'var(--surface-2)'
-    : 'transparent';
-
-  const rowBorder = isValidDrop
-    ? '1px solid var(--accent)'
-    : isSelected
-    ? '1px solid #ecd2c5'
-    : '1px solid transparent';
-
   return (
-    <div style={{ marginLeft: depth === 0 ? 0 : 16, opacity: isDragging ? 0.4 : 1 }}>
+    <div className={clsx(depth !== 0 && 'ml-4', isDragging && 'opacity-40')}>
       <div
         draggable={!props.readOnly}
         onClick={() => props.onSelect(node.id)}
@@ -97,31 +84,28 @@ export function BidTree(props: Props) {
             props.onDrop?.(node.id);
           }
         }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '6px 10px',
-          marginBottom: 2,
-          borderRadius: 'var(--radius-sm)',
-          cursor: props.draggingId ? (isValidDrop ? 'copy' : 'default') : 'pointer',
-          background: rowBg,
-          border: rowBorder,
-          transition: 'background 100ms ease',
-          userSelect: 'none',
-        }}
+        className={clsx(
+          'flex items-center gap-2 px-[10px] py-[6px] mb-0.5 rounded-sm border select-none transition-colors duration-100',
+          isValidDrop
+            ? 'bg-accent-soft border-accent'
+            : isSelected
+              ? 'bg-accent-soft border-[#ecd2c5]'
+              : hovered
+                ? 'bg-surface-2 border-transparent'
+                : 'border-transparent',
+          props.draggingId
+            ? isValidDrop
+              ? 'cursor-copy'
+              : 'cursor-default'
+            : 'cursor-pointer',
+        )}
       >
         {/* Drag handle — visible on hover when editable */}
         <span
-          style={{
-            fontSize: 11,
-            color: 'var(--fg-subtle)',
-            width: 10,
-            flexShrink: 0,
-            opacity: showHandle ? 0.5 : 0,
-            cursor: 'grab',
-            lineHeight: 1,
-          }}
+          className={clsx(
+            'w-[10px] shrink-0 cursor-grab text-[11px] leading-none text-fg-subtle',
+            showHandle ? 'opacity-50' : 'opacity-0',
+          )}
         >
           ⠿
         </span>
@@ -132,59 +116,32 @@ export function BidTree(props: Props) {
               e.stopPropagation();
               setOpen((o) => !o);
             }}
-            style={{
-              fontSize: 9,
-              color: 'var(--fg-subtle)',
-              width: 12,
-              flexShrink: 0,
-              cursor: 'pointer',
-              userSelect: 'none',
-              transform: open ? 'rotate(90deg)' : 'rotate(0deg)',
-              transition: 'transform 120ms ease',
-              display: 'inline-block',
-            }}
+            className={clsx(
+              'inline-block w-3 shrink-0 cursor-pointer select-none text-[9px] text-fg-subtle transition-transform duration-[120ms]',
+              open ? 'rotate-90' : 'rotate-0',
+            )}
           >
             ▶
           </span>
         ) : (
-          <span style={{ width: 12, flexShrink: 0 }} />
+          <span className="w-3 shrink-0" />
         )}
 
         <BidLabel
           bids={node.bids}
           byOpponent={node.byOpponent}
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontWeight: 600,
-            fontSize: 16,
-            letterSpacing: '-0.005em',
-            flexShrink: 0,
-          }}
+          className="shrink-0 font-display text-[16px] font-semibold tracking-[-0.005em]"
         />
 
-        <span
-          style={{
-            fontSize: 13.5,
-            color: 'var(--fg-body)',
-            flex: 1,
-            fontFamily: 'var(--font-ui)',
-            marginLeft: 4,
-          }}
-        >
+        <span className="ml-1 flex-1 font-ui text-[13.5px] text-fg-body">
           {node.meaning || (
-            <em style={{ opacity: 0.45, color: 'var(--fg-muted)' }}>no meaning set</em>
+            <em className="text-fg-muted opacity-45">no meaning set</em>
           )}
         </span>
       </div>
 
       {open && hasChildren && (
-        <div
-          style={{
-            borderLeft: '1px dashed var(--border-strong)',
-            marginLeft: 13,
-            paddingLeft: 6,
-          }}
-        >
+        <div className="ml-[13px] border-l border-dashed border-border-strong pl-[6px]">
           {node.children.map((c) => (
             <BidTree key={c.id} {...props} node={c} depth={depth + 1} />
           ))}

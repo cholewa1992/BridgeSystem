@@ -1,255 +1,130 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createSystem, listSystems } from '../api/systems';
-import type { SystemSummary } from '../types';
 import { useAuth } from '../context/AuthContext';
-import {
-  buttonGhost,
-  buttonPrimary,
-  buttonSecondary,
-  cardStyle,
-  inputStyle,
-  labelStyle,
-} from '../styles';
+import { useCreateSystem, useSystems } from '../api/queries';
+import { Button, Card, Input, Label } from './ui';
 
 export function SystemList() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [systems, setSystems] = useState<SystemSummary[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data: systems, error: loadError } = useSystems();
+  const createMut = useCreateSystem();
+
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
 
-  useEffect(() => {
-    listSystems()
-      .then(setSystems)
-      .catch((e) => setError((e as Error).message));
-  }, []);
+  const error = (loadError ?? createMut.error) as Error | null;
 
   const onCreate = async () => {
     if (!newName.trim()) return;
     try {
-      const created = await createSystem(newName.trim(), newDescription.trim() || undefined);
+      const created = await createMut.mutateAsync({
+        name: newName.trim(),
+        description: newDescription.trim() || undefined,
+      });
       navigate(`/systems/${created.id}`);
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
+      // surfaced via createMut.error
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="min-h-screen bg-bg">
       {/* Header */}
-      <header
-        style={{
-          background: 'var(--surface)',
-          borderBottom: '1px solid var(--border)',
-          padding: '14px 32px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}
-      >
-        <div style={{ display: 'flex', gap: 3, fontSize: 16, opacity: 0.85 }}>
-          <span style={{ color: 'var(--suit-black)' }}>♠</span>
-          <span style={{ color: 'var(--suit-red)' }}>♥</span>
-          <span style={{ color: 'var(--suit-red)' }}>♦</span>
-          <span style={{ color: 'var(--suit-black)' }}>♣</span>
+      <header className="flex items-center gap-[14px] border-b border-border bg-surface px-8 py-[14px]">
+        <div className="flex gap-[3px] text-[16px] opacity-85">
+          <span className="text-suit-black">♠</span>
+          <span className="text-suit-red">♥</span>
+          <span className="text-suit-red">♦</span>
+          <span className="text-suit-black">♣</span>
         </div>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: 16,
-            fontWeight: 600,
-            color: 'var(--fg)',
-            fontFamily: 'var(--font-ui)',
-            letterSpacing: 0,
-          }}
-        >
-          Bridge System
-        </h1>
-        <div
-          style={{
-            marginLeft: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-          }}
-        >
-          <span
-            style={{
-              color: 'var(--fg-muted)',
-              fontSize: 13,
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            {user?.displayName}
-          </span>
-          <button onClick={() => logout()} style={buttonGhost}>
+        <h1 className="m-0 font-ui text-[16px] font-semibold text-fg">Bridge System</h1>
+        <div className="ml-auto flex items-center gap-[14px]">
+          <span className="font-ui text-[13px] text-fg-muted">{user?.displayName}</span>
+          <Button variant="ghost" onClick={() => logout()}>
             Sign out
-          </button>
+          </Button>
         </div>
       </header>
 
       {/* Page body */}
-      <main
-        style={{
-          maxWidth: 880,
-          margin: '0 auto',
-          padding: '48px 32px 80px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            gap: 16,
-            marginBottom: 28,
-          }}
-        >
+      <main className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[48px]">
+        <div className="mb-7 flex items-end justify-between gap-4">
           <div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 30,
-                fontWeight: 600,
-                color: 'var(--fg)',
-                fontFamily: 'var(--font-display)',
-                letterSpacing: '-0.015em',
-              }}
-            >
+            <h2 className="m-0 font-display text-[30px] font-semibold tracking-[-0.015em] text-fg">
               Your bidding systems
             </h2>
-            <p
-              style={{
-                margin: '6px 0 0',
-                color: 'var(--fg-muted)',
-                fontSize: 15,
-                fontFamily: 'var(--font-ui)',
-              }}
-            >
+            <p className="mb-0 mt-1.5 font-ui text-[15px] text-fg-muted">
               Document agreements you share with a partner.
             </p>
           </div>
           {!creating && (
-            <button onClick={() => setCreating(true)} style={buttonPrimary}>
+            <Button variant="primary" onClick={() => setCreating(true)}>
               New system
-            </button>
+            </Button>
           )}
         </div>
 
         {error && (
-          <div
-            style={{
-              background: 'var(--danger-soft)',
-              border: '1px solid #e6c8c4',
-              borderRadius: 'var(--radius-sm)',
-              padding: '10px 12px',
-              color: 'var(--danger)',
-              fontSize: 13,
-              fontFamily: 'var(--font-ui)',
-              marginBottom: 20,
-            }}
-          >
-            {error}
+          <div className="mb-5 rounded-sm border border-[#e6c8c4] bg-danger-soft px-[12px] py-[10px] font-ui text-[13px] text-danger">
+            {error.message}
           </div>
         )}
 
         {creating && (
-          <div style={{ ...cardStyle, padding: 20, marginBottom: 24 }}>
-            <div style={{ ...labelStyle, marginBottom: 12 }}>New system</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input
+          <Card className="mb-6 p-5">
+            <Label className="mb-3 block">New system</Label>
+            <div className="flex flex-col gap-2.5">
+              <Input
                 placeholder="Name (e.g. 2/1 Game Force)"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                style={inputStyle}
                 autoFocus
               />
-              <input
+              <Input
                 placeholder="Description (optional)"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
-                style={inputStyle}
               />
-              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                <button onClick={onCreate} style={buttonPrimary}>
-                  Create
-                </button>
-                <button
+              <div className="mt-1 flex gap-2">
+                <Button variant="primary" onClick={onCreate} disabled={createMut.isPending}>
+                  {createMut.isPending ? 'Creating…' : 'Create'}
+                </Button>
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setCreating(false);
                     setNewName('');
                     setNewDescription('');
                   }}
-                  style={buttonSecondary}
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
-        {systems === null ? (
-          <div style={{ color: 'var(--fg-muted)', fontSize: 14 }}>Loading…</div>
+        {systems === undefined ? (
+          <div className="text-[14px] text-fg-muted">Loading…</div>
         ) : systems.length === 0 ? (
-          <div
-            style={{
-              ...cardStyle,
-              padding: '40px 24px',
-              textAlign: 'center',
-              color: 'var(--fg-muted)',
-            }}
-          >
-            <div style={{ fontSize: 32, marginBottom: 10, opacity: 0.6 }}>♣</div>
-            <p style={{ margin: 0, fontSize: 15, fontFamily: 'var(--font-ui)' }}>
+          <Card className="px-6 py-10 text-center text-fg-muted">
+            <div className="mb-2.5 text-[32px] opacity-60">♣</div>
+            <p className="m-0 font-ui text-[15px]">
               No systems yet — create one to start documenting your agreements.
             </p>
-          </div>
+          </Card>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="flex flex-col gap-2.5">
             {systems.map((s) => (
               <button
                 key={s.id}
                 onClick={() => navigate(`/systems/${s.id}`)}
-                style={{
-                  ...cardStyle,
-                  display: 'block',
-                  textAlign: 'left',
-                  padding: '18px 22px',
-                  cursor: 'pointer',
-                  border: '1px solid var(--border)',
-                  fontFamily: 'var(--font-ui)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border-strong)';
-                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border)';
-                  e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-                }}
+                className="block cursor-pointer rounded-md border border-border bg-surface px-[22px] py-[18px] text-left font-ui shadow-sm transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md"
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'baseline',
-                    gap: 12,
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: 19,
-                      color: 'var(--fg)',
-                      fontFamily: 'var(--font-display)',
-                      fontWeight: 600,
-                      letterSpacing: '-0.005em',
-                    }}
-                  >
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <h3 className="m-0 font-display text-[19px] font-semibold tracking-[-0.005em] text-fg">
                     {s.name}
                   </h3>
                   <Tag tone={s.ownedByMe ? 'accent' : 'neutral'}>
@@ -259,16 +134,7 @@ export function SystemList() {
                   </Tag>
                 </div>
                 {s.description && (
-                  <p
-                    style={{
-                      margin: '8px 0 0',
-                      color: 'var(--fg-body)',
-                      fontSize: 14,
-                      fontFamily: 'var(--font-ui)',
-                    }}
-                  >
-                    {s.description}
-                  </p>
+                  <p className="mb-0 mt-2 font-ui text-[14px] text-fg-body">{s.description}</p>
                 )}
               </button>
             ))}
@@ -289,17 +155,10 @@ function Tag({
   const accent = tone === 'accent';
   return (
     <span
-      style={{
-        fontSize: 11,
-        fontWeight: 600,
-        letterSpacing: '0.05em',
-        textTransform: 'uppercase',
-        padding: '2px 8px',
-        borderRadius: 999,
-        background: accent ? 'var(--accent-soft)' : 'var(--surface-sunken)',
-        color: accent ? 'var(--accent-ink)' : 'var(--fg-muted)',
-        fontFamily: 'var(--font-ui)',
-      }}
+      className={
+        'rounded-full px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.05em] ' +
+        (accent ? 'bg-accent-soft text-accent-ink' : 'bg-surface-sunken text-fg-muted')
+      }
     >
       {children}
     </span>

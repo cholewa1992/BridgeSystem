@@ -29,52 +29,52 @@ fonts, suit colors). All work below keeps these tokens as the source of truth.
 
 ### Part 1 — Tailwind CSS
 
-- [ ] Install Tailwind v4 + `@tailwindcss/vite`; add `clsx`.
-- [ ] Register the Tailwind plugin in `frontend/vite.config.ts`.
-- [ ] In `index.css`: add the Tailwind import and an `@theme` block that maps
+- [x] Install Tailwind v4 + `@tailwindcss/vite`; add `clsx`.
+- [x] Register the Tailwind plugin in `frontend/vite.config.ts`.
+- [x] In `index.css`: add the Tailwind import and an `@theme` block that maps
       the existing `:root` custom properties into Tailwind's theme, so
       utilities resolve to current tokens (`bg-surface`, `text-fg-muted`,
       `rounded-md`, `shadow-md`, `border-border-strong`, `font-display/ui`,
       suit colors). Keep the `:root` block as the source of truth.
-- [ ] Create reusable components under `frontend/src/components/ui/`:
+- [x] Create reusable components under `frontend/src/components/ui/`:
       `Button.tsx` (variants primary/secondary/ghost/danger, size sm),
       `Card.tsx`, `Input.tsx`, `Textarea.tsx`, `Label.tsx`.
-- [ ] Trim `styles.ts` to the domain helpers only: `suitColor`, `suitOf`,
+- [x] Trim `styles.ts` to the domain helpers only: `suitColor`, `suitOf`,
       `SUITS` (these are bid logic, not styling).
-- [ ] Migrate components leaf-first, replacing inline styles with Tailwind
+- [x] Migrate components leaf-first, replacing inline styles with Tailwind
       utilities + `ui/` components, preserving exact visual output. Dynamic
       styles use conditional class strings / `clsx`:
-  - [ ] `BidLabel.tsx`
-  - [ ] `BidTree.tsx`
-  - [ ] `SystemList.tsx`
-  - [ ] `LoginPage.tsx`
-  - [ ] `ShareDialog.tsx`
-  - [ ] `BidDetailPanel.tsx`
-  - [ ] `SystemEditor.tsx`
-  - [ ] `BidForm.tsx`
+  - [x] `BidLabel.tsx`
+  - [x] `BidTree.tsx`
+  - [x] `SystemList.tsx`
+  - [x] `LoginPage.tsx`
+  - [x] `ShareDialog.tsx`
+  - [x] `BidDetailPanel.tsx`
+  - [x] `SystemEditor.tsx`
+  - [x] `BidForm.tsx`
 
 ### Part 2 — TanStack Query
 
-- [ ] Install `@tanstack/react-query` (+ optional devtools).
-- [ ] Wrap `<App/>` in `QueryClientProvider` in `main.tsx`.
-- [ ] Keep `api()` in `api/client.ts` as the transport (CSRF/credentials
+- [x] Install `@tanstack/react-query` (+ optional devtools).
+- [x] Wrap `<App/>` in `QueryClientProvider` in `main.tsx`.
+- [x] Keep `api()` in `api/client.ts` as the transport (CSRF/credentials
       handling stays). Query wraps it; it is not replaced.
-- [ ] New `api/queries.ts` hooks:
-  - [ ] `useSystems()` / `useSystem(id)`
-  - [ ] `useCreateSystem()` / `useUpdateSystem()` / `useDeleteSystem()`
+- [x] New `api/queries.ts` hooks:
+  - [x] `useSystems()` / `useSystem(id)`
+  - [x] `useCreateSystem()` / `useUpdateSystem()` / `useDeleteSystem()`
         (invalidate `['systems']` and `['system', id]`)
-  - [ ] `useShares(systemId)` / `useAddShare()` / `useRemoveShare()`
-- [ ] Refactor components:
-  - [ ] `SystemList` → `useSystems()` + create/delete mutations.
-  - [ ] `ShareDialog` → `useShares()` + mutations; drop the `busy` flag
+  - [x] `useShares(systemId)` / `useAddShare()` / `useRemoveShare()`
+- [x] Refactor components:
+  - [x] `SystemList` → `useSystems()` + create/delete mutations.
+  - [x] `ShareDialog` → `useShares()` + mutations; drop the `busy` flag
         (use `mutation.isPending`).
-  - [ ] `SystemEditor` → load via `useSystem(id)`; persist via
+  - [x] `SystemEditor` → load via `useSystem(id)`; persist via
         `useUpdateSystem()`. Keep the editable tree as local `root` state
         (seeded from query data). Collapse the `saveState` machine into
         `mutation.isPending`/`isError` + one local `dirty` flag. Both the
         debounced auto-save and the drag-to-move immediate save call the same
         mutation.
-- [ ] `AuthContext` stays as-is (app-global session) — see deferred note.
+- [x] `AuthContext` stays as-is (app-global session) — see deferred note.
 
 **Regression guard:** drag-to-move a bid continuation must still save and
 survive a page refresh (now via `useUpdateSystem`).

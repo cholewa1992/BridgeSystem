@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { clsx } from 'clsx';
 import {
   LEVELS,
   STRAINS,
@@ -12,13 +13,8 @@ import {
   type Level,
   type Strain,
 } from '../tree';
-import {
-  buttonPrimary,
-  buttonSecondary,
-  inputStyle,
-  labelStyle,
-  suitColor,
-} from '../styles';
+import { suitColor } from '../styles';
+import { Button, Input, Label, Textarea } from './ui';
 import { BidLabel } from './BidLabel';
 
 export interface BidFormData {
@@ -173,36 +169,22 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
   // ── No legal calls at all ─────────────────────────────────────────────
   if (!contractBidAllowed && !doubleAllowed && !redoubleAllowed) {
     return (
-      <div
-        style={{
-          background: 'var(--surface-2)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding: 16,
-        }}
-      >
-        <p style={{ margin: 0, color: 'var(--fg-muted)', fontSize: 14 }}>
+      <div className="rounded-md border border-border bg-surface-2 p-4">
+        <p className="m-0 text-[14px] text-fg-muted">
           No legal call available — 7NT redoubled is the ceiling.
         </p>
-        <div style={{ marginTop: 12 }}>
-          <button onClick={onCancel} style={buttonSecondary}>
+        <div className="mt-3">
+          <Button variant="secondary" onClick={onCancel}>
             Close
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        background: 'var(--surface-2)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-md)',
-        padding: 18,
-      }}
-    >
-      <div style={{ ...labelStyle, marginBottom: 12 }}>
+    <div className="rounded-md border border-border bg-surface-2 p-[18px]">
+      <Label className="mb-3 block">
         {mode === 'add'
           ? chain.lastContractBid
             ? `Continuation after ${chain.lastContractBid}${
@@ -210,21 +192,12 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
               }`
             : 'Opening call'
           : 'Edit call'}
-      </div>
+      </Label>
 
       {/* Call kind picker */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 6 }}>
-          Type of call
-        </div>
-        <div
-          style={{
-            display: 'inline-flex',
-            border: '1px solid var(--border-strong)',
-            borderRadius: 'var(--radius-sm)',
-            overflow: 'hidden',
-          }}
-        >
+      <div className="mb-[14px]">
+        <div className="mb-1.5 text-[12px] text-fg-muted">Type of call</div>
+        <div className="inline-flex overflow-hidden rounded-sm border border-border-strong">
           <SegBtn
             selected={kind === 'bid'}
             disabled={!contractBidAllowed}
@@ -241,10 +214,10 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
               doubleAllowed
                 ? 'Double'
                 : chain.hasActiveRedouble
-                ? 'Already redoubled'
-                : chain.hasActiveDouble
-                ? 'Already doubled'
-                : 'No contract bid to double'
+                  ? 'Already redoubled'
+                  : chain.hasActiveDouble
+                    ? 'Already doubled'
+                    : 'No contract bid to double'
             }
             color="var(--suit-red)"
           >
@@ -258,8 +231,8 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
               redoubleAllowed
                 ? 'Redouble'
                 : chain.hasActiveRedouble
-                ? 'Already redoubled'
-                : 'Redouble requires an active double'
+                  ? 'Already redoubled'
+                  : 'Redouble requires an active double'
             }
             color="var(--suit-nt)"
           >
@@ -271,11 +244,9 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
       {/* Level + strain (contract bids only) */}
       {kind === 'bid' && (
         <>
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 6 }}>
-              Level
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div className="mb-2.5">
+            <div className="mb-1.5 text-[12px] text-fg-muted">Level</div>
+            <div className="flex flex-wrap gap-1.5">
               {LEVELS.map((L) => (
                 <PickerButton
                   key={L}
@@ -289,21 +260,19 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
             </div>
           </div>
 
-          <div style={{ marginBottom: 6 }}>
-            <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 6 }}>
-              Strain(s)
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div className="mb-1.5">
+            <div className="mb-1.5 text-[12px] text-fg-muted">Strain(s)</div>
+            <div className="flex flex-wrap gap-1.5">
               {STRAINS.map((S) => {
                 const enabled = level ? isStrainAllowed(S, level) : false;
                 const isSymbolic = S === 'ma' || S === 'om';
                 const isText = S === 'NT' || isSymbolic;
                 const hint =
                   S === 'ma'
-                    ? 'Symbolic — the same major suit just bid (e.g. raise opener\'s major)'
+                    ? "Symbolic — the same major suit just bid (e.g. raise opener's major)"
                     : S === 'om'
-                    ? 'Symbolic — the other major suit (the one not bid)'
-                    : undefined;
+                      ? 'Symbolic — the other major suit (the one not bid)'
+                      : undefined;
                 return (
                   <PickerButton
                     key={S}
@@ -311,12 +280,13 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
                     disabled={!enabled}
                     onClick={() => toggleStrain(S)}
                     title={hint}
+                    className={clsx(
+                      'font-display font-semibold',
+                      isText ? 'text-[14px]' : 'text-[16px]',
+                      isSymbolic && 'italic',
+                    )}
                     style={{
                       color: enabled ? suitColor(S) : 'var(--fg-subtle)',
-                      fontFamily: 'var(--font-display)',
-                      fontWeight: 600,
-                      fontSize: isText ? 14 : 16,
-                      fontStyle: isSymbolic ? 'italic' : 'normal',
                       minWidth: 40,
                     }}
                   >
@@ -325,122 +295,81 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
                 );
               })}
             </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: 'var(--fg-subtle)',
-                marginTop: 6,
-                fontStyle: 'italic',
-              }}
-            >
+            <div className="mt-1.5 text-[12px] italic text-fg-subtle">
               Pick more than one for a group (e.g. 1♥/1♠).{' '}
-              <span style={{ color: 'var(--suit-symbolic)', fontStyle: 'italic' }}>ma</span> = same
-              major,{' '}
-              <span style={{ color: 'var(--suit-symbolic)', fontStyle: 'italic' }}>om</span> = other
-              major.
+              <span className="italic text-suit-symbolic">ma</span> = same major,{' '}
+              <span className="italic text-suit-symbolic">om</span> = other major.
             </div>
           </div>
         </>
       )}
 
       {/* Preview */}
-      <div
-        style={{
-          fontSize: 12,
-          color: 'var(--fg-muted)',
-          margin: '14px 0',
-          fontFamily: 'var(--font-ui)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-        }}
-      >
+      <div className="my-[14px] flex items-center gap-2 font-ui text-[12px] text-fg-muted">
         <span>Call{previewBids.length > 1 ? 's' : ''}:</span>
         {previewBids.length > 0 ? (
           <BidLabel
             bids={previewBids}
             byOpponent={byOpponent}
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              fontSize: 15,
-            }}
+            className="font-display text-[15px] font-semibold"
           />
         ) : (
-          <em style={{ color: 'var(--fg-subtle)' }}>nothing selected</em>
+          <em className="text-fg-subtle">nothing selected</em>
         )}
       </div>
 
       {/* Meaning */}
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 6 }}>
-          Meaning <span style={{ color: 'var(--danger)' }}>*</span>
+      <div className="mb-3">
+        <div className="mb-1.5 text-[12px] text-fg-muted">
+          Meaning <span className="text-danger">*</span>
         </div>
-        <input
+        <Input
           placeholder={
             kind === 'X'
               ? 'e.g. Takeout — partner should bid'
               : kind === 'XX'
-              ? 'e.g. Shows extra strength, asks partner to bid'
-              : 'e.g. Major-suit opening'
+                ? 'e.g. Shows extra strength, asks partner to bid'
+                : 'e.g. Major-suit opening'
           }
           value={meaning}
           onChange={(e) => setMeaning(e.target.value)}
-          style={{ ...inputStyle, width: '100%' }}
+          className="w-full"
           autoFocus={mode === 'edit'}
         />
       </div>
 
       {/* Notes */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 12, color: 'var(--fg-muted)', marginBottom: 6 }}>
-          Notes <span style={{ color: 'var(--fg-subtle)', fontStyle: 'italic' }}>(optional)</span>
+      <div className="mb-[14px]">
+        <div className="mb-1.5 text-[12px] text-fg-muted">
+          Notes <span className="italic text-fg-subtle">(optional)</span>
         </div>
-        <textarea
+        <Textarea
           placeholder="Longer explanation — when to use it, point ranges, partnership reminders…"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={4}
-          style={{
-            ...inputStyle,
-            width: '100%',
-            resize: 'vertical',
-            fontFamily: 'var(--font-body)',
-            fontSize: 14,
-            lineHeight: 1.5,
-          }}
+          className="w-full resize-y font-body leading-normal"
         />
       </div>
 
       {/* Interference */}
-      <label
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginBottom: 16,
-          fontSize: 14,
-          color: 'var(--fg-body)',
-          cursor: 'pointer',
-          userSelect: 'none',
-        }}
-      >
+      <label className="mb-4 flex cursor-pointer select-none items-center gap-2 text-[14px] text-fg-body">
         <input
           type="checkbox"
           checked={byOpponent}
           onChange={(e) => setByOpponent(e.target.checked)}
-          style={{ accentColor: 'var(--accent)' }}
+          className="accent-accent"
         />
         Call made by opponent
       </label>
 
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={submit} disabled={!canSubmit} style={buttonPrimary}>
+      <div className="flex gap-2">
+        <Button variant="primary" onClick={submit} disabled={!canSubmit}>
           {mode === 'add' ? 'Add' : 'Save'}
-        </button>
-        <button onClick={onCancel} style={buttonSecondary}>
+        </Button>
+        <Button variant="secondary" onClick={onCancel}>
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -453,6 +382,7 @@ function PickerButton({
   selected,
   disabled,
   onClick,
+  className,
   style,
   title,
 }: {
@@ -460,6 +390,7 @@ function PickerButton({
   selected: boolean;
   disabled?: boolean;
   onClick: () => void;
+  className?: string;
   style?: React.CSSProperties;
   title?: string;
 }) {
@@ -468,22 +399,14 @@ function PickerButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      style={{
-        minWidth: 36,
-        padding: '6px 10px',
-        borderRadius: 'var(--radius-sm)',
-        border: selected
-          ? '1px solid var(--accent)'
-          : '1px solid var(--border-strong)',
-        background: selected ? 'var(--accent-soft)' : 'var(--surface)',
-        color: selected ? 'var(--accent-ink)' : 'var(--fg)',
-        fontFamily: 'var(--font-ui)',
-        fontWeight: 500,
-        fontSize: 14,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.35 : 1,
-        ...style,
-      }}
+      style={style}
+      className={clsx(
+        'min-w-[36px] rounded-sm border px-[10px] py-[6px] font-ui text-[14px] font-medium disabled:cursor-not-allowed disabled:opacity-35',
+        selected
+          ? 'border-accent bg-accent-soft text-accent-ink'
+          : 'border-border-strong bg-surface text-fg',
+        className,
+      )}
     >
       {children}
     </button>
@@ -511,21 +434,16 @@ function SegBtn({
       disabled={disabled}
       title={title}
       style={{
-        padding: '6px 14px',
-        border: 'none',
-        borderRight: '1px solid var(--border-strong)',
-        background: selected ? 'var(--accent-soft)' : 'var(--surface)',
         color: selected
           ? 'var(--accent-ink)'
           : disabled
-          ? 'var(--fg-subtle)'
-          : color ?? 'var(--fg)',
-        fontFamily: 'var(--font-ui)',
-        fontWeight: selected ? 600 : 500,
-        fontSize: 13,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
+            ? 'var(--fg-subtle)'
+            : color ?? 'var(--fg)',
       }}
+      className={clsx(
+        'border-r border-border-strong px-[14px] py-[6px] font-ui text-[13px] disabled:cursor-not-allowed',
+        selected ? 'bg-accent-soft font-semibold' : 'bg-surface font-medium',
+      )}
     >
       {children}
     </button>

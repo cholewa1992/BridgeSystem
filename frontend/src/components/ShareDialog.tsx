@@ -1,236 +1,122 @@
-import { useEffect, useState } from 'react';
-import { addShare, listShares, removeShare } from '../api/sharing';
-import type { Share } from '../types';
-import {
-  buttonDanger,
-  buttonGhost,
-  buttonPrimary,
-  cardElevatedStyle,
-  inputStyle,
-  labelStyle,
-} from '../styles';
+import { useState } from 'react';
+import { useAddShare, useRemoveShare, useShares } from '../api/queries';
+import { Button, Input } from './ui';
+import { Label } from './ui';
 
 interface Props {
   systemId: string;
   onClose: () => void;
 }
 
+const selectClasses =
+  'w-[110px] bg-surface border border-border-strong rounded-sm text-fg text-[14px] px-[12px] py-[8px] outline-none';
+
 export function ShareDialog({ systemId, onClose }: Props) {
-  const [shares, setShares] = useState<Share[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data: shares, error: loadError } = useShares(systemId);
+  const addMut = useAddShare(systemId);
+  const removeMut = useRemoveShare(systemId);
+
   const [username, setUsername] = useState('');
   const [permission, setPermission] = useState<'READ' | 'WRITE'>('READ');
-  const [busy, setBusy] = useState(false);
 
-  const refresh = () => {
-    listShares(systemId)
-      .then(setShares)
-      .catch((e) => setError((e as Error).message));
-  };
-
-  useEffect(refresh, [systemId]);
+  const error = (loadError ?? addMut.error ?? removeMut.error) as Error | null;
 
   const onAdd = async () => {
     if (!username.trim()) return;
-    setBusy(true);
-    setError(null);
     try {
-      await addShare(systemId, username.trim(), permission);
+      await addMut.mutateAsync({ username: username.trim(), permission });
       setUsername('');
-      refresh();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const onRemove = async (u: string) => {
-    try {
-      await removeShare(systemId, u);
-      refresh();
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
+      // surfaced via addMut.error
     }
   };
 
   return (
     <div
       onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(31, 29, 26, 0.35)',
-        backdropFilter: 'blur(2px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-        zIndex: 100,
-      }}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(31,29,26,0.35)] p-6 backdrop-blur-[2px]"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          ...cardElevatedStyle,
-          boxShadow: 'var(--shadow-lg)',
-          padding: 24,
-          width: 520,
-          maxWidth: '100%',
-        }}
+        className="w-[520px] max-w-full rounded-lg border border-border bg-surface p-6 shadow-lg"
       >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            marginBottom: 18,
-          }}
-        >
+        <div className="mb-[18px] flex items-start">
           <div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 22,
-                color: 'var(--fg)',
-                fontFamily: 'var(--font-display)',
-                fontWeight: 600,
-                letterSpacing: '-0.01em',
-              }}
-            >
+            <h2 className="m-0 font-display text-[22px] font-semibold tracking-[-0.01em] text-fg">
               Share this system
             </h2>
-            <p
-              style={{
-                margin: '4px 0 0',
-                color: 'var(--fg-muted)',
-                fontSize: 13,
-                fontFamily: 'var(--font-ui)',
-              }}
-            >
+            <p className="mb-0 mt-1 font-ui text-[13px] text-fg-muted">
               Add a partner by username. Choose read or write access.
             </p>
           </div>
           <button
             onClick={onClose}
-            style={{
-              ...buttonGhost,
-              marginLeft: 'auto',
-              color: 'var(--fg-muted)',
-              fontSize: 16,
-              padding: '4px 8px',
-            }}
             aria-label="Close"
+            className="ml-auto cursor-pointer px-2 py-1 text-[16px] text-fg-muted"
           >
             ✕
           </button>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: 8,
-            marginBottom: 14,
-            alignItems: 'stretch',
-          }}
-        >
-          <input
+        <div className="mb-[14px] flex items-stretch gap-2">
+          <Input
             placeholder="Partner's username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            style={{ ...inputStyle, flex: 1 }}
+            className="flex-1"
           />
           <select
             value={permission}
             onChange={(e) => setPermission(e.target.value as 'READ' | 'WRITE')}
-            style={{ ...inputStyle, width: 110 }}
+            className={selectClasses}
           >
             <option value="READ">Read</option>
             <option value="WRITE">Write</option>
           </select>
-          <button onClick={onAdd} disabled={busy} style={buttonPrimary}>
-            Share
-          </button>
+          <Button variant="primary" onClick={onAdd} disabled={addMut.isPending}>
+            {addMut.isPending ? 'Sharing…' : 'Share'}
+          </Button>
         </div>
 
         {error && (
-          <div
-            style={{
-              background: 'var(--danger-soft)',
-              border: '1px solid #e6c8c4',
-              borderRadius: 'var(--radius-sm)',
-              padding: '8px 12px',
-              color: 'var(--danger)',
-              fontSize: 13,
-              marginBottom: 14,
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            {error}
+          <div className="mb-[14px] rounded-sm border border-[#e6c8c4] bg-danger-soft px-[12px] py-[8px] font-ui text-[13px] text-danger">
+            {error.message}
           </div>
         )}
 
-        <div style={{ ...labelStyle, marginBottom: 8 }}>Collaborators</div>
-        {shares === null ? (
-          <div style={{ color: 'var(--fg-muted)', fontSize: 13 }}>Loading…</div>
+        <Label className="mb-2 block">Collaborators</Label>
+        {shares === undefined ? (
+          <div className="text-[13px] text-fg-muted">Loading…</div>
         ) : shares.length === 0 ? (
-          <div
-            style={{
-              color: 'var(--fg-muted)',
-              fontStyle: 'italic',
-              fontSize: 13,
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            No collaborators yet.
-          </div>
+          <div className="font-ui text-[13px] italic text-fg-muted">No collaborators yet.</div>
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              overflow: 'hidden',
-            }}
-          >
-            {shares.map((s, i) => (
+          <div className="flex flex-col overflow-hidden rounded-sm border border-border">
+            {shares.map((s) => (
               <div
                 key={s.username}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '10px 14px',
-                  borderTop: i === 0 ? 'none' : '1px solid var(--border)',
-                  background: 'var(--surface)',
-                  fontFamily: 'var(--font-ui)',
-                }}
+                className="flex items-center gap-2.5 border-t border-border bg-surface px-[14px] py-[10px] font-ui first:border-t-0"
               >
                 <div>
-                  <div style={{ color: 'var(--fg)', fontSize: 14 }}>{s.displayName}</div>
-                  <div style={{ color: 'var(--fg-muted)', fontSize: 12 }}>@{s.username}</div>
+                  <div className="text-[14px] text-fg">{s.displayName}</div>
+                  <div className="text-[12px] text-fg-muted">@{s.username}</div>
                 </div>
                 <span
-                  style={{
-                    marginLeft: 'auto',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.05em',
-                    color:
-                      s.permission === 'WRITE' ? 'var(--success)' : 'var(--fg-muted)',
-                    padding: '2px 8px',
-                    background:
-                      s.permission === 'WRITE'
-                        ? 'var(--success-soft)'
-                        : 'var(--surface-sunken)',
-                    borderRadius: 999,
-                  }}
+                  className={
+                    'ml-auto rounded-full px-2 py-0.5 text-[11px] font-semibold tracking-[0.05em] ' +
+                    (s.permission === 'WRITE'
+                      ? 'bg-success-soft text-success'
+                      : 'bg-surface-sunken text-fg-muted')
+                  }
                 >
                   {s.permission}
                 </span>
-                <button onClick={() => onRemove(s.username)} style={buttonDanger}>
+                <Button
+                  variant="danger"
+                  onClick={() => removeMut.mutate(s.username)}
+                  disabled={removeMut.isPending}
+                >
                   Remove
-                </button>
+                </Button>
               </div>
             ))}
           </div>
