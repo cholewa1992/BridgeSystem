@@ -28,13 +28,6 @@ spec:
                 name: {{ include "bridge-system.backendName" . }}
                 port:
                   number: 8080
-          - path: /actuator
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ include "bridge-system.backendName" . }}
-                port:
-                  number: 8080
           - path: /
             pathType: Prefix
             backend:

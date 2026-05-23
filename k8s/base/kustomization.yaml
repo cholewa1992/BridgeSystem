@@ -8,6 +8,18 @@ resources:
   - backend.yaml
   - frontend.yaml
   - ingress.yaml
+  - hpa.yaml
+  - pdb.yaml
 
 commonLabels:
   app.kubernetes.io/part-of: bridge-system
+
+# Override newTag in an overlay, e.g.:
+#   images:
+#     - name: ghcr.io/cholewa1992/bridge-system-backend
+#       newTag: "1.2.3"
+images:
+  - name: ghcr.io/cholewa1992/bridge-system-backend
+    newTag: "0.1.0"
+  - name: ghcr.io/cholewa1992/bridge-system-frontend
+    newTag: "0.1.0"
