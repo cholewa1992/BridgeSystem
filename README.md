@@ -9,8 +9,6 @@ A web app for documenting bridge bidding system agreements with a partner. Tree-
 - **Container** — separate images per service. nginx fronts the SPA and proxies `/api`.
 - **Deploy** — Helm chart at `helm/bridge-system/` plus raw Kustomize manifests under `k8s/`.
 
-See [HANDOFF.md](HANDOFF.md) for the full design doc — schema, REST surface, WebAuthn ceremony details, configuration knobs.
-
 ## Repository layout
 
 ```
