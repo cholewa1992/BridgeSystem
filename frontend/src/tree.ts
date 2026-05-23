@@ -81,18 +81,12 @@ export function treeFromRoot(root: BidNode): BidTreeRoot {
   return { children: root.children };
 }
 
-function isBidValidInContext(bid: string, ctx: ChainContext): boolean {
-  if (bid === 'X') return ctx.lastContractBid !== null && !ctx.hasActiveDouble && !ctx.hasActiveRedouble;
-  if (bid === 'XX') return ctx.hasActiveDouble && !ctx.hasActiveRedouble;
-  const p = parseBid(bid);
-  if (!p) return false;
-  return isValidContinuation(p, ctx.lastContractBid ? parseBid(ctx.lastContractBid) : null);
-}
-
 export function canDropNode(root: BidNode, nodeId: string, targetParentId: string): boolean {
   const node = findNode(root, nodeId);
   if (!node) return false;
+  // Can't drop into own subtree (includes self)
   if (findNode(node, targetParentId) !== null) return false;
+  // Prevent no-op drop onto current parent
   const path = pathTo(root, nodeId);
   if (path && path.length >= 2 && path[path.length - 2].id === targetParentId) return false;
   const ctx = addChainContext(root, targetParentId);
@@ -287,4 +281,12 @@ export function editChainContext(root: BidNode, nodeId: string): ChainContext {
     return { lastContractBid: null, hasActiveDouble: false, hasActiveRedouble: false };
   }
   return chainContextFromNodes(path.slice(0, -1).filter((n) => n.bids.length > 0));
+}
+
+function isBidValidInContext(bid: string, ctx: ChainContext): boolean {
+  if (bid === 'X') return ctx.lastContractBid !== null && !ctx.hasActiveDouble && !ctx.hasActiveRedouble;
+  if (bid === 'XX') return ctx.hasActiveDouble && !ctx.hasActiveRedouble;
+  const p = parseBid(bid);
+  if (!p) return false;
+  return isValidContinuation(p, ctx.lastContractBid ? parseBid(ctx.lastContractBid) : null);
 }

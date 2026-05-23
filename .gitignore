@@ -45,6 +45,7 @@ desktop.ini
 .env.local
 .env.*.local
 *.pem
+application-local.properties
 
 # ── Build / logs ───────────────────────────────────────────────────────────
 *.log

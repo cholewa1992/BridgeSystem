@@ -1,6 +1,11 @@
 package com.bridgesystem.config;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,15 +16,21 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import org.springframework.security.web.csrf.DeferredCsrfToken;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.OncePerRequestFilter;
 
+import java.io.IOException;
 import java.util.List;
 
 @Configuration
 public class SecurityConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -49,7 +60,15 @@ public class SecurityConfig {
                     .requestMatchers("/api/**").authenticated()
                     .anyRequest().permitAll()
             )
-            .exceptionHandling(eh -> eh.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+            .exceptionHandling(eh -> eh
+                    .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+                    .accessDeniedHandler((req, res, ex) -> {
+                        log.warn("Access denied: {} {} — {}", req.getMethod(), req.getRequestURI(), ex.getMessage());
+                        res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        res.setContentType("application/json");
+                        res.getWriter().write("{\"status\":403,\"message\":\"" + ex.getMessage() + "\"}");
+                    })
+            )
             .logout(l -> l
                     .logoutUrl("/api/auth/logout")
                     .logoutSuccessHandler((req, res, auth) -> res.setStatus(HttpServletResponse.SC_NO_CONTENT))
@@ -58,7 +77,30 @@ public class SecurityConfig {
             .httpBasic(AbstractHttpConfigurer::disable)
             .formLogin(AbstractHttpConfigurer::disable);
 
+        // Force the deferred CSRF token to be loaded on every response so the
+        // XSRF-TOKEN cookie is always present for the SPA to read.
+        http.addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class);
+
         return http.build();
+    }
+
+    private static final class CsrfCookieFilter extends OncePerRequestFilter {
+        @Override
+        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+                throws ServletException, IOException {
+            DeferredCsrfToken deferredToken = (DeferredCsrfToken) request.getAttribute(DeferredCsrfToken.class.getName());
+            if (deferredToken != null) {
+                var token = deferredToken.get(); // writes the XSRF-TOKEN cookie if not already set
+                log.debug("CSRF cookie filter: {} {} — token={}, generated={}",
+                        request.getMethod(), request.getRequestURI(),
+                        token != null ? token.getToken().substring(0, 8) + "…" : "null",
+                        deferredToken.isGenerated());
+            } else {
+                log.debug("CSRF cookie filter: {} {} — no deferred token in request (CSRF ignored for this path)",
+                        request.getMethod(), request.getRequestURI());
+            }
+            filterChain.doFilter(request, response);
+        }
     }
 
     @Bean

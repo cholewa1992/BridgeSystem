@@ -22,7 +22,9 @@ export function BidTree(props: Props) {
   const [dragOver, setDragOver] = useState(false);
   const hasChildren = (node.children?.length ?? 0) > 0;
   const isDragging = props.draggingId === node.id;
-  const isValidDrop = dragOver && !!props.draggingId && (props.canDrop?.(node.id) ?? false);
+  // canDrop reads from a ref in SystemEditor so it's always current,
+  // even before draggingId state has propagated through React.
+  const isValidDrop = dragOver && (props.canDrop?.(node.id) ?? false);
 
   // Synthetic root — render children only
   if (node.bids.length === 0) {
@@ -63,10 +65,10 @@ export function BidTree(props: Props) {
           e.stopPropagation();
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', node.id);
-          // Delay so the browser captures the ghost image before React re-renders
-          // the row with reduced opacity — otherwise Safari cancels the drag.
-          const id = node.id;
-          setTimeout(() => props.onDragStart?.(id), 0);
+          // Call synchronously — SystemEditor writes the ref immediately and
+          // delays the setState internally so Safari captures the ghost image
+          // before the opacity re-render.
+          props.onDragStart?.(node.id);
         }}
         onDragEnd={() => {
           setDragOver(false);
@@ -74,7 +76,8 @@ export function BidTree(props: Props) {
         }}
         onDragOver={(e) => {
           e.stopPropagation();
-          if (props.draggingId && props.canDrop?.(node.id)) {
+          // canDrop reads from a ref — valid even before React state has settled.
+          if (props.canDrop?.(node.id)) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
             setDragOver(true);
@@ -90,7 +93,7 @@ export function BidTree(props: Props) {
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);
-          if (props.draggingId && props.canDrop?.(node.id)) {
+          if (props.canDrop?.(node.id)) {
             props.onDrop?.(node.id);
           }
         }}

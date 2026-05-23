@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { BidNode, SystemDetail } from '../types';
 import { deleteSystem, getSystem, updateSystem } from '../api/systems';
@@ -41,6 +41,7 @@ export function SystemEditor() {
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const draggingIdRef = useRef<string | null>(null);
   const [rootDragOver, setRootDragOver] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [systemName, setSystemName] = useState('');
@@ -157,17 +158,46 @@ export function SystemEditor() {
     markDirty();
   };
 
-  const handleMove = useCallback((newParentId: string) => {
-    if (!root || !draggingId) return;
-    setRoot(moveNode(root, draggingId, newParentId));
+  const handleMove = (newParentId: string) => {
+    const id = draggingIdRef.current;
+    if (!root || !id) return;
+    const newRoot = moveNode(root, id, newParentId);
+    setRoot(newRoot);
+    draggingIdRef.current = null;
     setDraggingId(null);
-    markDirty();
-  }, [root, draggingId]);
+    if (!detail || readOnly) return;
+    setSaveState('saving');
+    updateSystem(detail.id, {
+      name: systemName,
+      description: detail.description ?? '',
+      tree: treeFromRoot(newRoot),
+    }).then((updated) => {
+      setDetail(updated);
+      setSaveState('saved');
+      window.setTimeout(() => setSaveState((s) => (s === 'saved' ? 'idle' : s)), 1500);
+    }).catch((e: unknown) => {
+      setError((e as Error).message);
+      setSaveState('dirty');
+    });
+  };
 
-  const canDropHere = useCallback((targetParentId: string): boolean => {
-    if (!root || !draggingId) return false;
-    return canDropNode(root, draggingId, targetParentId);
-  }, [root, draggingId]);
+  const canDropHere = (targetParentId: string): boolean => {
+    const id = draggingIdRef.current;
+    if (!root || !id) return false;
+    return canDropNode(root, id, targetParentId);
+  };
+
+  const startDrag = (id: string) => {
+    draggingIdRef.current = id;
+    // Delay the state update so the browser captures the ghost image before
+    // React re-renders the row with reduced opacity (Safari fix).
+    setTimeout(() => setDraggingId(id), 0);
+  };
+
+  const endDrag = () => {
+    draggingIdRef.current = null;
+    setDraggingId(null);
+  };
 
   const deleteSelected = () => {
     if (!root || !selected) return;
@@ -362,8 +392,8 @@ export function SystemEditor() {
             onSelect={select}
             readOnly={readOnly}
             draggingId={draggingId}
-            onDragStart={setDraggingId}
-            onDragEnd={() => setDraggingId(null)}
+            onDragStart={startDrag}
+            onDragEnd={endDrag}
             onDrop={handleMove}
             canDrop={canDropHere}
           />
