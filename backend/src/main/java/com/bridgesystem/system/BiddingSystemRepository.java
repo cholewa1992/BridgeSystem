@@ -1,5 +1,6 @@
 package com.bridgesystem.system;
 
+import com.bridgesystem.sharing.SystemLike;
 import com.bridgesystem.user.AppUser;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -21,4 +22,17 @@ public interface BiddingSystemRepository extends JpaRepository<BiddingSystem, UU
             ORDER BY s.updatedAt DESC
             """)
     List<BiddingSystem> findAccessibleBy(@Param("userId") UUID userId);
+
+    List<BiddingSystem> findAllByIsPublicTrueOrderByUpdatedAtDesc();
+
+    List<BiddingSystem> findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(AppUser owner);
+
+    long countByForkedFrom(BiddingSystem original);
+
+    @Query("""
+            SELECT s FROM BiddingSystem s
+            WHERE s.isPublic = true
+            ORDER BY (SELECT COUNT(l) FROM SystemLike l WHERE l.system = s) DESC, s.updatedAt DESC
+            """)
+    List<BiddingSystem> findAllPublicOrderByLikesDesc();
 }

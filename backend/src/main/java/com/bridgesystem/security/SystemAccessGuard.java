@@ -5,6 +5,7 @@ import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.system.BiddingSystem;
 import com.bridgesystem.system.BiddingSystemRepository;
 import com.bridgesystem.user.AppUser;
+import org.springframework.lang.Nullable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,9 +35,17 @@ public class SystemAccessGuard {
     }
 
     @Transactional(readOnly = true)
-    public BiddingSystem requireAccess(UUID systemId, AppUser user, Permission required) {
+    public BiddingSystem requireAccess(UUID systemId, @Nullable AppUser user, Permission required) {
         BiddingSystem system = systemRepository.findById(systemId)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "System not found"));
+
+        // Anonymous users may only read public systems; all mutations require auth.
+        if (user == null) {
+            if (required == Permission.READ && system.isPublic()) {
+                return system;
+            }
+            throw new AccessDeniedException("Not authenticated");
+        }
 
         boolean isOwner = system.getOwner().getId().equals(user.getId());
 
@@ -54,6 +63,7 @@ public class SystemAccessGuard {
                 break;
             case READ:
                 if (isOwner) break;
+                if (system.isPublic()) break;
                 shareRepository.findBySystemAndSharedWith(system, user)
                         .orElseThrow(() -> new AccessDeniedException("Not authorized"));
                 break;

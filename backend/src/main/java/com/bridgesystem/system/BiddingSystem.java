@@ -14,6 +14,7 @@ import org.hibernate.annotations.Type;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
+import org.springframework.lang.Nullable;
 
 @Entity
 @Table(name = "bidding_system")
@@ -36,6 +37,14 @@ public class BiddingSystem {
     @Column(name = "tree_json", nullable = false, columnDefinition = "jsonb")
     private String treeJson;
 
+    @Column(name = "is_public", nullable = false)
+    private boolean isPublic = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "forked_from_id")
+    @Nullable
+    private BiddingSystem forkedFrom;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -53,6 +62,13 @@ public class BiddingSystem {
         this.treeJson = treeJson;
         this.createdAt = OffsetDateTime.now();
         this.updatedAt = this.createdAt;
+    }
+
+    /** Fork constructor — creates a deep copy owned by {@code newOwner}. */
+    public BiddingSystem(UUID id, AppUser newOwner, String name, String description, String treeJson,
+                         BiddingSystem forkedFrom) {
+        this(id, newOwner, name, description, treeJson);
+        this.forkedFrom = forkedFrom;
     }
 
     @PreUpdate
@@ -98,5 +114,18 @@ public class BiddingSystem {
 
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public boolean isPublic() {
+        return isPublic;
+    }
+
+    public void setIsPublic(boolean isPublic) {
+        this.isPublic = isPublic;
+    }
+
+    @Nullable
+    public BiddingSystem getForkedFrom() {
+        return forkedFrom;
     }
 }

@@ -1,13 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { BidTreeRoot, Share, SystemDetail, SystemSummary } from '../types';
-import { createSystem, deleteSystem, getSystem, listSystems, updateSystem } from './systems';
+import type { BidTreeRoot, Share, SystemDetail, SystemSummary, UserProfile } from '../types';
+import {
+  createSystem,
+  deleteSystem,
+  forkSystem,
+  getSystem,
+  listSystems,
+  updateSystem,
+  updateVisibility,
+} from './systems';
 import { addShare, listShares, removeShare } from './sharing';
+import { listPublicSystems } from './gallery';
+import { likeSystem, unlikeSystem } from './likes';
+import { getUserProfile, getUserPublicSystems } from './users';
 
 /** Centralized query keys so invalidations stay consistent. */
 export const queryKeys = {
   systems: ['systems'] as const,
   system: (id: string) => ['system', id] as const,
   shares: (systemId: string) => ['shares', systemId] as const,
+  gallery: (sort: string) => ['gallery', sort] as const,
+  userProfile: (username: string) => ['user', username] as const,
+  userSystems: (username: string) => ['user', username, 'systems'] as const,
 };
 
 // ── Systems ────────────────────────────────────────────────────────────────
@@ -62,6 +76,50 @@ export function useDeleteSystem() {
   });
 }
 
+export function useForkSystem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => forkSystem(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.systems }),
+  });
+}
+
+export function useUpdateVisibility() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isPublic }: { id: string; isPublic: boolean }) =>
+      updateVisibility(id, isPublic),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: queryKeys.system(id) });
+      qc.invalidateQueries({ queryKey: queryKeys.systems });
+      qc.invalidateQueries({ queryKey: queryKeys.gallery('newest') });
+      qc.invalidateQueries({ queryKey: queryKeys.gallery('most_liked') });
+    },
+  });
+}
+
+// ── Gallery ───────────────────────────────────────────────────────────────
+
+export function usePublicSystems(sort: 'newest' | 'most_liked' = 'newest') {
+  return useQuery({
+    queryKey: queryKeys.gallery(sort),
+    queryFn: () => listPublicSystems(sort),
+  });
+}
+
+export function useToggleLike(systemId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ liked }: { liked: boolean }) =>
+      liked ? unlikeSystem(systemId) : likeSystem(systemId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.gallery('newest') });
+      qc.invalidateQueries({ queryKey: queryKeys.gallery('most_liked') });
+      qc.invalidateQueries({ queryKey: queryKeys.systems });
+    },
+  });
+}
+
 // ── Shares ───────────────────────────────────────────────────────────────
 
 export function useShares(systemId: string) {
@@ -89,5 +147,21 @@ export function useRemoveShare(systemId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.shares(systemId) });
     },
+  });
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────
+
+export function useUserProfile(username: string) {
+  return useQuery<UserProfile>({
+    queryKey: queryKeys.userProfile(username),
+    queryFn: () => getUserProfile(username),
+  });
+}
+
+export function useUserSystems(username: string) {
+  return useQuery<SystemSummary[]>({
+    queryKey: queryKeys.userSystems(username),
+    queryFn: () => getUserPublicSystems(username),
   });
 }

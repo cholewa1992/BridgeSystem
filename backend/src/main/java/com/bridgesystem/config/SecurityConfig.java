@@ -53,6 +53,11 @@ public class SecurityConfig {
                             "/api/auth/login/**",
                             "/actuator/health/**"
                     ).permitAll()
+                    // Gallery and user profiles are publicly readable; individual system
+                    // GET access for public systems is enforced by SystemAccessGuard.
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/gallery/**").permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/**").permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/systems/**").permitAll()
                     .requestMatchers("/api/**").authenticated()
                     .anyRequest().permitAll()
             )
@@ -90,7 +95,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
         cfg.setAllowedOrigins(allowedOrigins);
-        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cfg.setAllowedHeaders(List.of("*"));
         cfg.setExposedHeaders(List.of("X-XSRF-TOKEN"));
         cfg.setAllowCredentials(true);

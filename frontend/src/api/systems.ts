@@ -29,3 +29,14 @@ export function updateSystem(
 export function deleteSystem(id: string): Promise<void> {
   return api(`/api/systems/${id}`, { method: 'DELETE' });
 }
+
+export function forkSystem(id: string): Promise<SystemDetail> {
+  return api<SystemDetail>(`/api/systems/${id}/fork`, { method: 'POST' });
+}
+
+export function updateVisibility(id: string, isPublic: boolean): Promise<SystemDetail> {
+  return api<SystemDetail>(`/api/systems/${id}/visibility`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isPublic }),
+  });
+}

@@ -18,7 +18,17 @@ public final class BiddingSystemDtos {
             String ownerUsername,
             boolean ownedByMe,
             String permission,
-            OffsetDateTime updatedAt
+            OffsetDateTime updatedAt,
+            boolean isPublic,
+            long likeCount,
+            int forkCount,
+            Boolean likedByMe
+    ) {}
+
+    public record ForkedFromRef(
+            String id,
+            String name,
+            String ownerUsername
     ) {}
 
     public record SystemDetail(
@@ -30,7 +40,12 @@ public final class BiddingSystemDtos {
             String permission,
             JsonNode tree,
             OffsetDateTime createdAt,
-            OffsetDateTime updatedAt
+            OffsetDateTime updatedAt,
+            boolean isPublic,
+            long likeCount,
+            int forkCount,
+            Boolean likedByMe,
+            ForkedFromRef forkedFrom
     ) {}
 
     public record CreateRequest(
@@ -42,5 +57,16 @@ public final class BiddingSystemDtos {
             @NotBlank @Size(max = 200) String name,
             @Size(max = 4000) String description,
             JsonNode tree
+    ) {}
+
+    public record VisibilityRequest(boolean isPublic) {}
+
+    public record LikeResponse(long likeCount, boolean likedByMe) {}
+
+    public record UserProfileDto(
+            String username,
+            String displayName,
+            OffsetDateTime createdAt,
+            int publicSystemCount
     ) {}
 }
