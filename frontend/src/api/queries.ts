@@ -116,6 +116,7 @@ export function useToggleLike(systemId: string) {
       qc.invalidateQueries({ queryKey: queryKeys.gallery('newest') });
       qc.invalidateQueries({ queryKey: queryKeys.gallery('most_liked') });
       qc.invalidateQueries({ queryKey: queryKeys.systems });
+      qc.invalidateQueries({ queryKey: ['user'] });
     },
   });
 }

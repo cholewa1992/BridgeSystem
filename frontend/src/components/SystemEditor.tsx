@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import type { BidNode, SystemDetail } from '../types';
 import {
   useDeleteSystem,
@@ -34,6 +35,7 @@ type SaveState = 'idle' | 'saving' | 'dirty' | 'saved';
 export function SystemEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: detail, error: loadError } = useSystem(id);
   const updateMut = useUpdateSystem(id ?? '');
@@ -330,10 +332,17 @@ export function SystemEditor() {
               </Button>
             </>
           )}
-          {detail.permission !== 'OWNER' && (
-            <Button variant="secondary" onClick={onFork} loading={forkMut.isPending}>
-              Fork
-            </Button>
+          {user && detail.permission !== 'OWNER' && (
+            <>
+              {forkMut.isError && (
+                <span className="font-ui text-[13px] text-danger">
+                  {(forkMut.error as Error)?.message ?? 'Fork failed'}
+                </span>
+              )}
+              <Button variant="secondary" onClick={onFork} loading={forkMut.isPending}>
+                Fork
+              </Button>
+            </>
           )}
         </div>
       </header>
