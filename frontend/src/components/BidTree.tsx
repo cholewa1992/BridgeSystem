@@ -89,7 +89,7 @@ export function BidTree(props: Props) {
           isValidDrop
             ? 'bg-accent-soft border-accent'
             : isSelected
-              ? 'bg-accent-soft border-[#ecd2c5]'
+              ? 'bg-accent-soft border-accent-border'
               : hovered
                 ? 'bg-surface-2 border-transparent'
                 : 'border-transparent',
@@ -99,7 +99,7 @@ export function BidTree(props: Props) {
         {/* Drag handle — visible on hover when editable */}
         <span
           className={clsx(
-            'w-[10px] shrink-0 cursor-grab text-[11px] leading-none text-fg-subtle',
+            'w-[10px] shrink-0 cursor-grab text-2xs leading-none text-fg-subtle',
             showHandle ? 'opacity-50' : 'opacity-0',
           )}
         >
@@ -126,10 +126,10 @@ export function BidTree(props: Props) {
         <BidLabel
           bids={node.bids}
           byOpponent={node.byOpponent}
-          className="shrink-0 font-display text-[16px] font-semibold tracking-[-0.005em]"
+          className="shrink-0 font-display text-base font-semibold tracking-[-0.005em]"
         />
 
-        <span className="ml-1 flex-1 font-ui text-[13.5px] text-fg-body">
+        <span className="ml-1 flex-1 font-ui text-[13px] text-fg-body">
           {node.meaning || <em className="text-fg-muted opacity-45">no meaning set</em>}
         </span>
       </div>

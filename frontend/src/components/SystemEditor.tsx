@@ -273,13 +273,13 @@ export function SystemEditor() {
             onBlur={onRename}
             onKeyDown={(e) => e.key === 'Enter' && onRename()}
             autoFocus
-            className="flex-1 font-display text-[18px] font-semibold"
+            className="flex-1 font-display text-lg font-semibold"
           />
         ) : (
           <h1
             onClick={() => !readOnly && setEditingName(true)}
             className={clsx(
-              'm-0 font-display text-[18px] font-semibold tracking-[-0.005em] text-fg',
+              'm-0 font-display text-lg font-semibold tracking-[-0.005em] text-fg',
               readOnly ? 'cursor-default' : 'cursor-pointer',
             )}
             title={readOnly ? '' : 'Click to rename'}
@@ -423,7 +423,7 @@ function SaveIndicator({
   return (
     <span
       className={clsx(
-        'inline-flex items-center gap-1.5 font-ui text-[12px] font-medium',
+        'inline-flex items-center gap-1.5 font-ui text-xs font-medium',
         colorClass,
       )}
     >
