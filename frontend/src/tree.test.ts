@@ -317,6 +317,13 @@ describe('canDropNode / moveNode', () => {
     expect(findNode(moved, 'A')?.children.map((c) => c.id)).toContain('C');
   });
 
+  it('moveNode inserts the node in bid-rank order', () => {
+    const r = build();
+    // D(1♦) moved under A(1♣): A already has B(2♣). 1♦ < 2♣, so D sorts before B.
+    const moved = moveNode(r, 'D', 'A');
+    expect(findNode(moved, 'A')?.children.map((c) => c.id)).toEqual(['D', 'B']);
+  });
+
   it('moveNode is a no-op for an unknown node', () => {
     const r = build();
     expect(moveNode(r, 'ghost', 'A')).toBe(r);
