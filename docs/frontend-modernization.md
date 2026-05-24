@@ -94,8 +94,8 @@ survive a page refresh (now via `useUpdateSystem`).
 - [ ] Then `LoginPage` and the `SystemList` create form.
 
 ### ESLint flat config + Prettier
-- [ ] Add `eslint.config.js` (flat) wiring the already-installed plugins.
-- [ ] Add `.prettierrc` + `format` / `lint` scripts; wire into CI.
+- [x] Add `eslint.config.js` (flat) wiring the already-installed plugins.
+- [x] Add `.prettierrc` + `format` / `lint` scripts; wire into CI.
 
 ### Optional
 - [ ] `useCurrentUser()` query to back `AuthContext`, with logout-on-401.

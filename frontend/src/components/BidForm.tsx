@@ -39,20 +39,17 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
     () => parseBid(chain.lastContractBid),
     [chain.lastContractBid],
   );
-  const minContract = useMemo(
-    () => minValidBidAfter(parsedLastContract),
-    [parsedLastContract],
-  );
+  const minContract = useMemo(() => minValidBidAfter(parsedLastContract), [parsedLastContract]);
 
-  const doubleAllowed = !!chain.lastContractBid && !chain.hasActiveDouble && !chain.hasActiveRedouble;
+  const doubleAllowed =
+    !!chain.lastContractBid && !chain.hasActiveDouble && !chain.hasActiveRedouble;
   const redoubleAllowed = chain.hasActiveDouble && !chain.hasActiveRedouble;
   const contractBidAllowed = !!minContract;
 
   // ── Initial state ─────────────────────────────────────────────────────
-  const initialBids = initial?.bids ?? [];
+  const initialBids = useMemo(() => initial?.bids ?? [], [initial?.bids]);
   const firstInitial = initialBids[0];
-  const initialKind: CallKind =
-    firstInitial === 'X' ? 'X' : firstInitial === 'XX' ? 'XX' : 'bid';
+  const initialKind: CallKind = firstInitial === 'X' ? 'X' : firstInitial === 'XX' ? 'XX' : 'bid';
 
   /** Derive level + strains from a group of contract-bid strings. */
   const derived = useMemo(() => {
@@ -75,9 +72,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
     return 'bid';
   });
 
-  const [level, setLevel] = useState<Level | null>(
-    derived?.level ?? (minContract?.level ?? null),
-  );
+  const [level, setLevel] = useState<Level | null>(derived?.level ?? minContract?.level ?? null);
   const [strains, setStrains] = useState<Strain[]>(
     derived?.strains ?? (minContract ? [minContract.strain] : []),
   );
@@ -438,7 +433,7 @@ function SegBtn({
           ? 'var(--accent-ink)'
           : disabled
             ? 'var(--fg-subtle)'
-            : color ?? 'var(--fg)',
+            : (color ?? 'var(--fg)'),
       }}
       className={clsx(
         'border-r border-border-strong px-[14px] py-[6px] font-ui text-[13px] disabled:cursor-not-allowed',

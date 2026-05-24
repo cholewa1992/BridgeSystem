@@ -84,11 +84,7 @@ export function LoginPage() {
               disabled={busy}
               className="mt-2 w-full justify-center px-[16px] py-[11px]"
             >
-              {busy
-                ? 'Working…'
-                : mode === 'register'
-                  ? 'Create passkey'
-                  : 'Sign in with passkey'}
+              {busy ? 'Working…' : mode === 'register' ? 'Create passkey' : 'Sign in with passkey'}
             </Button>
 
             {error && (
@@ -110,13 +106,11 @@ export function LoginPage() {
           >
             {mode === 'login' ? (
               <>
-                New here?{' '}
-                <span className="ml-1 text-accent">Create an account</span>
+                New here? <span className="ml-1 text-accent">Create an account</span>
               </>
             ) : (
               <>
-                Already have a passkey?{' '}
-                <span className="ml-1 text-accent">Sign in</span>
+                Already have a passkey? <span className="ml-1 text-accent">Sign in</span>
               </>
             )}
           </Button>

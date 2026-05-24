@@ -1,16 +1,6 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { BidTreeRoot, Share, SystemDetail, SystemSummary } from '../types';
-import {
-  createSystem,
-  deleteSystem,
-  getSystem,
-  listSystems,
-  updateSystem,
-} from './systems';
+import { createSystem, deleteSystem, getSystem, listSystems, updateSystem } from './systems';
 import { addShare, listShares, removeShare } from './sharing';
 
 /** Centralized query keys so invalidations stay consistent. */
@@ -51,11 +41,8 @@ export function useCreateSystem() {
 export function useUpdateSystem(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: {
-      name: string;
-      description: string | null;
-      tree: BidTreeRoot;
-    }) => updateSystem(id, payload),
+    mutationFn: (payload: { name: string; description: string | null; tree: BidTreeRoot }) =>
+      updateSystem(id, payload),
     onSuccess: (updated) => {
       // Seed the detail cache with the server's response and refresh the list.
       qc.setQueryData(queryKeys.system(id), updated);
