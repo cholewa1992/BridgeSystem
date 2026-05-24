@@ -84,10 +84,10 @@ survive a page refresh (now via `useUpdateSystem`).
 ## Deferred (next passes)
 
 ### Vitest + React Testing Library
-- [ ] Add Vitest + RTL config and a `test` script.
-- [ ] First tests target `tree.ts` pure functions: `parseBid`, `bidRank`,
+- [x] Add Vitest + RTL config and a `test` script.
+- [x] First tests target `tree.ts` pure functions: `parseBid`, `bidRank`,
       `compareBids`, `canDropNode`, and the chain-context helpers.
-- [ ] Then component smoke tests for the main screens.
+- [x] Then component smoke tests for the main screens.
 
 ### react-hook-form
 - [ ] Refactor `BidForm` (533 lines, 6 manual fields, validates every render).
