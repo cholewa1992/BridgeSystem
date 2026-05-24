@@ -422,10 +422,7 @@ function SaveIndicator({
 
   return (
     <span
-      className={clsx(
-        'inline-flex items-center gap-1.5 font-ui text-xs font-medium',
-        colorClass,
-      )}
+      className={clsx('inline-flex items-center gap-1.5 font-ui text-xs font-medium', colorClass)}
     >
       <span
         className={clsx(

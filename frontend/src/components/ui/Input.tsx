@@ -14,10 +14,6 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 
 export function Input({ className, type = 'text', error, ...rest }: InputProps) {
   return (
-    <input
-      type={type}
-      className={clsx(base, error && 'border-danger', className)}
-      {...rest}
-    />
+    <input type={type} className={clsx(base, error && 'border-danger', className)} {...rest} />
   );
 }
