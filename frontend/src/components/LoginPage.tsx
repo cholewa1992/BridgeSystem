@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Button, Card, Input } from './ui';
+import { Alert, Button, Card, Field, Input } from './ui';
 
 export function LoginPage() {
   const { login, register } = useAuth();
@@ -43,7 +43,7 @@ export function LoginPage() {
           <h1 className="m-0 font-display text-[28px] font-semibold tracking-[-0.015em] text-fg">
             {mode === 'login' ? 'Welcome back' : 'Create your account'}
           </h1>
-          <p className="mb-7 mt-2 font-ui text-[14px] text-fg-muted">
+          <p className="mb-7 mt-2 text-sm text-fg-muted">
             {mode === 'login'
               ? 'Sign in with your passkey to continue.'
               : 'Set up a passkey — no passwords to remember.'}
@@ -80,18 +80,14 @@ export function LoginPage() {
 
             <Button
               variant="primary"
+              loading={busy}
               onClick={submit}
-              disabled={busy}
               className="mt-2 w-full justify-center px-[16px] py-[11px]"
             >
-              {busy ? 'Working…' : mode === 'register' ? 'Create passkey' : 'Sign in with passkey'}
+              {mode === 'register' ? 'Create passkey' : 'Sign in with passkey'}
             </Button>
 
-            {error && (
-              <div className="rounded-sm border border-[#e6c8c4] bg-danger-soft px-[12px] py-[10px] font-ui text-[13px] text-danger">
-                {error}
-              </div>
-            )}
+            {error && <Alert>{error}</Alert>}
           </div>
         </Card>
 
@@ -102,7 +98,7 @@ export function LoginPage() {
               setMode(mode === 'login' ? 'register' : 'login');
               setError(null);
             }}
-            className="text-[14px] text-fg-muted"
+            className="text-sm text-fg-muted"
           >
             {mode === 'login' ? (
               <>
@@ -117,23 +113,5 @@ export function LoginPage() {
         </div>
       </div>
     </div>
-  );
-}
-
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-[5px]">
-      <span className="font-ui text-[13px] font-medium text-fg-body">{label}</span>
-      {children}
-      {hint && <span className="font-ui text-[12px] text-fg-muted">{hint}</span>}
-    </label>
   );
 }
