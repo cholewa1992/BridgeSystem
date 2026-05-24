@@ -47,12 +47,13 @@ export function UserProfilePage() {
               <h2 className="m-0 font-display text-[30px] font-semibold tracking-[-0.015em] text-fg">
                 {profile.displayName}
               </h2>
-              <p className="mb-0 mt-1 font-ui text-[15px] text-fg-muted">
-                @{profile.username}
-              </p>
+              <p className="mb-0 mt-1 font-ui text-[15px] text-fg-muted">@{profile.username}</p>
               <div className="mt-2 flex items-center gap-4 font-ui text-[13px] text-fg-muted">
                 <span>Member since {joinYear}</span>
-                <span>{profile.publicSystemCount} public system{profile.publicSystemCount !== 1 ? 's' : ''}</span>
+                <span>
+                  {profile.publicSystemCount} public system
+                  {profile.publicSystemCount !== 1 ? 's' : ''}
+                </span>
               </div>
             </div>
 
@@ -104,7 +105,10 @@ function PageHeader({
         <span className="text-suit-red">♦</span>
         <span className="text-suit-black">♣</span>
       </div>
-      <Link to={user ? '/' : '/gallery'} className="m-0 font-ui text-[16px] font-semibold text-fg no-underline">
+      <Link
+        to={user ? '/' : '/gallery'}
+        className="m-0 font-ui text-[16px] font-semibold text-fg no-underline"
+      >
         Bridge System
       </Link>
       <div className="ml-auto flex items-center gap-[14px]">

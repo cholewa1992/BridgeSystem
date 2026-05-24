@@ -20,9 +20,7 @@ export function SystemCard({ system, showOwner, onLike, likeLoading, onClick }: 
       {/* Main clickable area */}
       <button
         onClick={onClick}
-        className={
-          'block w-full cursor-pointer text-left' + (onClick ? '' : ' cursor-default')
-        }
+        className={'block w-full cursor-pointer text-left' + (onClick ? '' : ' cursor-default')}
         disabled={!onClick}
         style={onClick ? undefined : { pointerEvents: 'none' }}
       >
@@ -38,7 +36,10 @@ export function SystemCard({ system, showOwner, onLike, likeLoading, onClick }: 
         </div>
 
         {showOwner && (
-          <p className="mb-0 mt-1 font-ui text-[13px] text-fg-muted" onClick={(e) => e.stopPropagation()}>
+          <p
+            className="mb-0 mt-1 font-ui text-[13px] text-fg-muted"
+            onClick={(e) => e.stopPropagation()}
+          >
             by{' '}
             <Link
               to={`/users/${system.ownerUsername}`}
@@ -50,9 +51,7 @@ export function SystemCard({ system, showOwner, onLike, likeLoading, onClick }: 
         )}
 
         {system.description && (
-          <p
-            className="mb-0 mt-2 line-clamp-2 font-ui text-[13px] text-fg-muted"
-          >
+          <p className="mb-0 mt-2 line-clamp-2 font-ui text-[13px] text-fg-muted">
             {system.description}
           </p>
         )}
@@ -60,9 +59,7 @@ export function SystemCard({ system, showOwner, onLike, likeLoading, onClick }: 
 
       {/* Bottom row: stats + like button */}
       <div className="mt-3 flex items-center gap-4">
-        <span className="font-ui text-[13px] text-fg-muted">
-          ⑂ {system.forkCount}
-        </span>
+        <span className="font-ui text-[13px] text-fg-muted">⑂ {system.forkCount}</span>
 
         {onLike ? (
           <button
@@ -73,9 +70,7 @@ export function SystemCard({ system, showOwner, onLike, likeLoading, onClick }: 
             disabled={likeLoading}
             className={
               'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-ui text-[13px] transition-colors ' +
-              (heartFilled
-                ? 'text-suit-red'
-                : 'text-fg-muted hover:text-suit-red')
+              (heartFilled ? 'text-suit-red' : 'text-fg-muted hover:text-suit-red')
             }
             title={heartFilled ? 'Unlike' : 'Like'}
           >
@@ -83,9 +78,7 @@ export function SystemCard({ system, showOwner, onLike, likeLoading, onClick }: 
             <span>{system.likeCount}</span>
           </button>
         ) : (
-          <span className="font-ui text-[13px] text-fg-muted">
-            ♥ {system.likeCount}
-          </span>
+          <span className="font-ui text-[13px] text-fg-muted">♥ {system.likeCount}</span>
         )}
       </div>
     </div>

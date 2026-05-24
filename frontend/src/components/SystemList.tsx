@@ -133,9 +133,7 @@ export function SystemList() {
                   <Tag tone={s.ownedByMe ? 'accent' : 'neutral'}>
                     {s.ownedByMe ? 'Owner' : `Shared by ${s.ownerUsername} · ${s.permission}`}
                   </Tag>
-                  {s.isPublic && (
-                    <Tag tone="public">Public</Tag>
-                  )}
+                  {s.isPublic && <Tag tone="public">Public</Tag>}
                 </div>
                 {s.description && (
                   <p className="mb-0 mt-2 font-ui text-[14px] text-fg-body">{s.description}</p>

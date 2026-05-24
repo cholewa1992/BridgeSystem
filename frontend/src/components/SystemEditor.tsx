@@ -2,7 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { BidNode, SystemDetail } from '../types';
-import { useDeleteSystem, useForkSystem, useSystem, useUpdateSystem, useUpdateVisibility } from '../api/queries';
+import {
+  useDeleteSystem,
+  useForkSystem,
+  useSystem,
+  useUpdateSystem,
+  useUpdateVisibility,
+} from '../api/queries';
 import {
   ROOT_ID,
   addChainContext,
@@ -325,11 +331,7 @@ export function SystemEditor() {
             </>
           )}
           {detail.permission !== 'OWNER' && (
-            <Button
-              variant="secondary"
-              onClick={onFork}
-              loading={forkMut.isPending}
-            >
+            <Button variant="secondary" onClick={onFork} loading={forkMut.isPending}>
               Fork
             </Button>
           )}
@@ -404,8 +406,7 @@ export function SystemEditor() {
           <div className="max-w-[760px]">
             {detail.forkedFrom && (
               <div className="mb-4 rounded-sm border border-border bg-surface-sunken px-3 py-2 font-ui text-[13px] text-fg-muted">
-                Forked from{' '}
-                <span className="font-medium text-fg">"{detail.forkedFrom.name}"</span>{' '}
+                Forked from <span className="font-medium text-fg">"{detail.forkedFrom.name}"</span>{' '}
                 by{' '}
                 <button
                   onClick={() => navigate(`/users/${detail.forkedFrom!.ownerUsername}`)}
