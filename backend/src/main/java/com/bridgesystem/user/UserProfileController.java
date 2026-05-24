@@ -2,7 +2,7 @@ package com.bridgesystem.user;
 
 import com.bridgesystem.security.OptionalCurrentUser;
 import com.bridgesystem.system.BiddingSystemDtos;
-import com.bridgesystem.system.BiddingSystemService;
+import com.bridgesystem.system.UserProfileService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,21 +14,21 @@ import java.util.List;
 @RequestMapping("/api/users/{username}")
 public class UserProfileController {
 
-    private final BiddingSystemService service;
+    private final UserProfileService userProfileService;
 
-    public UserProfileController(BiddingSystemService service) {
-        this.service = service;
+    public UserProfileController(UserProfileService userProfileService) {
+        this.userProfileService = userProfileService;
     }
 
     @GetMapping
     public BiddingSystemDtos.UserProfileDto profile(@PathVariable String username) {
-        return service.getUserProfile(username);
+        return userProfileService.getUserProfile(username);
     }
 
     @GetMapping("/systems")
     public List<BiddingSystemDtos.SystemSummary> systems(
             @PathVariable String username,
             @OptionalCurrentUser AppUser viewer) {
-        return service.getPublicSystemsForUser(username, viewer);
+        return userProfileService.getPublicSystemsForUser(username, viewer);
     }
 }

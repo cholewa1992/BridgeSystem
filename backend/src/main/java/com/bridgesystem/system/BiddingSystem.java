@@ -76,6 +76,46 @@ public class BiddingSystem {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    // ── Domain methods ─────────────────────────────────────────────────────
+
+    /**
+     * Creates and returns a new BiddingSystem that is a fork of this one,
+     * owned by {@code newOwner}.
+     */
+    public BiddingSystem fork(UUID newId, AppUser newOwner) {
+        return new BiddingSystem(newId, newOwner, this.name + " (fork)", this.description, this.treeJson, this);
+    }
+
+    /**
+     * Updates name, description, and treeJson in one call.
+     */
+    public void updateContent(String name, String description, String treeJson) {
+        this.name = name;
+        this.description = description;
+        this.treeJson = treeJson;
+    }
+
+    /**
+     * Throws {@link IllegalStateException} if {@code forkCount > 0}.
+     */
+    public void ensureDeletable(long forkCount) {
+        if (forkCount > 0) {
+            throw new IllegalStateException(
+                    "Cannot delete a system that has " + forkCount + " active fork(s). Make the system private first."
+            );
+        }
+    }
+
+    /** Sets the system to public. */
+    public void publish() {
+        this.isPublic = true;
+    }
+
+    /** Sets the system to private. */
+    public void unpublish() {
+        this.isPublic = false;
+    }
+
     public UUID getId() {
         return id;
     }

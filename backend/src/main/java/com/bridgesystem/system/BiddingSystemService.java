@@ -1,12 +1,10 @@
 package com.bridgesystem.system;
 
 import com.bridgesystem.security.SystemAccessGuard;
-import com.bridgesystem.sharing.SystemLike;
-import com.bridgesystem.sharing.SystemLikeRepository;
 import com.bridgesystem.sharing.SystemShare;
+import com.bridgesystem.sharing.SystemLikeRepository;
 import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.user.AppUser;
-import com.bridgesystem.user.AppUserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +21,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.CONFLICT;
 
 @Service
 public class BiddingSystemService {
@@ -37,20 +35,17 @@ public class BiddingSystemService {
     private final SystemLikeRepository likeRepository;
     private final SystemAccessGuard accessGuard;
     private final ObjectMapper objectMapper;
-    private final AppUserRepository userRepository;
 
     public BiddingSystemService(BiddingSystemRepository systemRepository,
                                 SystemShareRepository shareRepository,
                                 SystemLikeRepository likeRepository,
                                 SystemAccessGuard accessGuard,
-                                ObjectMapper objectMapper,
-                                AppUserRepository userRepository) {
+                                ObjectMapper objectMapper) {
         this.systemRepository = systemRepository;
         this.shareRepository = shareRepository;
         this.likeRepository = likeRepository;
         this.accessGuard = accessGuard;
         this.objectMapper = objectMapper;
-        this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
@@ -84,14 +79,15 @@ public class BiddingSystemService {
     @Transactional
     public BiddingSystemDtos.SystemDetail update(UUID id, AppUser user, BiddingSystemDtos.UpdateRequest req) {
         BiddingSystem system = accessGuard.requireAccess(id, user, SystemAccessGuard.Permission.WRITE);
-        system.setName(req.name());
-        system.setDescription(req.description());
         if (req.tree() != null) {
             try {
-                system.setTreeJson(objectMapper.writeValueAsString(req.tree()));
-            } catch (JsonProcessingException e) {
-                throw new ResponseStatusException(BAD_REQUEST, "Invalid tree JSON", e);
+                BidTree tree = BidTree.from(req.tree());
+                system.updateContent(req.name(), req.description(), tree.toJson(objectMapper));
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                throw new ResponseStatusException(BAD_REQUEST, e.getMessage(), e);
             }
+        } else {
+            system.updateContent(req.name(), req.description(), system.getTreeJson());
         }
         return toDetail(system, user);
     }
@@ -100,11 +96,10 @@ public class BiddingSystemService {
     public void delete(UUID id, AppUser user) {
         BiddingSystem system = accessGuard.requireAccess(id, user, SystemAccessGuard.Permission.OWNER);
         long forkCount = systemRepository.countByForkedFrom(system);
-        if (forkCount > 0) {
-            throw new ResponseStatusException(
-                    org.springframework.http.HttpStatus.CONFLICT,
-                    "Cannot delete a system that has " + forkCount + " active fork(s). Make the system private first."
-            );
+        try {
+            system.ensureDeletable(forkCount);
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(CONFLICT, e.getMessage());
         }
         systemRepository.delete(system);
     }
@@ -112,79 +107,20 @@ public class BiddingSystemService {
     @Transactional
     public BiddingSystemDtos.SystemDetail updateVisibility(UUID id, AppUser user, boolean isPublic) {
         BiddingSystem system = accessGuard.requireAccess(id, user, SystemAccessGuard.Permission.OWNER);
-        system.setIsPublic(isPublic);
+        if (isPublic) {
+            system.publish();
+        } else {
+            system.unpublish();
+        }
         return toDetail(system, user);
     }
 
     @Transactional
     public BiddingSystemDtos.SystemDetail fork(UUID originalId, AppUser caller) {
         BiddingSystem original = accessGuard.requireAccess(originalId, caller, SystemAccessGuard.Permission.READ);
-        BiddingSystem forked = new BiddingSystem(
-                UUID.randomUUID(),
-                caller,
-                original.getName() + " (fork)",
-                original.getDescription(),
-                original.getTreeJson(),
-                original
-        );
+        BiddingSystem forked = original.fork(UUID.randomUUID(), caller);
         systemRepository.save(forked);
         return toDetail(forked, caller);
-    }
-
-    @Transactional(readOnly = true)
-    public List<BiddingSystemDtos.SystemSummary> getPublicSystems(String sort, @Nullable AppUser viewer) {
-        List<BiddingSystem> systems = switch (sort) {
-            case "most_liked" -> systemRepository.findAllPublicOrderByLikesDesc();
-            default -> systemRepository.findAllByIsPublicTrueOrderByUpdatedAtDesc();
-        };
-        Map<UUID, SystemStats> stats = statsFor(systems, viewer);
-        return systems.stream()
-                .map(s -> toSummary(s, viewer, stats.get(s.getId())))
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<BiddingSystemDtos.SystemSummary> getPublicSystemsForUser(String username, @Nullable AppUser viewer) {
-        AppUser owner = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
-        List<BiddingSystem> systems = systemRepository.findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(owner);
-        Map<UUID, SystemStats> stats = statsFor(systems, viewer);
-        return systems.stream()
-                .map(s -> toSummary(s, viewer, stats.get(s.getId())))
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public BiddingSystemDtos.UserProfileDto getUserProfile(String username) {
-        AppUser user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
-        int publicCount = (int) systemRepository.countByOwnerAndIsPublicTrue(user);
-        return new BiddingSystemDtos.UserProfileDto(
-                user.getUsername(),
-                user.getDisplayName(),
-                user.getCreatedAt(),
-                publicCount
-        );
-    }
-
-    // ── Like operations ────────────────────────────────────────────────────
-
-    @Transactional
-    public BiddingSystemDtos.LikeResponse addLike(UUID systemId, AppUser user) {
-        BiddingSystem system = accessGuard.requireAccess(systemId, user, SystemAccessGuard.Permission.READ);
-        if (!likeRepository.existsBySystemAndUser(system, user)) {
-            likeRepository.save(new SystemLike(system, user));
-        }
-        long count = likeRepository.countBySystem(system);
-        return new BiddingSystemDtos.LikeResponse(count, true);
-    }
-
-    @Transactional
-    public BiddingSystemDtos.LikeResponse removeLike(UUID systemId, AppUser user) {
-        BiddingSystem system = accessGuard.requireAccess(systemId, user, SystemAccessGuard.Permission.READ);
-        likeRepository.deleteBySystemAndUser(system, user);
-        long count = likeRepository.countBySystem(system);
-        return new BiddingSystemDtos.LikeResponse(count, false);
     }
 
     // ── Mapping ────────────────────────────────────────────────────────────
