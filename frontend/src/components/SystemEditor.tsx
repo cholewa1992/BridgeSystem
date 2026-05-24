@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { clsx } from 'clsx';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { BidNode, SystemDetail } from '../types';
-import { deleteSystem, getSystem, updateSystem } from '../api/systems';
+import { useDeleteSystem, useSystem, useUpdateSystem } from '../api/queries';
 import {
   ROOT_ID,
   addChainContext,
@@ -16,26 +17,27 @@ import {
   treeFromRoot,
   updateNode,
 } from '../tree';
-import {
-  buttonDanger,
-  buttonGhost,
-  buttonSecondary,
-  inputStyle,
-  labelStyle,
-} from '../styles';
+import { Button, Input, Label } from './ui';
 import { BidTree } from './BidTree';
 import { BidDetailPanel } from './BidDetailPanel';
 import { BidForm, type BidFormData } from './BidForm';
 import { ShareDialog } from './ShareDialog';
 
+type SaveState = 'idle' | 'saving' | 'dirty' | 'saved';
+
 export function SystemEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [detail, setDetail] = useState<SystemDetail | null>(null);
+  const { data: detail, error: loadError } = useSystem(id);
+  const updateMut = useUpdateSystem(id ?? '');
+  const deleteMut = useDeleteSystem();
+
   const [root, setRoot] = useState<BidNode | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'dirty' | 'saved'>('idle');
+  const [systemName, setSystemName] = useState('');
+  const [dirty, setDirty] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const loadedId = useRef<string | null>(null);
 
   const [selected, setSelected] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
@@ -44,49 +46,68 @@ export function SystemEditor() {
   const draggingIdRef = useRef<string | null>(null);
   const [rootDragOver, setRootDragOver] = useState(false);
   const [editingName, setEditingName] = useState(false);
-  const [systemName, setSystemName] = useState('');
   const [showShare, setShowShare] = useState(false);
 
-  // ── Load ──────────────────────────────────────────────────────────────
+  // ── Seed local editable state once per system ─────────────────────────
   useEffect(() => {
-    if (!id) return;
-    getSystem(id)
-      .then((d) => {
-        setDetail(d);
-        setSystemName(d.name);
-        setRoot(rootFromTree(d.tree ?? { children: [] }));
-      })
-      .catch((e) => setError((e as Error).message));
-  }, [id]);
+    if (detail && loadedId.current !== detail.id) {
+      loadedId.current = detail.id;
+      setRoot(rootFromTree(detail.tree ?? { children: [] }));
+      setSystemName(detail.name);
+    }
+  }, [detail]);
 
   const readOnly = !detail || (detail.permission !== 'OWNER' && detail.permission !== 'WRITE');
 
   // ── Persistence ───────────────────────────────────────────────────────
-  const save = useCallback(async () => {
-    if (!detail || !root || readOnly) return;
-    setSaveState('saving');
-    try {
-      const updated = await updateSystem(detail.id, {
-        name: systemName,
-        description: detail.description ?? '',
-        tree: treeFromRoot(root),
-      });
-      setDetail(updated);
-      setSaveState('saved');
-      window.setTimeout(() => setSaveState((s) => (s === 'saved' ? 'idle' : s)), 1500);
-    } catch (e) {
-      setError((e as Error).message);
-      setSaveState('dirty');
-    }
-  }, [detail, root, systemName, readOnly]);
+  const persist = useCallback(
+    (rootOverride?: BidNode) => {
+      if (!detail || readOnly) return;
+      const r = rootOverride ?? root;
+      if (!r) return;
+      updateMut.mutate(
+        {
+          name: systemName,
+          description: detail.description ?? '',
+          tree: treeFromRoot(r),
+        },
+        {
+          // Clear dirty on either outcome so the debounce never loops; an
+          // error surfaces through updateMut.error.
+          onSuccess: () => {
+            setDirty(false);
+            setJustSaved(true);
+          },
+          onError: () => setDirty(false),
+        },
+      );
+    },
+    [detail, readOnly, root, systemName, updateMut],
+  );
 
+  // Debounced auto-save for edits flagged dirty.
   useEffect(() => {
-    if (saveState !== 'dirty') return;
-    const t = window.setTimeout(save, 800);
+    if (!dirty) return;
+    const t = window.setTimeout(() => persist(), 800);
     return () => window.clearTimeout(t);
-  }, [saveState, save]);
+  }, [dirty, persist]);
 
-  const markDirty = () => setSaveState('dirty');
+  // Flash "Saved" for 1.5s after a successful write.
+  useEffect(() => {
+    if (!justSaved) return;
+    const t = window.setTimeout(() => setJustSaved(false), 1500);
+    return () => window.clearTimeout(t);
+  }, [justSaved]);
+
+  const markDirty = () => setDirty(true);
+
+  const saveState: SaveState = updateMut.isPending
+    ? 'saving'
+    : dirty
+      ? 'dirty'
+      : justSaved
+        ? 'saved'
+        : 'idle';
 
   // ── Derived ───────────────────────────────────────────────────────────
   const selectedNode = useMemo(() => {
@@ -159,39 +180,27 @@ export function SystemEditor() {
   };
 
   const handleMove = (newParentId: string) => {
-    const id = draggingIdRef.current;
-    if (!root || !id) return;
-    const newRoot = moveNode(root, id, newParentId);
+    const movingId = draggingIdRef.current;
+    if (!root || !movingId) return;
+    const newRoot = moveNode(root, movingId, newParentId);
     setRoot(newRoot);
     draggingIdRef.current = null;
     setDraggingId(null);
-    if (!detail || readOnly) return;
-    setSaveState('saving');
-    updateSystem(detail.id, {
-      name: systemName,
-      description: detail.description ?? '',
-      tree: treeFromRoot(newRoot),
-    }).then((updated) => {
-      setDetail(updated);
-      setSaveState('saved');
-      window.setTimeout(() => setSaveState((s) => (s === 'saved' ? 'idle' : s)), 1500);
-    }).catch((e: unknown) => {
-      setError((e as Error).message);
-      setSaveState('dirty');
-    });
+    // Discrete action — persist immediately rather than waiting on the debounce.
+    persist(newRoot);
   };
 
   const canDropHere = (targetParentId: string): boolean => {
-    const id = draggingIdRef.current;
-    if (!root || !id) return false;
-    return canDropNode(root, id, targetParentId);
+    const movingId = draggingIdRef.current;
+    if (!root || !movingId) return false;
+    return canDropNode(root, movingId, targetParentId);
   };
 
-  const startDrag = (id: string) => {
-    draggingIdRef.current = id;
+  const startDrag = (nodeId: string) => {
+    draggingIdRef.current = nodeId;
     // Delay the state update so the browser captures the ghost image before
     // React re-renders the row with reduced opacity (Safari fix).
-    setTimeout(() => setDraggingId(id), 0);
+    setTimeout(() => setDraggingId(nodeId), 0);
   };
 
   const endDrag = () => {
@@ -217,10 +226,10 @@ export function SystemEditor() {
     if (!detail) return;
     if (!confirm(`Delete "${detail.name}"? This cannot be undone.`)) return;
     try {
-      await deleteSystem(detail.id);
+      await deleteMut.mutateAsync(detail.id);
       navigate('/');
-    } catch (e) {
-      setError((e as Error).message);
+    } catch {
+      // surfaced via deleteMut.error
     }
   };
 
@@ -232,135 +241,89 @@ export function SystemEditor() {
   };
 
   // ── Render ────────────────────────────────────────────────────────────
-  if (error && !detail) {
+  if (loadError && !detail) {
     return (
-      <div style={{ padding: 60, color: 'var(--danger)', fontFamily: 'var(--font-ui)' }}>
-        <p style={{ marginTop: 0 }}>{error}</p>
-        <button onClick={() => navigate('/')} style={buttonSecondary}>
+      <div className="p-[60px] font-ui text-danger">
+        <p className="mt-0">{(loadError as Error).message}</p>
+        <Button variant="secondary" onClick={() => navigate('/')}>
           Back to list
-        </button>
+        </Button>
       </div>
     );
   }
   if (!detail || !root) {
-    return <div style={{ padding: 60, color: 'var(--fg-muted)' }}>Loading…</div>;
+    return <div className="p-[60px] text-fg-muted">Loading…</div>;
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--bg)',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
+    <div className="flex min-h-screen flex-col bg-bg">
       {/* Top bar */}
-      <header
-        style={{
-          background: 'var(--surface)',
-          borderBottom: '1px solid var(--border)',
-          padding: '12px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 14,
-        }}
-      >
-        <button onClick={() => navigate('/')} style={buttonGhost}>
+      <header className="flex items-center gap-[14px] border-b border-border bg-surface px-6 py-3">
+        <Button variant="ghost" onClick={() => navigate('/')}>
           ← Back
-        </button>
-        <div style={{ width: 1, height: 22, background: 'var(--border)' }} />
-        <div style={{ display: 'flex', gap: 3, fontSize: 14, opacity: 0.7 }}>
-          <span style={{ color: 'var(--suit-black)' }}>♠</span>
-          <span style={{ color: 'var(--suit-red)' }}>♥</span>
-          <span style={{ color: 'var(--suit-red)' }}>♦</span>
-          <span style={{ color: 'var(--suit-black)' }}>♣</span>
+        </Button>
+        <div className="h-[22px] w-px bg-border" />
+        <div className="flex gap-[3px] text-[14px] opacity-70">
+          <span className="text-suit-black">♠</span>
+          <span className="text-suit-red">♥</span>
+          <span className="text-suit-red">♦</span>
+          <span className="text-suit-black">♣</span>
         </div>
         {editingName && !readOnly ? (
-          <input
+          <Input
             value={systemName}
             onChange={(e) => setSystemName(e.target.value)}
             onBlur={onRename}
             onKeyDown={(e) => e.key === 'Enter' && onRename()}
             autoFocus
-            style={{
-              ...inputStyle,
-              fontSize: 18,
-              fontFamily: 'var(--font-display)',
-              fontWeight: 600,
-              flex: 1,
-            }}
+            className="flex-1 font-display text-[18px] font-semibold"
           />
         ) : (
           <h1
             onClick={() => !readOnly && setEditingName(true)}
-            style={{
-              margin: 0,
-              fontSize: 18,
-              fontWeight: 600,
-              color: 'var(--fg)',
-              cursor: readOnly ? 'default' : 'pointer',
-              fontFamily: 'var(--font-display)',
-              letterSpacing: '-0.005em',
-            }}
+            className={clsx(
+              'm-0 font-display text-[18px] font-semibold tracking-[-0.005em] text-fg',
+              readOnly ? 'cursor-default' : 'cursor-pointer',
+            )}
             title={readOnly ? '' : 'Click to rename'}
           >
             {systemName}
           </h1>
         )}
-        <div
-          style={{
-            marginLeft: 'auto',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}
-        >
+        <div className="ml-auto flex items-center gap-3">
           <SaveIndicator state={saveState} permission={detail.permission} />
           {detail.permission === 'OWNER' && (
             <>
-              <button onClick={() => setShowShare(true)} style={buttonSecondary}>
+              <Button variant="secondary" onClick={() => setShowShare(true)}>
                 Share
-              </button>
-              <button onClick={onDeleteSystem} style={buttonDanger}>
+              </Button>
+              <Button variant="danger" onClick={onDeleteSystem} disabled={deleteMut.isPending}>
                 Delete
-              </button>
+              </Button>
             </>
           )}
         </div>
       </header>
 
       {/* Body */}
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="flex flex-1 overflow-hidden">
         {/* Tree pane */}
-        <aside
-          style={{
-            width: 460,
-            background: 'var(--surface)',
-            borderRight: '1px solid var(--border)',
-            overflowY: 'auto',
-            padding: '20px 18px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 14,
-            }}
-          >
-            <span style={labelStyle}>Bidding sequences</span>
+        <aside className="w-[460px] overflow-y-auto border-r border-border bg-surface px-[18px] py-5">
+          <div className="mb-[14px] flex items-center justify-between">
+            <Label>Bidding sequences</Label>
             {!readOnly && addingTo !== ROOT_ID && (
-              <button onClick={() => setAddingTo(ROOT_ID)} style={buttonSecondary}>
+              <Button variant="secondary" onClick={() => setAddingTo(ROOT_ID)}>
                 + Opening bid
-              </button>
+              </Button>
             )}
           </div>
 
           {!readOnly && draggingId && canDropHere(ROOT_ID) && (
             <div
-              onDragOver={(e) => { e.preventDefault(); setRootDragOver(true); }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setRootDragOver(true);
+              }}
               onDragLeave={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) setRootDragOver(false);
               }}
@@ -369,17 +332,10 @@ export function SystemEditor() {
                 setRootDragOver(false);
                 handleMove(ROOT_ID);
               }}
-              style={{
-                marginBottom: 8,
-                padding: '6px 10px',
-                border: `1px dashed ${rootDragOver ? 'var(--accent)' : 'var(--border-strong)'}`,
-                borderRadius: 'var(--radius-sm)',
-                background: rootDragOver ? 'var(--accent-soft)' : 'transparent',
-                color: 'var(--fg-muted)',
-                fontSize: 12,
-                textAlign: 'center',
-                cursor: 'copy',
-              }}
+              className={clsx(
+                'mb-2 cursor-copy rounded-sm border border-dashed px-2.5 py-1.5 text-center text-[12px] text-fg-muted',
+                rootDragOver ? 'border-accent bg-accent-soft' : 'border-border-strong bg-transparent',
+              )}
             >
               Move here as opening bid
             </div>
@@ -399,7 +355,7 @@ export function SystemEditor() {
           />
 
           {addingTo === ROOT_ID && openingChain && (
-            <div style={{ marginTop: 12 }}>
+            <div className="mt-3">
               <BidForm
                 mode="add"
                 chain={openingChain}
@@ -411,8 +367,8 @@ export function SystemEditor() {
         </aside>
 
         {/* Detail pane */}
-        <main style={{ flex: 1, overflowY: 'auto', padding: '32px 40px' }}>
-          <div style={{ maxWidth: 760 }}>
+        <main className="flex-1 overflow-y-auto px-10 py-8">
+          <div className="max-w-[760px]">
             <BidDetailPanel
               selected={selectedNode}
               breadcrumb={breadcrumb}
@@ -445,52 +401,38 @@ function SaveIndicator({
   state,
   permission,
 }: {
-  state: 'idle' | 'saving' | 'dirty' | 'saved';
+  state: SaveState;
   permission: SystemDetail['permission'];
 }) {
   let text: string;
-  let tone: 'muted' | 'accent' | 'success' = 'muted';
+  let colorClass: string;
 
   if (state === 'saving') {
     text = 'Saving…';
-    tone = 'accent';
+    colorClass = 'text-accent';
   } else if (state === 'saved') {
     text = 'Saved';
-    tone = 'success';
+    colorClass = 'text-success';
   } else if (state === 'dirty') {
     text = 'Unsaved changes';
-    tone = 'accent';
+    colorClass = 'text-accent';
   } else {
     text = permission === 'OWNER' ? 'Owner' : permission;
+    colorClass = 'text-fg-muted';
   }
-
-  const color =
-    tone === 'success'
-      ? 'var(--success)'
-      : tone === 'accent'
-      ? 'var(--accent)'
-      : 'var(--fg-muted)';
 
   return (
     <span
-      style={{
-        fontSize: 12,
-        fontWeight: 500,
-        color,
-        fontFamily: 'var(--font-ui)',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-      }}
+      className={clsx(
+        'inline-flex items-center gap-1.5 font-ui text-[12px] font-medium',
+        colorClass,
+      )}
     >
       <span
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: 999,
-          background: color,
-          opacity: state === 'saving' ? 1 : 0.7,
-        }}
+        className={clsx(
+          'h-1.5 w-1.5 rounded-full bg-current',
+          state === 'saving' ? 'opacity-100' : 'opacity-70',
+        )}
       />
       {text}
     </span>

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 
 function Protected({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{ padding: 60, color: '#6a5f40' }}>Loading…</div>;
+  if (loading) return <div className="p-[60px] text-fg-muted">Loading…</div>;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }

@@ -1,11 +1,6 @@
 import type { BidNode } from '../types';
 import type { ChainContext } from '../tree';
-import {
-  buttonDanger,
-  buttonSecondary,
-  cardStyle,
-  labelStyle,
-} from '../styles';
+import { Button, Card, Label } from './ui';
 import { BidForm, type BidFormData } from './BidForm';
 import { BidLabel } from './BidLabel';
 
@@ -36,16 +31,9 @@ export function BidDetailPanel(props: Props) {
 
   if (!selected) {
     return (
-      <div
-        style={{
-          textAlign: 'center',
-          marginTop: 80,
-          color: 'var(--fg-subtle)',
-          fontFamily: 'var(--font-ui)',
-        }}
-      >
-        <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.5 }}>♣</div>
-        <p style={{ fontSize: 15, margin: 0 }}>
+      <div className="mt-20 text-center font-ui text-fg-subtle">
+        <div className="mb-3 text-[36px] opacity-50">♣</div>
+        <p className="m-0 text-[15px]">
           Select a bid to view its details, or add an opening bid to get started.
         </p>
       </div>
@@ -57,36 +45,18 @@ export function BidDetailPanel(props: Props) {
   return (
     <>
       {breadcrumb.length > 0 && (
-        <div
-          style={{
-            fontSize: 13,
-            color: 'var(--fg-muted)',
-            marginBottom: 18,
-            display: 'flex',
-            gap: 6,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            fontFamily: 'var(--font-ui)',
-          }}
-        >
+        <div className="mb-[18px] flex flex-wrap items-center gap-1.5 font-ui text-[13px] text-fg-muted">
           {breadcrumb.map((n, i) => (
-            <span key={n.id} style={{ display: 'inline-flex', alignItems: 'center' }}>
-              <span
-                style={{ cursor: 'pointer' }}
-                onClick={() => props.onSelect(n.id)}
-              >
+            <span key={n.id} className="inline-flex items-center">
+              <span className="cursor-pointer" onClick={() => props.onSelect(n.id)}>
                 <BidLabel
                   bids={n.bids}
                   byOpponent={n.byOpponent}
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 600,
-                    fontSize: 14,
-                  }}
+                  className="font-display text-[14px] font-semibold"
                 />
               </span>
               {i < breadcrumb.length - 1 && (
-                <span style={{ margin: '0 6px', color: 'var(--fg-subtle)' }}>›</span>
+                <span className="mx-1.5 text-fg-subtle">›</span>
               )}
             </span>
           ))}
@@ -109,91 +79,46 @@ export function BidDetailPanel(props: Props) {
       ) : (
         <>
           {/* Hero */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 20,
-              marginBottom: 18,
-            }}
-          >
+          <div className="mb-[18px] flex items-center gap-5">
             <BidLabel
               bids={selected.bids}
               byOpponent={selected.byOpponent}
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 600,
-                fontSize: 48,
-                lineHeight: 1,
-                letterSpacing: '-0.02em',
-              }}
+              className="font-display text-[48px] font-semibold leading-none tracking-[-0.02em]"
             />
-            <div style={{ flex: 1 }}>
+            <div className="flex-1">
               {isOpp && (
-                <div
-                  style={{
-                    display: 'inline-block',
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: '0.06em',
-                    textTransform: 'uppercase',
-                    color: 'var(--fg-muted)',
-                    background: 'var(--surface-sunken)',
-                    padding: '2px 8px',
-                    borderRadius: 999,
-                    fontFamily: 'var(--font-ui)',
-                    marginBottom: 6,
-                  }}
-                >
+                <div className="mb-1.5 inline-block rounded-full bg-surface-sunken px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
                   Interference / opponent
                 </div>
               )}
-              <div
-                style={{
-                  fontSize: 19,
-                  color: 'var(--fg)',
-                  fontFamily: 'var(--font-display)',
-                  lineHeight: 1.35,
-                }}
-              >
+              <div className="font-display text-[19px] leading-[1.35] text-fg">
                 {selected.meaning || (
-                  <em style={{ opacity: 0.5, color: 'var(--fg-muted)' }}>No meaning defined</em>
+                  <em className="text-fg-muted opacity-50">No meaning defined</em>
                 )}
               </div>
             </div>
             {!props.readOnly && (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={props.onRequestEdit} style={buttonSecondary}>
+              <div className="flex gap-1.5">
+                <Button variant="secondary" onClick={props.onRequestEdit}>
                   Edit
-                </button>
-                <button onClick={props.onDelete} style={buttonDanger}>
+                </Button>
+                <Button variant="danger" onClick={props.onDelete}>
                   Delete
-                </button>
+                </Button>
               </div>
             )}
           </div>
 
           {/* Notes */}
           {selected.notes && (
-            <div
-              style={{
-                ...cardStyle,
-                padding: '18px 22px',
-                marginBottom: 28,
-                fontFamily: 'var(--font-body)',
-                fontSize: 15,
-                lineHeight: 1.65,
-                color: 'var(--fg-body)',
-                whiteSpace: 'pre-wrap',
-              }}
-            >
+            <Card className="mb-7 whitespace-pre-wrap px-[22px] py-[18px] font-body text-[15px] leading-[1.65] text-fg-body">
               {selected.notes}
-            </div>
+            </Card>
           )}
 
           {/* Add child */}
           {!props.readOnly && (
-            <div style={{ marginBottom: 32 }}>
+            <div className="mb-8">
               {props.addingTo === selected.id && props.addChain ? (
                 <BidForm
                   mode="add"
@@ -202,9 +127,9 @@ export function BidDetailPanel(props: Props) {
                   onCancel={props.onCancelAdd}
                 />
               ) : (
-                <button onClick={props.onRequestAdd} style={buttonSecondary}>
+                <Button variant="secondary" onClick={props.onRequestAdd}>
                   + Add continuation
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -212,23 +137,15 @@ export function BidDetailPanel(props: Props) {
           {/* Children list */}
           {selected.children.length > 0 && (
             <div>
-              <div style={{ ...labelStyle, marginBottom: 10 }}>
+              <Label className="mb-2.5 block">
                 Continuations ({selected.children.length})
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
                 {selected.children.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => props.onSelect(c.id)}
-                    style={{
-                      ...cardStyle,
-                      padding: '6px 12px',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      fontFamily: 'var(--font-display)',
-                      fontWeight: 600,
-                      boxShadow: 'none',
-                    }}
+                    className="cursor-pointer rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold"
                     title={c.meaning}
                   >
                     <BidLabel bids={c.bids} byOpponent={c.byOpponent} />
