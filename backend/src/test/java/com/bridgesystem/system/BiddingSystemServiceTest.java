@@ -175,11 +175,22 @@ class BiddingSystemServiceTest {
     @Test
     void delete_requiresOwner_callsRepositoryDelete() {
         when(accessGuard.requireAccess(systemId, user, Permission.OWNER)).thenReturn(system);
+        when(systemRepository.countByForkedFrom(system)).thenReturn(0L);
 
         service.delete(systemId, user);
 
         verify(accessGuard).requireAccess(systemId, user, Permission.OWNER);
         verify(systemRepository).delete(system);
+    }
+
+    @Test
+    void delete_withActiveForks_throwsConflict() {
+        when(accessGuard.requireAccess(systemId, user, Permission.OWNER)).thenReturn(system);
+        when(systemRepository.countByForkedFrom(system)).thenReturn(2L);
+
+        assertThatThrownBy(() -> service.delete(systemId, user))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode().value()).isEqualTo(409));
     }
 
     // ── updateVisibility ──────────────────────────────────────────────────
@@ -266,11 +277,17 @@ class BiddingSystemServiceTest {
 
     // ── getPublicSystems ──────────────────────────────────────────────────
 
+    private static List<Object[]> likeCountRows(UUID id, long count) {
+        java.util.ArrayList<Object[]> rows = new java.util.ArrayList<>();
+        rows.add(new Object[]{id, count});
+        return rows;
+    }
+
     @Test
     void getPublicSystems_mostLiked_callsFindAllPublicOrderByLikesDesc() {
         when(systemRepository.findAllPublicOrderByLikesDesc()).thenReturn(List.of(system));
-        when(likeRepository.countBySystem(system)).thenReturn(0L);
-        when(systemRepository.countByForkedFrom(system)).thenReturn(0L);
+        when(likeRepository.countsBySystemIds(any())).thenReturn(likeCountRows(systemId, 0L));
+        when(systemRepository.forkCountsBySystemIds(any())).thenReturn(List.of());
 
         List<BiddingSystemDtos.SystemSummary> result = service.getPublicSystems("most_liked", null);
 
@@ -281,8 +298,8 @@ class BiddingSystemServiceTest {
     @Test
     void getPublicSystems_otherSort_callsFindAllByIsPublicTrue() {
         when(systemRepository.findAllByIsPublicTrueOrderByUpdatedAtDesc()).thenReturn(List.of(system));
-        when(likeRepository.countBySystem(system)).thenReturn(0L);
-        when(systemRepository.countByForkedFrom(system)).thenReturn(0L);
+        when(likeRepository.countsBySystemIds(any())).thenReturn(likeCountRows(systemId, 0L));
+        when(systemRepository.forkCountsBySystemIds(any())).thenReturn(List.of());
 
         List<BiddingSystemDtos.SystemSummary> result = service.getPublicSystems("recent", null);
 
@@ -305,8 +322,8 @@ class BiddingSystemServiceTest {
     void getPublicSystemsForUser_knownUser_returnsSystems() {
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
         when(systemRepository.findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(user)).thenReturn(List.of(system));
-        when(likeRepository.countBySystem(system)).thenReturn(0L);
-        when(systemRepository.countByForkedFrom(system)).thenReturn(0L);
+        when(likeRepository.countsBySystemIds(any())).thenReturn(likeCountRows(systemId, 0L));
+        when(systemRepository.forkCountsBySystemIds(any())).thenReturn(List.of());
 
         List<BiddingSystemDtos.SystemSummary> result = service.getPublicSystemsForUser("alice", null);
 
@@ -327,9 +344,8 @@ class BiddingSystemServiceTest {
 
     @Test
     void getUserProfile_knownUser_returnsProfileWithCorrectPublicCount() {
-        system.setIsPublic(true);
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
-        when(systemRepository.findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(user)).thenReturn(List.of(system));
+        when(systemRepository.countByOwnerAndIsPublicTrue(user)).thenReturn(1L);
 
         BiddingSystemDtos.UserProfileDto profile = service.getUserProfile("alice");
 

@@ -55,7 +55,7 @@ public class SharingService {
         SystemShare share = shareRepository.findBySystemAndSharedWith(system, target)
                 .map(existing -> {
                     existing.setPermission(permission);
-                    return existing;
+                    return shareRepository.save(existing);
                 })
                 .orElseGet(() -> shareRepository.save(new SystemShare(system, target, permission)));
 
