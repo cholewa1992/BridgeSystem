@@ -15,8 +15,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -25,6 +29,8 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class BiddingSystemService {
 
     private static final String EMPTY_TREE = "{\"children\":[]}";
+
+    private record SystemStats(long likeCount, int forkCount, Boolean likedByMe) {}
 
     private final BiddingSystemRepository systemRepository;
     private final SystemShareRepository shareRepository;
@@ -49,8 +55,10 @@ public class BiddingSystemService {
 
     @Transactional(readOnly = true)
     public List<BiddingSystemDtos.SystemSummary> listAccessible(AppUser user) {
-        return systemRepository.findAccessibleBy(user.getId()).stream()
-                .map(s -> toSummary(s, user))
+        List<BiddingSystem> systems = systemRepository.findAccessibleBy(user.getId());
+        Map<UUID, SystemStats> stats = statsFor(systems, user);
+        return systems.stream()
+                .map(s -> toSummary(s, user, stats.get(s.getId())))
                 .toList();
     }
 
@@ -91,6 +99,13 @@ public class BiddingSystemService {
     @Transactional
     public void delete(UUID id, AppUser user) {
         BiddingSystem system = accessGuard.requireAccess(id, user, SystemAccessGuard.Permission.OWNER);
+        long forkCount = systemRepository.countByForkedFrom(system);
+        if (forkCount > 0) {
+            throw new ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Cannot delete a system that has " + forkCount + " active fork(s). Make the system private first."
+            );
+        }
         systemRepository.delete(system);
     }
 
@@ -122,8 +137,9 @@ public class BiddingSystemService {
             case "most_liked" -> systemRepository.findAllPublicOrderByLikesDesc();
             default -> systemRepository.findAllByIsPublicTrueOrderByUpdatedAtDesc();
         };
+        Map<UUID, SystemStats> stats = statsFor(systems, viewer);
         return systems.stream()
-                .map(s -> toSummary(s, viewer))
+                .map(s -> toSummary(s, viewer, stats.get(s.getId())))
                 .toList();
     }
 
@@ -131,8 +147,10 @@ public class BiddingSystemService {
     public List<BiddingSystemDtos.SystemSummary> getPublicSystemsForUser(String username, @Nullable AppUser viewer) {
         AppUser owner = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
-        return systemRepository.findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(owner).stream()
-                .map(s -> toSummary(s, viewer))
+        List<BiddingSystem> systems = systemRepository.findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(owner);
+        Map<UUID, SystemStats> stats = statsFor(systems, viewer);
+        return systems.stream()
+                .map(s -> toSummary(s, viewer, stats.get(s.getId())))
                 .toList();
     }
 
@@ -140,7 +158,7 @@ public class BiddingSystemService {
     public BiddingSystemDtos.UserProfileDto getUserProfile(String username) {
         AppUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
-        int publicCount = systemRepository.findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(user).size();
+        int publicCount = (int) systemRepository.countByOwnerAndIsPublicTrue(user);
         return new BiddingSystemDtos.UserProfileDto(
                 user.getUsername(),
                 user.getDisplayName(),
@@ -171,10 +189,27 @@ public class BiddingSystemService {
 
     // ── Mapping ────────────────────────────────────────────────────────────
 
-    private BiddingSystemDtos.SystemSummary toSummary(BiddingSystem s, @Nullable AppUser viewer) {
-        long likeCount = likeRepository.countBySystem(s);
-        int forkCount = (int) systemRepository.countByForkedFrom(s);
-        Boolean likedByMe = viewer != null ? likeRepository.existsBySystemAndUser(s, viewer) : null;
+    private Map<UUID, SystemStats> statsFor(List<BiddingSystem> systems, @Nullable AppUser viewer) {
+        if (systems.isEmpty()) return Map.of();
+        List<UUID> ids = systems.stream().map(BiddingSystem::getId).toList();
+        Map<UUID, Long> likeCounts = likeRepository.countsBySystemIds(ids).stream()
+                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
+        Map<UUID, Long> forkCounts = systemRepository.forkCountsBySystemIds(ids).stream()
+                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
+        Set<UUID> likedIds = viewer != null
+                ? new HashSet<>(likeRepository.systemIdsLikedByUser(ids, viewer))
+                : Set.of();
+        return systems.stream().collect(Collectors.toMap(
+                BiddingSystem::getId,
+                s -> new SystemStats(
+                        likeCounts.getOrDefault(s.getId(), 0L),
+                        (int) (long) forkCounts.getOrDefault(s.getId(), 0L),
+                        viewer != null ? likedIds.contains(s.getId()) : null
+                )
+        ));
+    }
+
+    private BiddingSystemDtos.SystemSummary toSummary(BiddingSystem s, @Nullable AppUser viewer, SystemStats stats) {
         boolean ownedByMe = viewer != null && s.getOwner().getId().equals(viewer.getId());
         String permission = viewer != null ? permissionFor(s, viewer) : "NONE";
         return new BiddingSystemDtos.SystemSummary(
@@ -186,9 +221,9 @@ public class BiddingSystemService {
                 permission,
                 s.getUpdatedAt(),
                 s.isPublic(),
-                likeCount,
-                forkCount,
-                likedByMe
+                stats.likeCount(),
+                stats.forkCount(),
+                stats.likedByMe()
         );
     }
 
@@ -236,6 +271,6 @@ public class BiddingSystemService {
         return shareRepository.findBySystemAndSharedWith(s, viewer)
                 .map(SystemShare::getPermission)
                 .map(Enum::name)
-                .orElse("NONE");
+                .orElse(s.isPublic() ? "READ" : "NONE");
     }
 }

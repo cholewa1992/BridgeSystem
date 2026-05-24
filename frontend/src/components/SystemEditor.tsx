@@ -30,7 +30,7 @@ import { BidDetailPanel } from './BidDetailPanel';
 import { BidForm, type BidFormData } from './BidForm';
 import { ShareDialog } from './ShareDialog';
 
-type SaveState = 'idle' | 'saving' | 'dirty' | 'saved';
+type SaveState = 'idle' | 'saving' | 'dirty' | 'saved' | 'error';
 
 export function SystemEditor() {
   const { id } = useParams<{ id: string }>();
@@ -82,13 +82,11 @@ export function SystemEditor() {
           tree: treeFromRoot(r),
         },
         {
-          // Clear dirty on either outcome so the debounce never loops; an
-          // error surfaces through updateMut.error.
           onSuccess: () => {
             setDirty(false);
             setJustSaved(true);
           },
-          onError: () => setDirty(false),
+          // Keep dirty=true so the debounce retries on the next render cycle.
         },
       );
     },
@@ -115,9 +113,11 @@ export function SystemEditor() {
     ? 'saving'
     : dirty
       ? 'dirty'
-      : justSaved
-        ? 'saved'
-        : 'idle';
+      : updateMut.isError
+        ? 'error'
+        : justSaved
+          ? 'saved'
+          : 'idle';
 
   // ── Derived ───────────────────────────────────────────────────────────
   const selectedNode = useMemo(() => {
@@ -472,6 +472,9 @@ function SaveIndicator({
   } else if (state === 'dirty') {
     text = 'Unsaved changes';
     colorClass = 'text-accent';
+  } else if (state === 'error') {
+    text = 'Save failed';
+    colorClass = 'text-danger';
   } else {
     text = permission === 'OWNER' ? 'Owner' : permission;
     colorClass = 'text-fg-muted';

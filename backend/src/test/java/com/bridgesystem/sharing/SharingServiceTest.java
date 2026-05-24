@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -108,11 +109,12 @@ class SharingServiceTest {
         when(accessGuard.requireAccess(systemId, owner, Permission.OWNER)).thenReturn(system);
         when(userRepository.findByUsername("bob")).thenReturn(Optional.of(otherUser));
         when(shareRepository.findBySystemAndSharedWith(system, otherUser)).thenReturn(Optional.of(existing));
+        when(shareRepository.save(existing)).thenReturn(existing);
 
         SharingDtos.CreateShare req = new SharingDtos.CreateShare("bob", "WRITE");
         SharingDtos.ShareDto result = service.add(systemId, owner, req);
 
-        verify(shareRepository, never()).save(any());
+        verify(shareRepository, times(1)).save(existing);
         assertThat(existing.getPermission()).isEqualTo(SystemShare.Permission.WRITE);
         assertThat(result.permission()).isEqualTo("WRITE");
     }

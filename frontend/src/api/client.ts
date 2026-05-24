@@ -45,5 +45,6 @@ export async function api<T = unknown>(path: string, init: RequestInit = {}): Pr
   if (contentType.includes('application/json')) {
     return (await res.json()) as T;
   }
-  return (await res.text()) as unknown as T;
+  const text = await res.text();
+  return (text || undefined) as unknown as T;
 }

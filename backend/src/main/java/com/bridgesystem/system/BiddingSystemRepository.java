@@ -27,7 +27,14 @@ public interface BiddingSystemRepository extends JpaRepository<BiddingSystem, UU
 
     List<BiddingSystem> findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(AppUser owner);
 
+    long countByOwnerAndIsPublicTrue(AppUser owner);
+
     long countByForkedFrom(BiddingSystem original);
+
+    @Query("""
+            SELECT f.forkedFrom.id, COUNT(f) FROM BiddingSystem f WHERE f.forkedFrom.id IN :systemIds GROUP BY f.forkedFrom.id
+            """)
+    List<Object[]> forkCountsBySystemIds(@Param("systemIds") List<UUID> systemIds);
 
     @Query("""
             SELECT s FROM BiddingSystem s
