@@ -13,16 +13,16 @@ import java.util.List;
 @RequestMapping("/api/gallery")
 public class GalleryController {
 
-    private final BiddingSystemService service;
+    private final GalleryService galleryService;
 
-    public GalleryController(BiddingSystemService service) {
-        this.service = service;
+    public GalleryController(GalleryService galleryService) {
+        this.galleryService = galleryService;
     }
 
     @GetMapping
     public List<BiddingSystemDtos.SystemSummary> list(
             @OptionalCurrentUser AppUser user,
             @RequestParam(defaultValue = "newest") String sort) {
-        return service.getPublicSystems(sort, user);
+        return galleryService.getPublicSystems(sort, user);
     }
 }

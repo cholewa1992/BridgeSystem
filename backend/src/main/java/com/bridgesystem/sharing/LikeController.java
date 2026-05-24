@@ -2,7 +2,7 @@ package com.bridgesystem.sharing;
 
 import com.bridgesystem.security.CurrentUser;
 import com.bridgesystem.system.BiddingSystemDtos;
-import com.bridgesystem.system.BiddingSystemService;
+import com.bridgesystem.system.GalleryService;
 import com.bridgesystem.user.AppUser;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,19 +16,19 @@ import java.util.UUID;
 @RequestMapping("/api/systems/{id}/like")
 public class LikeController {
 
-    private final BiddingSystemService service;
+    private final GalleryService galleryService;
 
-    public LikeController(BiddingSystemService service) {
-        this.service = service;
+    public LikeController(GalleryService galleryService) {
+        this.galleryService = galleryService;
     }
 
     @PostMapping
     public BiddingSystemDtos.LikeResponse addLike(@CurrentUser AppUser user, @PathVariable UUID id) {
-        return service.addLike(id, user);
+        return galleryService.addLike(id, user);
     }
 
     @DeleteMapping
     public BiddingSystemDtos.LikeResponse removeLike(@CurrentUser AppUser user, @PathVariable UUID id) {
-        return service.removeLike(id, user);
+        return galleryService.removeLike(id, user);
     }
 }

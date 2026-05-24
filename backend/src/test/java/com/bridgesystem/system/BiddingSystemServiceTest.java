@@ -161,6 +161,9 @@ class BiddingSystemServiceTest {
 
         when(accessGuard.requireAccess(systemId, user, Permission.WRITE)).thenReturn(system);
         JsonNode treeNode = mock(JsonNode.class);
+        // BidTree.from() checks has("children") — stub it to pass validation so we
+        // reach the serialization step, where brokenMapper will then throw.
+        when(treeNode.has("children")).thenReturn(true);
         when(brokenMapper.writeValueAsString(treeNode)).thenThrow(new JsonProcessingException("bad") {});
 
         BiddingSystemDtos.UpdateRequest req = new BiddingSystemDtos.UpdateRequest("Name", "desc", treeNode);

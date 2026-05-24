@@ -1,9 +1,8 @@
 package com.bridgesystem.system;
 
 import com.bridgesystem.security.SystemAccessGuard;
-import com.bridgesystem.sharing.SystemLike;
-import com.bridgesystem.sharing.SystemLikeRepository;
 import com.bridgesystem.sharing.SystemShare;
+import com.bridgesystem.sharing.SystemLikeRepository;
 import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.user.AppUser;
 import com.bridgesystem.user.AppUserRepository;
@@ -23,6 +22,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
@@ -84,14 +84,15 @@ public class BiddingSystemService {
     @Transactional
     public BiddingSystemDtos.SystemDetail update(UUID id, AppUser user, BiddingSystemDtos.UpdateRequest req) {
         BiddingSystem system = accessGuard.requireAccess(id, user, SystemAccessGuard.Permission.WRITE);
-        system.setName(req.name());
-        system.setDescription(req.description());
         if (req.tree() != null) {
             try {
-                system.setTreeJson(objectMapper.writeValueAsString(req.tree()));
-            } catch (JsonProcessingException e) {
-                throw new ResponseStatusException(BAD_REQUEST, "Invalid tree JSON", e);
+                BidTree tree = BidTree.from(req.tree());
+                system.updateContent(req.name(), req.description(), tree.toJson(objectMapper));
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                throw new ResponseStatusException(BAD_REQUEST, e.getMessage(), e);
             }
+        } else {
+            system.updateContent(req.name(), req.description(), system.getTreeJson());
         }
         return toDetail(system, user);
     }
@@ -100,11 +101,10 @@ public class BiddingSystemService {
     public void delete(UUID id, AppUser user) {
         BiddingSystem system = accessGuard.requireAccess(id, user, SystemAccessGuard.Permission.OWNER);
         long forkCount = systemRepository.countByForkedFrom(system);
-        if (forkCount > 0) {
-            throw new ResponseStatusException(
-                    org.springframework.http.HttpStatus.CONFLICT,
-                    "Cannot delete a system that has " + forkCount + " active fork(s). Make the system private first."
-            );
+        try {
+            system.ensureDeletable(forkCount);
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(CONFLICT, e.getMessage());
         }
         systemRepository.delete(system);
     }
@@ -112,24 +112,43 @@ public class BiddingSystemService {
     @Transactional
     public BiddingSystemDtos.SystemDetail updateVisibility(UUID id, AppUser user, boolean isPublic) {
         BiddingSystem system = accessGuard.requireAccess(id, user, SystemAccessGuard.Permission.OWNER);
-        system.setIsPublic(isPublic);
+        if (isPublic) {
+            system.publish();
+        } else {
+            system.unpublish();
+        }
         return toDetail(system, user);
     }
 
     @Transactional
     public BiddingSystemDtos.SystemDetail fork(UUID originalId, AppUser caller) {
         BiddingSystem original = accessGuard.requireAccess(originalId, caller, SystemAccessGuard.Permission.READ);
-        BiddingSystem forked = new BiddingSystem(
-                UUID.randomUUID(),
-                caller,
-                original.getName() + " (fork)",
-                original.getDescription(),
-                original.getTreeJson(),
-                original
-        );
+        BiddingSystem forked = original.fork(UUID.randomUUID(), caller);
         systemRepository.save(forked);
         return toDetail(forked, caller);
     }
+
+    // ── Like operations (kept for backward compatibility with existing tests) ──
+
+    @Transactional
+    public BiddingSystemDtos.LikeResponse addLike(UUID systemId, AppUser user) {
+        BiddingSystem system = accessGuard.requireAccess(systemId, user, SystemAccessGuard.Permission.READ);
+        if (!likeRepository.existsBySystemAndUser(system, user)) {
+            likeRepository.save(new com.bridgesystem.sharing.SystemLike(system, user));
+        }
+        long count = likeRepository.countBySystem(system);
+        return new BiddingSystemDtos.LikeResponse(count, true);
+    }
+
+    @Transactional
+    public BiddingSystemDtos.LikeResponse removeLike(UUID systemId, AppUser user) {
+        BiddingSystem system = accessGuard.requireAccess(systemId, user, SystemAccessGuard.Permission.READ);
+        likeRepository.deleteBySystemAndUser(system, user);
+        long count = likeRepository.countBySystem(system);
+        return new BiddingSystemDtos.LikeResponse(count, false);
+    }
+
+    // ── Public-gallery / user-profile (kept for backward compatibility with existing tests) ──
 
     @Transactional(readOnly = true)
     public List<BiddingSystemDtos.SystemSummary> getPublicSystems(String sort, @Nullable AppUser viewer) {
@@ -165,26 +184,6 @@ public class BiddingSystemService {
                 user.getCreatedAt(),
                 publicCount
         );
-    }
-
-    // ── Like operations ────────────────────────────────────────────────────
-
-    @Transactional
-    public BiddingSystemDtos.LikeResponse addLike(UUID systemId, AppUser user) {
-        BiddingSystem system = accessGuard.requireAccess(systemId, user, SystemAccessGuard.Permission.READ);
-        if (!likeRepository.existsBySystemAndUser(system, user)) {
-            likeRepository.save(new SystemLike(system, user));
-        }
-        long count = likeRepository.countBySystem(system);
-        return new BiddingSystemDtos.LikeResponse(count, true);
-    }
-
-    @Transactional
-    public BiddingSystemDtos.LikeResponse removeLike(UUID systemId, AppUser user) {
-        BiddingSystem system = accessGuard.requireAccess(systemId, user, SystemAccessGuard.Permission.READ);
-        likeRepository.deleteBySystemAndUser(system, user);
-        long count = likeRepository.countBySystem(system);
-        return new BiddingSystemDtos.LikeResponse(count, false);
     }
 
     // ── Mapping ────────────────────────────────────────────────────────────
