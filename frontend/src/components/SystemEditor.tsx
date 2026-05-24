@@ -133,10 +133,7 @@ export function SystemEditor() {
   /**
    * Chain context for adding an opening bid at the root.
    */
-  const openingChain = useMemo(
-    () => (root ? addChainContext(root, ROOT_ID) : null),
-    [root],
-  );
+  const openingChain = useMemo(() => (root ? addChainContext(root, ROOT_ID) : null), [root]);
 
   /**
    * Chain context for editing the currently selected node — excludes the
@@ -334,7 +331,9 @@ export function SystemEditor() {
               }}
               className={clsx(
                 'mb-2 cursor-copy rounded-sm border border-dashed px-2.5 py-1.5 text-center text-[12px] text-fg-muted',
-                rootDragOver ? 'border-accent bg-accent-soft' : 'border-border-strong bg-transparent',
+                rootDragOver
+                  ? 'border-accent bg-accent-soft'
+                  : 'border-border-strong bg-transparent',
               )}
             >
               Move here as opening bid

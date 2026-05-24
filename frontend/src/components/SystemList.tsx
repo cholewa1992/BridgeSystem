@@ -128,9 +128,7 @@ export function SystemList() {
                     {s.name}
                   </h3>
                   <Tag tone={s.ownedByMe ? 'accent' : 'neutral'}>
-                    {s.ownedByMe
-                      ? 'Owner'
-                      : `Shared by ${s.ownerUsername} · ${s.permission}`}
+                    {s.ownedByMe ? 'Owner' : `Shared by ${s.ownerUsername} · ${s.permission}`}
                   </Tag>
                 </div>
                 {s.description && (
@@ -145,13 +143,7 @@ export function SystemList() {
   );
 }
 
-function Tag({
-  tone,
-  children,
-}: {
-  tone: 'accent' | 'neutral';
-  children: React.ReactNode;
-}) {
+function Tag({ tone, children }: { tone: 'accent' | 'neutral'; children: React.ReactNode }) {
   const accent = tone === 'accent';
   return (
     <span

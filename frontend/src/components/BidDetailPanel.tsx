@@ -55,9 +55,7 @@ export function BidDetailPanel(props: Props) {
                   className="font-display text-[14px] font-semibold"
                 />
               </span>
-              {i < breadcrumb.length - 1 && (
-                <span className="mx-1.5 text-fg-subtle">›</span>
-              )}
+              {i < breadcrumb.length - 1 && <span className="mx-1.5 text-fg-subtle">›</span>}
             </span>
           ))}
         </div>
@@ -137,9 +135,7 @@ export function BidDetailPanel(props: Props) {
           {/* Children list */}
           {selected.children.length > 0 && (
             <div>
-              <Label className="mb-2.5 block">
-                Continuations ({selected.children.length})
-              </Label>
+              <Label className="mb-2.5 block">Continuations ({selected.children.length})</Label>
               <div className="flex flex-wrap gap-1.5">
                 {selected.children.map((c) => (
                   <button

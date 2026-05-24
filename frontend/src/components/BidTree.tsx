@@ -93,11 +93,7 @@ export function BidTree(props: Props) {
               : hovered
                 ? 'bg-surface-2 border-transparent'
                 : 'border-transparent',
-          props.draggingId
-            ? isValidDrop
-              ? 'cursor-copy'
-              : 'cursor-default'
-            : 'cursor-pointer',
+          props.draggingId ? (isValidDrop ? 'cursor-copy' : 'cursor-default') : 'cursor-pointer',
         )}
       >
         {/* Drag handle — visible on hover when editable */}
@@ -134,9 +130,7 @@ export function BidTree(props: Props) {
         />
 
         <span className="ml-1 flex-1 font-ui text-[13.5px] text-fg-body">
-          {node.meaning || (
-            <em className="text-fg-muted opacity-45">no meaning set</em>
-          )}
+          {node.meaning || <em className="text-fg-muted opacity-45">no meaning set</em>}
         </span>
       </div>
 

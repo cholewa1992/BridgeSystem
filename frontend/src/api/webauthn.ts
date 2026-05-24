@@ -1,7 +1,4 @@
-import {
-  startRegistration,
-  startAuthentication,
-} from '@simplewebauthn/browser';
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import { api } from './client';
 import type { CurrentUser } from '../types';
 

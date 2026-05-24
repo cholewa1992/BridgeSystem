@@ -18,11 +18,7 @@ export function findNode(tree: BidNode, id: string): BidNode | null {
   return null;
 }
 
-export function updateNode(
-  tree: BidNode,
-  id: string,
-  updater: (n: BidNode) => BidNode,
-): BidNode {
+export function updateNode(tree: BidNode, id: string, updater: (n: BidNode) => BidNode): BidNode {
   if (tree.id === id) return updater(tree);
   return {
     ...tree,
@@ -33,9 +29,7 @@ export function updateNode(
 export function deleteNode(tree: BidNode, id: string): BidNode {
   return {
     ...tree,
-    children: (tree.children ?? [])
-      .filter((c) => c.id !== id)
-      .map((c) => deleteNode(c, id)),
+    children: (tree.children ?? []).filter((c) => c.id !== id).map((c) => deleteNode(c, id)),
   };
 }
 
@@ -57,11 +51,12 @@ export const ROOT_ID = 'root';
  */
 function migrateNode(n: unknown): BidNode {
   const raw = (n ?? {}) as Record<string, unknown>;
-  const bids: string[] = Array.isArray(raw.bids) && raw.bids.length > 0
-    ? (raw.bids as unknown[]).filter((b): b is string => typeof b === 'string')
-    : typeof raw.bid === 'string' && raw.bid
-      ? [raw.bid as string]
-      : [];
+  const bids: string[] =
+    Array.isArray(raw.bids) && raw.bids.length > 0
+      ? (raw.bids as unknown[]).filter((b): b is string => typeof b === 'string')
+      : typeof raw.bid === 'string' && raw.bid
+        ? [raw.bid as string]
+        : [];
   return {
     id: typeof raw.id === 'string' ? raw.id : newId(),
     bids,
@@ -284,7 +279,8 @@ export function editChainContext(root: BidNode, nodeId: string): ChainContext {
 }
 
 function isBidValidInContext(bid: string, ctx: ChainContext): boolean {
-  if (bid === 'X') return ctx.lastContractBid !== null && !ctx.hasActiveDouble && !ctx.hasActiveRedouble;
+  if (bid === 'X')
+    return ctx.lastContractBid !== null && !ctx.hasActiveDouble && !ctx.hasActiveRedouble;
   if (bid === 'XX') return ctx.hasActiveDouble && !ctx.hasActiveRedouble;
   const p = parseBid(bid);
   if (!p) return false;
