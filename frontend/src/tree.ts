@@ -88,12 +88,26 @@ export function canDropNode(root: BidNode, nodeId: string, targetParentId: strin
   return node.bids.every((bid) => isBidValidInContext(bid, ctx));
 }
 
+function nodeSortKey(node: BidNode): number {
+  if (node.bids.length === 0) return Infinity;
+  const first = node.bids[0];
+  if (first === 'XX') return -2;
+  if (first === 'X') return -1;
+  // For grouped nodes use the lowest bid in the group.
+  let best: ParsedBid | null = null;
+  for (const b of node.bids) {
+    const p = parseBid(b);
+    if (p && (!best || compareBids(p, best) < 0)) best = p;
+  }
+  return best ? bidRank(best) : Infinity;
+}
+
 export function moveNode(root: BidNode, nodeId: string, newParentId: string): BidNode {
   const node = findNode(root, nodeId);
   if (!node) return root;
   return updateNode(deleteNode(root, nodeId), newParentId, (n) => ({
     ...n,
-    children: [...n.children, node],
+    children: [...n.children, node].sort((a, b) => nodeSortKey(a) - nodeSortKey(b)),
   }));
 }
 
