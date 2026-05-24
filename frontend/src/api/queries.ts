@@ -20,8 +20,8 @@ export const queryKeys = {
   system: (id: string) => ['system', id] as const,
   shares: (systemId: string) => ['shares', systemId] as const,
   gallery: (sort: string) => ['gallery', sort] as const,
-  userProfile: (username: string) => ['user', username] as const,
-  userSystems: (username: string) => ['user', username, 'systems'] as const,
+  userProfile: (username: string) => ['userProfile', username] as const,
+  userSystems: (username: string) => ['userSystems', username] as const,
 };
 
 // ── Systems ────────────────────────────────────────────────────────────────
@@ -80,7 +80,12 @@ export function useForkSystem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => forkSystem(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.systems }),
+    onSuccess: (_data, id) => {
+      qc.invalidateQueries({ queryKey: queryKeys.systems });
+      qc.invalidateQueries({ queryKey: queryKeys.system(id) });
+      qc.invalidateQueries({ queryKey: queryKeys.gallery('newest') });
+      qc.invalidateQueries({ queryKey: queryKeys.gallery('most_liked') });
+    },
   });
 }
 
@@ -116,7 +121,7 @@ export function useToggleLike(systemId: string) {
       qc.invalidateQueries({ queryKey: queryKeys.gallery('newest') });
       qc.invalidateQueries({ queryKey: queryKeys.gallery('most_liked') });
       qc.invalidateQueries({ queryKey: queryKeys.systems });
-      qc.invalidateQueries({ queryKey: ['user'] });
+      qc.invalidateQueries({ queryKey: queryKeys.system(systemId) });
     },
   });
 }
