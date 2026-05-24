@@ -5,7 +5,6 @@ import com.bridgesystem.sharing.SystemShare;
 import com.bridgesystem.sharing.SystemLikeRepository;
 import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.user.AppUser;
-import com.bridgesystem.user.AppUserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +22,6 @@ import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 public class BiddingSystemService {
@@ -37,20 +35,17 @@ public class BiddingSystemService {
     private final SystemLikeRepository likeRepository;
     private final SystemAccessGuard accessGuard;
     private final ObjectMapper objectMapper;
-    private final AppUserRepository userRepository;
 
     public BiddingSystemService(BiddingSystemRepository systemRepository,
                                 SystemShareRepository shareRepository,
                                 SystemLikeRepository likeRepository,
                                 SystemAccessGuard accessGuard,
-                                ObjectMapper objectMapper,
-                                AppUserRepository userRepository) {
+                                ObjectMapper objectMapper) {
         this.systemRepository = systemRepository;
         this.shareRepository = shareRepository;
         this.likeRepository = likeRepository;
         this.accessGuard = accessGuard;
         this.objectMapper = objectMapper;
-        this.userRepository = userRepository;
     }
 
     @Transactional(readOnly = true)
@@ -126,64 +121,6 @@ public class BiddingSystemService {
         BiddingSystem forked = original.fork(UUID.randomUUID(), caller);
         systemRepository.save(forked);
         return toDetail(forked, caller);
-    }
-
-    // ── Like operations (kept for backward compatibility with existing tests) ──
-
-    @Transactional
-    public BiddingSystemDtos.LikeResponse addLike(UUID systemId, AppUser user) {
-        BiddingSystem system = accessGuard.requireAccess(systemId, user, SystemAccessGuard.Permission.READ);
-        if (!likeRepository.existsBySystemAndUser(system, user)) {
-            likeRepository.save(new com.bridgesystem.sharing.SystemLike(system, user));
-        }
-        long count = likeRepository.countBySystem(system);
-        return new BiddingSystemDtos.LikeResponse(count, true);
-    }
-
-    @Transactional
-    public BiddingSystemDtos.LikeResponse removeLike(UUID systemId, AppUser user) {
-        BiddingSystem system = accessGuard.requireAccess(systemId, user, SystemAccessGuard.Permission.READ);
-        likeRepository.deleteBySystemAndUser(system, user);
-        long count = likeRepository.countBySystem(system);
-        return new BiddingSystemDtos.LikeResponse(count, false);
-    }
-
-    // ── Public-gallery / user-profile (kept for backward compatibility with existing tests) ──
-
-    @Transactional(readOnly = true)
-    public List<BiddingSystemDtos.SystemSummary> getPublicSystems(String sort, @Nullable AppUser viewer) {
-        List<BiddingSystem> systems = switch (sort) {
-            case "most_liked" -> systemRepository.findAllPublicOrderByLikesDesc();
-            default -> systemRepository.findAllByIsPublicTrueOrderByUpdatedAtDesc();
-        };
-        Map<UUID, SystemStats> stats = statsFor(systems, viewer);
-        return systems.stream()
-                .map(s -> toSummary(s, viewer, stats.get(s.getId())))
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<BiddingSystemDtos.SystemSummary> getPublicSystemsForUser(String username, @Nullable AppUser viewer) {
-        AppUser owner = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
-        List<BiddingSystem> systems = systemRepository.findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(owner);
-        Map<UUID, SystemStats> stats = statsFor(systems, viewer);
-        return systems.stream()
-                .map(s -> toSummary(s, viewer, stats.get(s.getId())))
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public BiddingSystemDtos.UserProfileDto getUserProfile(String username) {
-        AppUser user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "User not found"));
-        int publicCount = (int) systemRepository.countByOwnerAndIsPublicTrue(user);
-        return new BiddingSystemDtos.UserProfileDto(
-                user.getUsername(),
-                user.getDisplayName(),
-                user.getCreatedAt(),
-                publicCount
-        );
     }
 
     // ── Mapping ────────────────────────────────────────────────────────────
