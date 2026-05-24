@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { SystemList } from './components/SystemList';
 import { SystemEditor } from './components/SystemEditor';
+import { GalleryPage } from './components/GalleryPage';
+import { UserProfilePage } from './components/UserProfilePage';
 import type { ReactNode } from 'react';
 
 function Protected({ children }: { children: ReactNode }) {
@@ -36,6 +38,8 @@ function AppRoutes() {
           </Protected>
         }
       />
+      <Route path="/gallery" element={<GalleryPage />} />
+      <Route path="/users/:username" element={<UserProfilePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

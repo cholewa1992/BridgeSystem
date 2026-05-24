@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { BidNode, SystemDetail } from '../types';
-import { useDeleteSystem, useSystem, useUpdateSystem } from '../api/queries';
+import { useDeleteSystem, useForkSystem, useSystem, useUpdateSystem, useUpdateVisibility } from '../api/queries';
 import {
   ROOT_ID,
   addChainContext,
@@ -32,6 +32,8 @@ export function SystemEditor() {
   const { data: detail, error: loadError } = useSystem(id);
   const updateMut = useUpdateSystem(id ?? '');
   const deleteMut = useDeleteSystem();
+  const forkMut = useForkSystem();
+  const visibilityMut = useUpdateVisibility();
 
   const [root, setRoot] = useState<BidNode | null>(null);
   const [systemName, setSystemName] = useState('');
@@ -219,6 +221,21 @@ export function SystemEditor() {
     markDirty();
   };
 
+  const onFork = async () => {
+    if (!detail) return;
+    try {
+      const forked = await forkMut.mutateAsync(detail.id);
+      navigate(`/systems/${forked.id}`);
+    } catch {
+      // surfaced via forkMut.error
+    }
+  };
+
+  const onToggleVisibility = () => {
+    if (!detail) return;
+    visibilityMut.mutate({ id: detail.id, isPublic: !detail.isPublic });
+  };
+
   const onDeleteSystem = async () => {
     if (!detail) return;
     if (!confirm(`Delete "${detail.name}"? This cannot be undone.`)) return;
@@ -291,6 +308,14 @@ export function SystemEditor() {
           <SaveIndicator state={saveState} permission={detail.permission} />
           {detail.permission === 'OWNER' && (
             <>
+              <Button
+                variant="secondary"
+                onClick={onToggleVisibility}
+                loading={visibilityMut.isPending}
+                small
+              >
+                {detail.isPublic ? 'Make Private' : 'Make Public'}
+              </Button>
               <Button variant="secondary" onClick={() => setShowShare(true)}>
                 Share
               </Button>
@@ -298,6 +323,15 @@ export function SystemEditor() {
                 Delete
               </Button>
             </>
+          )}
+          {detail.permission !== 'OWNER' && (
+            <Button
+              variant="secondary"
+              onClick={onFork}
+              loading={forkMut.isPending}
+            >
+              Fork
+            </Button>
           )}
         </div>
       </header>
@@ -368,6 +402,19 @@ export function SystemEditor() {
         {/* Detail pane */}
         <main className="flex-1 overflow-y-auto px-10 py-8">
           <div className="max-w-[760px]">
+            {detail.forkedFrom && (
+              <div className="mb-4 rounded-sm border border-border bg-surface-sunken px-3 py-2 font-ui text-[13px] text-fg-muted">
+                Forked from{' '}
+                <span className="font-medium text-fg">"{detail.forkedFrom.name}"</span>{' '}
+                by{' '}
+                <button
+                  onClick={() => navigate(`/users/${detail.forkedFrom!.ownerUsername}`)}
+                  className="text-fg-muted underline-offset-2 hover:underline"
+                >
+                  @{detail.forkedFrom.ownerUsername}
+                </button>
+              </div>
+            )}
             <BidDetailPanel
               selected={selectedNode}
               breadcrumb={breadcrumb}

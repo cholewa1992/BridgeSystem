@@ -27,6 +27,10 @@ const sampleSystem: SystemSummary = {
   ownedByMe: true,
   permission: 'OWNER',
   updatedAt: '2026-01-01T00:00:00Z',
+  likeCount: 0,
+  forkCount: 0,
+  isPublic: false,
+  likedByMe: null,
 };
 
 describe('SystemList', () => {

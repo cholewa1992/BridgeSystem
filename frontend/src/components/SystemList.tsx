@@ -41,6 +41,9 @@ export function SystemList() {
         </div>
         <h1 className="m-0 font-ui text-[16px] font-semibold text-fg">Bridge System</h1>
         <div className="ml-auto flex items-center gap-[14px]">
+          <Button variant="ghost" onClick={() => navigate('/gallery')}>
+            Explore Gallery
+          </Button>
           <span className="font-ui text-[13px] text-fg-muted">{user?.displayName}</span>
           <Button variant="ghost" onClick={() => logout()}>
             Sign out
@@ -130,10 +133,17 @@ export function SystemList() {
                   <Tag tone={s.ownedByMe ? 'accent' : 'neutral'}>
                     {s.ownedByMe ? 'Owner' : `Shared by ${s.ownerUsername} · ${s.permission}`}
                   </Tag>
+                  {s.isPublic && (
+                    <Tag tone="public">Public</Tag>
+                  )}
                 </div>
                 {s.description && (
                   <p className="mb-0 mt-2 font-ui text-[14px] text-fg-body">{s.description}</p>
                 )}
+                <div className="mt-2 flex items-center gap-4 font-ui text-[13px] text-fg-muted">
+                  <span>♥ {s.likeCount}</span>
+                  <span>⑂ {s.forkCount}</span>
+                </div>
               </button>
             ))}
           </div>
@@ -143,13 +153,24 @@ export function SystemList() {
   );
 }
 
-function Tag({ tone, children }: { tone: 'accent' | 'neutral'; children: React.ReactNode }) {
-  const accent = tone === 'accent';
+function Tag({
+  tone,
+  children,
+}: {
+  tone: 'accent' | 'neutral' | 'public';
+  children: React.ReactNode;
+}) {
+  const classes =
+    tone === 'accent'
+      ? 'bg-accent-soft text-accent-ink'
+      : tone === 'public'
+        ? 'bg-accent-soft text-accent-ink'
+        : 'bg-surface-sunken text-fg-muted';
   return (
     <span
       className={
         'rounded-full px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.05em] ' +
-        (accent ? 'bg-accent-soft text-accent-ink' : 'bg-surface-sunken text-fg-muted')
+        classes
       }
     >
       {children}

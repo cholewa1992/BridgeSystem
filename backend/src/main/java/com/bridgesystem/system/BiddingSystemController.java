@@ -1,11 +1,13 @@
 package com.bridgesystem.system;
 
 import com.bridgesystem.security.CurrentUser;
+import com.bridgesystem.security.OptionalCurrentUser;
 import com.bridgesystem.user.AppUser;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -38,7 +40,7 @@ public class BiddingSystemController {
     }
 
     @GetMapping("/{id}")
-    public BiddingSystemDtos.SystemDetail get(@CurrentUser AppUser user, @PathVariable UUID id) {
+    public BiddingSystemDtos.SystemDetail get(@OptionalCurrentUser AppUser user, @PathVariable UUID id) {
         return service.get(id, user);
     }
 
@@ -53,5 +55,17 @@ public class BiddingSystemController {
     public ResponseEntity<Void> delete(@CurrentUser AppUser user, @PathVariable UUID id) {
         service.delete(id, user);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/visibility")
+    public BiddingSystemDtos.SystemDetail updateVisibility(@CurrentUser AppUser user,
+                                                           @PathVariable UUID id,
+                                                           @RequestBody BiddingSystemDtos.VisibilityRequest body) {
+        return service.updateVisibility(id, user, body.isPublic());
+    }
+
+    @PostMapping("/{id}/fork")
+    public BiddingSystemDtos.SystemDetail fork(@CurrentUser AppUser user, @PathVariable UUID id) {
+        return service.fork(id, user);
     }
 }

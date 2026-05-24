@@ -25,11 +25,28 @@ export interface SystemSummary {
   ownedByMe: boolean;
   permission: 'OWNER' | 'READ' | 'WRITE' | 'NONE';
   updatedAt: string;
+  likeCount: number;
+  forkCount: number;
+  isPublic: boolean;
+  likedByMe: boolean | null; // null = not logged in
 }
 
 export interface SystemDetail extends SystemSummary {
   tree: BidTreeRoot;
   createdAt: string;
+  forkedFrom?: { id: string; name: string; ownerUsername: string };
+}
+
+export interface UserProfile {
+  username: string;
+  displayName: string;
+  createdAt: string;
+  publicSystemCount: number;
+}
+
+export interface LikeResponse {
+  likeCount: number;
+  likedByMe: boolean;
 }
 
 export interface CurrentUser {
