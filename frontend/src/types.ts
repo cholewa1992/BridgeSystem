@@ -17,6 +17,11 @@ export interface BidTreeRoot {
   children: BidNode[];
 }
 
+export interface BidSection {
+  label: string;
+  nodes: BidNode[];
+}
+
 export interface SystemSummary {
   id: string;
   name: string;

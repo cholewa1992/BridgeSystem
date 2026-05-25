@@ -57,6 +57,8 @@ export function SystemEditor() {
   const [rootDragOver, setRootDragOver] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [collapseVersion, setCollapseVersion] = useState(0);
+  const [expandVersion, setExpandVersion] = useState(0);
 
   // ── Seed local editable state once per system ─────────────────────────
   useEffect(() => {
@@ -351,8 +353,14 @@ export function SystemEditor() {
       <div className="flex flex-1 overflow-hidden">
         {/* Tree pane */}
         <aside className="w-[460px] overflow-y-auto border-r border-border bg-surface px-[18px] py-5">
-          <div className="mb-[14px] flex items-center justify-between">
-            <Label>Bidding sequences</Label>
+          <div className="mb-[14px] flex items-center gap-2">
+            <Label className="flex-1">Bidding sequences</Label>
+            <Button variant="ghost" small onClick={() => setCollapseVersion((v) => v + 1)}>
+              Collapse all
+            </Button>
+            <Button variant="ghost" small onClick={() => setExpandVersion((v) => v + 1)}>
+              Expand all
+            </Button>
             {!readOnly && addingTo !== ROOT_ID && (
               <Button variant="secondary" onClick={() => setAddingTo(ROOT_ID)}>
                 + Opening bid
@@ -396,6 +404,8 @@ export function SystemEditor() {
             onDragEnd={endDrag}
             onDrop={handleMove}
             canDrop={canDropHere}
+            collapseVersion={collapseVersion}
+            expandVersion={expandVersion}
           />
 
           {addingTo === ROOT_ID && openingChain && (
