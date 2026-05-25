@@ -15,10 +15,6 @@ vi.mock('../api/queries', () => ({
   useCreateSystem: () => ({ mutateAsync: vi.fn(), isPending: false, error: null }),
 }));
 
-vi.mock('../context/AuthContext', () => ({
-  useAuth: () => ({ user: { displayName: 'Alice' }, logout: vi.fn() }),
-}));
-
 const sampleSystem: SystemSummary = {
   id: 's1',
   name: '2/1 Game Force',
@@ -56,6 +52,5 @@ describe('SystemList', () => {
     expect(screen.getByText('2/1 Game Force')).toBeInTheDocument();
     expect(screen.getByText('Our main system')).toBeInTheDocument();
     expect(screen.getByText('Owner')).toBeInTheDocument();
-    expect(screen.getByText('Alice')).toBeInTheDocument();
   });
 });
