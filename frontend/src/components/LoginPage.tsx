@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Alert, Button, Card, Field, Input } from './ui';
+import { BrandLockup } from './BrandLockup';
 
 export function LoginPage() {
   const { login, register } = useAuth();
@@ -32,11 +33,8 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg p-6">
       <div className="w-[400px] max-w-full">
-        <div className="mb-6 flex justify-center gap-1 text-[20px] opacity-85">
-          <span className="text-suit-black">♠</span>
-          <span className="text-suit-red">♥</span>
-          <span className="text-suit-red">♦</span>
-          <span className="text-suit-black">♣</span>
+        <div className="mb-6 flex justify-center">
+          <BrandLockup variant="stacked" height={64} />
         </div>
 
         <Card elevated className="px-9 pb-7 pt-9">

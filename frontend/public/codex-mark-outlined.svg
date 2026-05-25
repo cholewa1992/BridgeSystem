@@ -1,0 +1,13 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Codex">
+  
+  <rect x="14" y="60" width="72" height="6" fill="#1f1d1a"></rect>
+  <rect x="14" y="72" width="72" height="3" fill="#1f1d1a" fill-opacity="0.55"></rect>
+  <rect x="14" y="80" width="72" height="3" fill="#1f1d1a" fill-opacity="0.4"></rect>
+  
+  <rect x="8" y="88" width="84" height="2" fill="#1f1d1a" fill-opacity="0.85"></rect>
+  
+  <g fill="#1f1d1a" transform="translate(50 19)">
+    <path d="M0 0&#xA;             C -3.5 6.5 -16 14 -16 24&#xA;             C -16 31.5 -10 35.5 -4.5 33.5&#xA;             C -3.8 36.5 -3 39 -1 41&#xA;             L 1 41&#xA;             C 3 39 3.8 36.5 4.5 33.5&#xA;             C 10 35.5 16 31.5 16 24&#xA;             C 16 14 3.5 6.5 0 0 Z"></path>
+  </g>
+</svg>

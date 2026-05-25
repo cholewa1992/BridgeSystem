@@ -1,0 +1,11 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Codex">
+  
+  <rect x="14" y="60" width="72" height="6" fill="#1f1d1a"></rect>
+  <rect x="14" y="72" width="72" height="3" fill="#1f1d1a" fill-opacity="0.55"></rect>
+  <rect x="14" y="80" width="72" height="3" fill="#1f1d1a" fill-opacity="0.4"></rect>
+  
+  <rect x="8" y="88" width="84" height="2" fill="#1f1d1a" fill-opacity="0.85"></rect>
+  
+  <text x="50" y="50" font-family="-apple-system, BlinkMacSystemFont, &#39;Segoe UI Symbol&#39;, system-ui, sans-serif" font-size="38" fill="#1f1d1a" text-anchor="middle">♠</text>
+</svg>
