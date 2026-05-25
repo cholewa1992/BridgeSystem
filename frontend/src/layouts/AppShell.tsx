@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Clock, Globe, LogIn, LogOut, User, Users } from 'lucide-react';
+import { BrandLockup } from '../components/BrandLockup';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
@@ -62,14 +63,8 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
   return (
     <nav className="flex h-full flex-col overflow-y-auto bg-surface py-4" style={{ width: 240 }}>
       {/* Brand */}
-      <div className="flex items-center gap-3 px-3 py-[6px] pb-[14px]">
-        <div className="flex gap-[3px] text-[16px] opacity-85">
-          <span style={{ color: 'var(--suit-black)' }}>♠</span>
-          <span style={{ color: 'var(--suit-red)' }}>♥</span>
-          <span style={{ color: 'var(--suit-red)' }}>♦</span>
-          <span style={{ color: 'var(--suit-black)' }}>♣</span>
-        </div>
-        <span className="font-ui text-[16px] font-semibold text-fg">Bridge System</span>
+      <div className="flex items-center px-3 py-[6px] pb-[14px]">
+        <BrandLockup height={22} />
       </div>
 
       {/* Workspace section */}
