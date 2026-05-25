@@ -18,9 +18,42 @@ function shade(hex: string, amt: number): string {
 // ── SIZE table ────────────────────────────────────────────────────────────────
 
 const SIZE = {
-  compact: { w: 36, h: 32, font: 13, xFont: 14, xxFont: 11, multiFont: 9,  passFont: 9,  headerFont: 18, gap: 3, maxWidth: 280 },
-  regular: { w: 44, h: 40, font: 16, xFont: 17, xxFont: 14, multiFont: 11, passFont: 11, headerFont: 22, gap: 4, maxWidth: 320 },
-  large:   { w: 56, h: 50, font: 20, xFont: 21, xxFont: 17, multiFont: 13, passFont: 13, headerFont: 26, gap: 5, maxWidth: 380 },
+  compact: {
+    w: 36,
+    h: 32,
+    font: 13,
+    xFont: 14,
+    xxFont: 11,
+    multiFont: 9,
+    passFont: 9,
+    headerFont: 18,
+    gap: 3,
+    maxWidth: 280,
+  },
+  regular: {
+    w: 44,
+    h: 40,
+    font: 16,
+    xFont: 17,
+    xxFont: 14,
+    multiFont: 11,
+    passFont: 11,
+    headerFont: 22,
+    gap: 4,
+    maxWidth: 320,
+  },
+  large: {
+    w: 56,
+    h: 50,
+    font: 20,
+    xFont: 21,
+    xxFont: 17,
+    multiFont: 13,
+    passFont: 13,
+    headerFont: 26,
+    gap: 5,
+    maxWidth: 380,
+  },
 };
 
 type SzKey = keyof typeof SIZE;
@@ -54,11 +87,13 @@ function buildSeats(path: BidNode[]): { seats: SeatEntry[][]; dealerCol: number 
 
 function bidCardColors(node: BidNode): { bg: string; fg: string } {
   const firstBid = node.bids[0];
-  if (firstBid === 'X')  return { bg: '#c8443a', fg: '#fff' };
+  if (firstBid === 'X') return { bg: '#c8443a', fg: '#fff' };
   if (firstBid === 'XX') return { bg: '#3b5878', fg: '#fff' };
-  const suit = firstBid.endsWith('NT') ? 'NT'
-    : (firstBid.endsWith('ma') || firstBid.endsWith('om')) ? 'sym'
-    : firstBid.slice(-1);
+  const suit = firstBid.endsWith('NT')
+    ? 'NT'
+    : firstBid.endsWith('ma') || firstBid.endsWith('om')
+      ? 'sym'
+      : firstBid.slice(-1);
   if (suit === '♥' || suit === '♦') return { bg: '#f6d4cd', fg: '#a83323' };
   if (suit === '♠' || suit === '♣') return { bg: '#dad6cc', fg: '#1a1a1a' };
   if (suit === 'NT') return { bg: '#d6e0ed', fg: '#2f4866' };
@@ -193,10 +228,7 @@ export function BiddingTable({ path, size = 'regular' }: { path: BidNode[]; size
 
   return (
     <Card className="p-[18px]">
-      <div
-        className="mx-auto grid grid-cols-4 gap-2"
-        style={{ maxWidth: sz.maxWidth }}
-      >
+      <div className="mx-auto grid grid-cols-4 gap-2" style={{ maxWidth: sz.maxWidth }}>
         {order.map((idx) => {
           const isDealer = idx === dealerCol;
           return (

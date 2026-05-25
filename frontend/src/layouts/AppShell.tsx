@@ -4,10 +4,10 @@ import { BookOpen, Clock, Globe, LogIn, LogOut, User, Users } from 'lucide-react
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
-  { id: 'list',     icon: BookOpen, label: 'My systems',   route: '/' },
-  { id: 'gallery',  icon: Globe,    label: 'Gallery',       route: '/gallery' },
-  { id: 'partners', icon: Users,    label: 'Partners',      route: '/partners', stub: true },
-  { id: 'history',  icon: Clock,    label: 'Recent edits',  route: '/history',  stub: true },
+  { id: 'list', icon: BookOpen, label: 'My systems', route: '/' },
+  { id: 'gallery', icon: Globe, label: 'Gallery', route: '/gallery' },
+  { id: 'partners', icon: Users, label: 'Partners', route: '/partners', stub: true },
+  { id: 'history', icon: Clock, label: 'Recent edits', route: '/history', stub: true },
 ] as const;
 
 function isRouteActive(id: string, route: string, pathname: string): boolean {
@@ -110,20 +110,10 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
               icon={User}
               label={user.displayName}
             />
-            <NavButton
-              active={false}
-              onClick={handleSignOut}
-              icon={LogOut}
-              label="Sign out"
-            />
+            <NavButton active={false} onClick={handleSignOut} icon={LogOut} label="Sign out" />
           </>
         ) : (
-          <NavButton
-            active={false}
-            onClick={() => onNav('/login')}
-            icon={LogIn}
-            label="Sign in"
-          />
+          <NavButton active={false} onClick={() => onNav('/login')} icon={LogIn} label="Sign in" />
         )}
       </div>
     </nav>
