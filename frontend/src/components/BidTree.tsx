@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import type { BidNode } from '../types';
+import { groupIntoSections } from '../tree';
 import { BidLabel } from './BidLabel';
+import { BidTreeSection } from './BidTreeSection';
 
 interface Props {
   node: BidNode;
@@ -14,6 +16,8 @@ interface Props {
   onDragEnd?: () => void;
   onDrop?: (targetParentId: string) => void;
   canDrop?: (targetParentId: string) => boolean;
+  collapseVersion?: number;
+  expandVersion?: number;
 }
 
 export function BidTree(props: Props) {
@@ -27,8 +31,42 @@ export function BidTree(props: Props) {
   // even before draggingId state has propagated through React.
   const isValidDrop = dragOver && (props.canDrop?.(node.id) ?? false);
 
-  // Synthetic root — render children only
+  useEffect(() => {
+    if ((props.collapseVersion ?? 0) > 0) setOpen(false);
+  }, [props.collapseVersion]);
+
+  useEffect(() => {
+    if ((props.expandVersion ?? 0) > 0) setOpen(true);
+  }, [props.expandVersion]);
+
+  // Synthetic root — render children grouped into sections
   if (node.bids.length === 0) {
+    const sections = groupIntoSections(node.children ?? []);
+    const useGrouping =
+      sections.length > 1 || (sections.length === 1 && sections[0].label !== 'Other');
+    if (useGrouping) {
+      return (
+        <div>
+          {sections.map((s) => (
+            <BidTreeSection
+              key={s.label}
+              label={s.label}
+              nodes={s.nodes}
+              collapseVersion={props.collapseVersion ?? 0}
+              expandVersion={props.expandVersion ?? 0}
+              selectedId={props.selectedId}
+              onSelect={props.onSelect}
+              readOnly={props.readOnly}
+              draggingId={props.draggingId}
+              onDragStart={props.onDragStart}
+              onDragEnd={props.onDragEnd}
+              onDrop={props.onDrop}
+              canDrop={props.canDrop}
+            />
+          ))}
+        </div>
+      );
+    }
     return (
       <div>
         {node.children?.map((c) => (

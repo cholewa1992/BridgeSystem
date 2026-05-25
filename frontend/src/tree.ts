@@ -1,4 +1,4 @@
-import type { BidNode, BidTreeRoot } from './types';
+import type { BidNode, BidSection, BidTreeRoot } from './types';
 
 // ── Tree manipulation ─────────────────────────────────────────────────────
 
@@ -299,4 +299,44 @@ function isBidValidInContext(bid: string, ctx: ChainContext): boolean {
   const p = parseBid(bid);
   if (!p) return false;
   return isValidContinuation(p, ctx.lastContractBid ? parseBid(ctx.lastContractBid) : null);
+}
+
+// ── Section grouping ──────────────────────────────────────────────────────
+
+const SECTION_ORDER = [
+  '1-Level Suits',
+  '1NT System',
+  '2-Level Bids',
+  'Pre-empts',
+  'High-Level',
+  'Defence',
+  'Other',
+] as const;
+
+type SectionLabel = (typeof SECTION_ORDER)[number];
+
+function classifyOpeningNode(node: BidNode): SectionLabel {
+  if (node.byOpponent) return 'Defence';
+  const first = node.bids[0];
+  if (!first || first === 'X' || first === 'XX') return 'Defence';
+  const parsed = parseBid(first);
+  if (!parsed) return 'Other';
+  const { level, strain } = parsed;
+  if (level === 1 && strain !== 'NT') return '1-Level Suits';
+  if (level === 1 && strain === 'NT') return '1NT System';
+  if (level === 2) return '2-Level Bids';
+  if (level === 3 || level === 4) return 'Pre-empts';
+  if (level >= 5) return 'High-Level';
+  return 'Other';
+}
+
+export function groupIntoSections(nodes: BidNode[]): BidSection[] {
+  const buckets = new Map<SectionLabel, BidNode[]>(SECTION_ORDER.map((l) => [l, []]));
+  for (const node of nodes) {
+    buckets.get(classifyOpeningNode(node))!.push(node);
+  }
+  return SECTION_ORDER.flatMap((label) => {
+    const section = buckets.get(label)!;
+    return section.length > 0 ? [{ label, nodes: section }] : [];
+  });
 }
