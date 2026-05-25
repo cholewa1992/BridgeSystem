@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePublicSystems, useToggleLike } from '../api/queries';
-import { Card, Button } from './ui';
+import { Card } from './ui';
 import { SystemCard } from './SystemCard';
 
 type Sort = 'newest' | 'most_liked';
@@ -14,36 +14,7 @@ export function GalleryPage() {
   const { data: systems } = usePublicSystems(sort);
 
   return (
-    <div className="min-h-screen bg-bg">
-      {/* Header */}
-      <header className="flex items-center gap-[14px] border-b border-border bg-surface px-8 py-[14px]">
-        <div className="flex gap-[3px] text-[16px] opacity-85">
-          <span className="text-suit-black">♠</span>
-          <span className="text-suit-red">♥</span>
-          <span className="text-suit-red">♦</span>
-          <span className="text-suit-black">♣</span>
-        </div>
-        <Link
-          to={user ? '/' : '/gallery'}
-          className="m-0 font-ui text-[16px] font-semibold text-fg no-underline"
-        >
-          Bridge System
-        </Link>
-        <span className="font-ui text-[14px] text-fg-muted">/ Gallery</span>
-        <div className="ml-auto flex items-center gap-[14px]">
-          {user ? (
-            <Button variant="ghost" onClick={() => navigate('/')}>
-              My Systems
-            </Button>
-          ) : (
-            <Button variant="secondary" onClick={() => navigate('/login')}>
-              Log in
-            </Button>
-          )}
-        </div>
-      </header>
-
-      {/* Page body */}
+    <div className="bg-bg">
       <main className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[48px]">
         <div className="mb-7 flex items-end justify-between gap-4">
           <div>

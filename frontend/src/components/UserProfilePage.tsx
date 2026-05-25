@@ -1,8 +1,8 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToggleLike, useUserProfile, useUserSystems } from '../api/queries';
 import { ApiError } from '../api/client';
-import { Button, Card } from './ui';
+import { Card } from './ui';
 import { SystemCard } from './SystemCard';
 import type { SystemSummary } from '../types';
 
@@ -17,8 +17,7 @@ export function UserProfilePage() {
   if (profileError) {
     const is404 = profileError instanceof ApiError && profileError.status === 404;
     return (
-      <div className="min-h-screen bg-bg">
-        <PageHeader user={user} onNavigate={navigate} />
+      <div className="bg-bg">
         <main className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[48px]">
           <Card className="px-6 py-10 text-center text-fg-muted">
             <div className="mb-2.5 text-[32px] opacity-60">♠</div>
@@ -34,9 +33,7 @@ export function UserProfilePage() {
   const joinYear = profile ? new Date(profile.createdAt).getFullYear() : null;
 
   return (
-    <div className="min-h-screen bg-bg">
-      <PageHeader user={user} onNavigate={navigate} />
-
+    <div className="bg-bg">
       <main className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[48px]">
         {/* Profile header section */}
         {profile === undefined ? (
@@ -87,45 +84,6 @@ export function UserProfilePage() {
         )}
       </main>
     </div>
-  );
-}
-
-function PageHeader({
-  user,
-  onNavigate,
-}: {
-  user: import('../types').CurrentUser | null;
-  onNavigate: ReturnType<typeof useNavigate>;
-}) {
-  return (
-    <header className="flex items-center gap-[14px] border-b border-border bg-surface px-8 py-[14px]">
-      <div className="flex gap-[3px] text-[16px] opacity-85">
-        <span className="text-suit-black">♠</span>
-        <span className="text-suit-red">♥</span>
-        <span className="text-suit-red">♦</span>
-        <span className="text-suit-black">♣</span>
-      </div>
-      <Link
-        to={user ? '/' : '/gallery'}
-        className="m-0 font-ui text-[16px] font-semibold text-fg no-underline"
-      >
-        Bridge System
-      </Link>
-      <div className="ml-auto flex items-center gap-[14px]">
-        <Button variant="ghost" onClick={() => onNavigate('/gallery')}>
-          Gallery
-        </Button>
-        {user ? (
-          <Button variant="ghost" onClick={() => onNavigate('/')}>
-            My Systems
-          </Button>
-        ) : (
-          <Button variant="secondary" onClick={() => onNavigate('/login')}>
-            Log in
-          </Button>
-        )}
-      </div>
-    </header>
   );
 }
 

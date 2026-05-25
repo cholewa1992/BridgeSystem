@@ -3,6 +3,7 @@ import type { ChainContext } from '../tree';
 import { Button, Card, Label } from './ui';
 import { BidForm, type BidFormData } from './BidForm';
 import { BidLabel } from './BidLabel';
+import { BiddingTable } from './BiddingTable';
 
 interface Props {
   selected: BidNode | null;
@@ -44,23 +45,6 @@ export function BidDetailPanel(props: Props) {
 
   return (
     <>
-      {breadcrumb.length > 0 && (
-        <div className="mb-[18px] flex flex-wrap items-center gap-1.5 font-ui text-[13px] text-fg-muted">
-          {breadcrumb.map((n, i) => (
-            <span key={n.id} className="inline-flex items-center">
-              <span className="cursor-pointer" onClick={() => props.onSelect(n.id)}>
-                <BidLabel
-                  bids={n.bids}
-                  byOpponent={n.byOpponent}
-                  className="font-display text-[14px] font-semibold"
-                />
-              </span>
-              {i < breadcrumb.length - 1 && <span className="mx-1.5 text-fg-subtle">›</span>}
-            </span>
-          ))}
-        </div>
-      )}
-
       {props.editing && !props.readOnly && props.editChain ? (
         <BidForm
           mode="edit"
@@ -70,33 +54,54 @@ export function BidDetailPanel(props: Props) {
             meaning: selected.meaning,
             notes: selected.notes ?? '',
             byOpponent: selected.byOpponent ?? false,
+            alerted: selected.alerted ?? false,
           }}
           onSubmit={props.onSubmitEdit}
           onCancel={props.onCancelEdit}
         />
       ) : (
         <>
-          {/* Hero */}
-          <div className="mb-[18px] flex items-center gap-5">
-            <BidLabel
-              bids={selected.bids}
-              byOpponent={selected.byOpponent}
-              className="font-display text-[48px] font-semibold leading-none tracking-[-0.02em]"
-            />
+          {/* Meaning header */}
+          <div className="mb-[18px] flex items-start gap-3">
             <div className="flex-1">
-              {isOpp && (
-                <div className="mb-1.5 inline-block rounded-full bg-surface-sunken px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
-                  Interference / opponent
-                </div>
-              )}
-              <div className="font-display text-[19px] leading-[1.35] text-fg">
+              <div className="mb-1.5 flex flex-wrap gap-1.5">
+                {isOpp && (
+                  <div className="inline-block rounded-full bg-surface-sunken px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
+                    Interference / opponent
+                  </div>
+                )}
+                {selected.alerted && (
+                  <div
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.06em]"
+                    style={{ background: 'rgba(59,88,120,0.12)', color: '#3b5878' }}
+                  >
+                    <span
+                      className="inline-flex items-center justify-center rounded-full"
+                      style={{
+                        width: 12,
+                        height: 12,
+                        background: '#3b5878',
+                        color: '#fff',
+                        fontSize: 8,
+                        fontWeight: 800,
+                        lineHeight: 1,
+                        paddingBottom: 1,
+                      }}
+                    >
+                      !
+                    </span>
+                    Alertable
+                  </div>
+                )}
+              </div>
+              <div className="font-display text-[22px] font-semibold leading-[1.3] tracking-[-0.005em] text-fg">
                 {selected.meaning || (
                   <em className="text-fg-muted opacity-50">No meaning defined</em>
                 )}
               </div>
             </div>
             {!props.readOnly && (
-              <div className="flex gap-1.5">
+              <div className="flex gap-1.5 pt-0.5">
                 <Button variant="secondary" onClick={props.onRequestEdit}>
                   Edit
                 </Button>
@@ -106,6 +111,13 @@ export function BidDetailPanel(props: Props) {
               </div>
             )}
           </div>
+
+          {/* BiddingTable */}
+          {breadcrumb.length > 0 && (
+            <div className="mb-6">
+              <BiddingTable path={breadcrumb} />
+            </div>
+          )}
 
           {/* Notes */}
           {selected.notes && (

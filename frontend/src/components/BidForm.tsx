@@ -22,6 +22,7 @@ export interface BidFormData {
   meaning: string;
   notes: string;
   byOpponent: boolean;
+  alerted: boolean;
 }
 
 type CallKind = 'bid' | 'X' | 'XX' | 'pass';
@@ -29,7 +30,7 @@ type CallKind = 'bid' | 'X' | 'XX' | 'pass';
 interface Props {
   mode: 'add' | 'edit';
   chain: ChainContext;
-  initial?: Partial<BidFormData>;
+  initial?: Partial<BidFormData> & { alerted?: boolean };
   onSubmit: (data: BidFormData) => void;
   onCancel: () => void;
 }
@@ -87,6 +88,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
   const [meaning, setMeaning] = useState(initial?.meaning ?? '');
   const [notes, setNotes] = useState(initial?.notes ?? '');
   const [byOpponent, setByOpponent] = useState(initial?.byOpponent ?? false);
+  const [alerted, setAlerted] = useState(initial?.alerted ?? false);
 
   // ── Picker availability ───────────────────────────────────────────────
   const isLevelAllowed = (L: Level): boolean => {
@@ -167,6 +169,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
       meaning: meaning.trim(),
       notes: notes.trim(),
       byOpponent,
+      alerted,
     });
   };
 
@@ -353,7 +356,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
       </div>
 
       {/* Interference */}
-      <label className="mb-4 flex cursor-pointer select-none items-center gap-2 text-[14px] text-fg-body">
+      <label className="mb-3 flex cursor-pointer select-none items-center gap-2 text-[14px] text-fg-body">
         <input
           type="checkbox"
           checked={byOpponent}
@@ -361,6 +364,18 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
           className="accent-accent"
         />
         Call made by opponent
+      </label>
+
+      {/* Alertable */}
+      <label className="mb-4 flex cursor-pointer select-none items-center gap-2 text-[14px] text-fg-body">
+        <input
+          type="checkbox"
+          checked={alerted}
+          onChange={(e) => setAlerted(e.target.checked)}
+          className="accent-accent"
+        />
+        Alertable
+        <span className="ml-1 text-[12px] text-fg-muted">(conventional / non-natural)</span>
       </label>
 
       <div className="flex gap-2">

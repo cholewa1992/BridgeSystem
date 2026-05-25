@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 import { useCreateSystem, useSystems } from '../api/queries';
 import { Button, Card, Input, Label } from './ui';
 
 export function SystemList() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
   const { data: systems, error: loadError } = useSystems();
   const createMut = useCreateSystem();
 
@@ -30,28 +28,7 @@ export function SystemList() {
   };
 
   return (
-    <div className="min-h-screen bg-bg">
-      {/* Header */}
-      <header className="flex items-center gap-[14px] border-b border-border bg-surface px-8 py-[14px]">
-        <div className="flex gap-[3px] text-[16px] opacity-85">
-          <span className="text-suit-black">♠</span>
-          <span className="text-suit-red">♥</span>
-          <span className="text-suit-red">♦</span>
-          <span className="text-suit-black">♣</span>
-        </div>
-        <h1 className="m-0 font-ui text-[16px] font-semibold text-fg">Bridge System</h1>
-        <div className="ml-auto flex items-center gap-[14px]">
-          <Button variant="ghost" onClick={() => navigate('/gallery')}>
-            Explore Gallery
-          </Button>
-          <span className="font-ui text-[13px] text-fg-muted">{user?.displayName}</span>
-          <Button variant="ghost" onClick={() => logout()}>
-            Sign out
-          </Button>
-        </div>
-      </header>
-
-      {/* Page body */}
+    <div className="bg-bg">
       <main className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[48px]">
         <div className="mb-7 flex items-end justify-between gap-4">
           <div>
@@ -150,6 +127,7 @@ export function SystemList() {
     </div>
   );
 }
+
 
 function Tag({
   tone,

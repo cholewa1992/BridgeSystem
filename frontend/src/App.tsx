@@ -1,10 +1,13 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { Clock, Users } from 'lucide-react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { SystemList } from './components/SystemList';
 import { SystemEditor } from './components/SystemEditor';
 import { GalleryPage } from './components/GalleryPage';
 import { UserProfilePage } from './components/UserProfilePage';
+import { AppShell } from './layouts/AppShell';
+import { ComingSoonPage } from './layouts/ComingSoonPage';
 import type { ReactNode } from 'react';
 
 function Protected({ children }: { children: ReactNode }) {
@@ -22,25 +25,29 @@ function AppRoutes() {
         path="/login"
         element={loading ? null : user ? <Navigate to="/" replace /> : <LoginPage />}
       />
-      <Route
-        path="/"
-        element={
-          <Protected>
-            <SystemList />
-          </Protected>
-        }
-      />
-      <Route
-        path="/systems/:id"
-        element={
-          <Protected>
-            <SystemEditor />
-          </Protected>
-        }
-      />
-      <Route path="/gallery" element={<GalleryPage />} />
-      <Route path="/users/:username" element={<UserProfilePage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route element={<AppShell />}>
+        <Route
+          path="/"
+          element={
+            <Protected>
+              <SystemList />
+            </Protected>
+          }
+        />
+        <Route
+          path="/systems/:id"
+          element={
+            <Protected>
+              <SystemEditor />
+            </Protected>
+          }
+        />
+        <Route path="/gallery" element={<GalleryPage />} />
+        <Route path="/users/:username" element={<UserProfilePage />} />
+        <Route path="/partners" element={<ComingSoonPage title="Partners" icon={Users} />} />
+        <Route path="/history" element={<ComingSoonPage title="Recent edits" icon={Clock} />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
     </Routes>
   );
 }
