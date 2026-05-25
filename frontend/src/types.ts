@@ -10,6 +10,7 @@ export interface BidNode {
   meaning: string;
   notes?: string;
   byOpponent?: boolean;
+  alerted?: boolean;
   children: BidNode[];
 }
 

@@ -165,6 +165,7 @@ export function SystemEditor() {
       meaning: data.meaning,
       ...(data.notes ? { notes: data.notes } : {}),
       ...(data.byOpponent ? { byOpponent: true } : {}),
+      ...(data.alerted ? { alerted: true } : {}),
       children: [],
     };
     setRoot(updateNode(root, parentId, (n) => ({ ...n, children: [...n.children, node] })));
@@ -182,6 +183,7 @@ export function SystemEditor() {
         meaning: data.meaning,
         notes: data.notes || undefined,
         byOpponent: data.byOpponent || undefined,
+        alerted: data.alerted || undefined,
       })),
     );
     setEditing(false);
@@ -283,16 +285,6 @@ export function SystemEditor() {
     <div className="flex min-h-screen flex-col bg-bg">
       {/* Top bar */}
       <header className="flex items-center gap-[14px] border-b border-border bg-surface px-6 py-3">
-        <Button variant="ghost" onClick={() => navigate('/')}>
-          ← Back
-        </Button>
-        <div className="h-[22px] w-px bg-border" />
-        <div className="flex gap-[3px] text-[14px] opacity-70">
-          <span className="text-suit-black">♠</span>
-          <span className="text-suit-red">♥</span>
-          <span className="text-suit-red">♦</span>
-          <span className="text-suit-black">♣</span>
-        </div>
         {editingName && !readOnly ? (
           <Input
             value={systemName}
