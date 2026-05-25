@@ -42,7 +42,8 @@ export function BidTree(props: Props) {
   // Synthetic root — render children grouped into sections
   if (node.bids.length === 0) {
     const sections = groupIntoSections(node.children ?? []);
-    const useGrouping = sections.length > 1 || (sections.length === 1 && sections[0].label !== 'Other');
+    const useGrouping =
+      sections.length > 1 || (sections.length === 1 && sections[0].label !== 'Other');
     if (useGrouping) {
       return (
         <div>
