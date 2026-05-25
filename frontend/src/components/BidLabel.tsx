@@ -26,7 +26,7 @@ export function BidLabel({ bids, byOpponent, className }: Props) {
       {bids.map((b, i) => (
         <Fragment key={i}>
           {i > 0 && <span className="mx-1 font-normal not-italic text-fg-subtle">/</span>}
-          <span style={{ color: suitColor(suitOf(b)) }}>{b}</span>
+          <span style={{ color: suitColor(suitOf(b)) }}>{b === 'P' ? 'Pass' : b}</span>
         </Fragment>
       ))}
       {opp && <span>)</span>}

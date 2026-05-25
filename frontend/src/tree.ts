@@ -91,6 +91,7 @@ export function canDropNode(root: BidNode, nodeId: string, targetParentId: strin
 function nodeSortKey(node: BidNode): number {
   if (node.bids.length === 0) return Infinity;
   const first = node.bids[0];
+  if (first === 'P') return -3;
   if (first === 'XX') return -2;
   if (first === 'X') return -1;
   // For grouped nodes use the lowest bid in the group.
@@ -249,7 +250,9 @@ export function chainContextFromNodes(nodes: BidNode[]): ChainContext {
   for (const n of nodes) {
     if (n.bids.length === 0) continue;
     const first = n.bids[0];
-    if (first === 'X') {
+    if (first === 'P') {
+      // pass — chain state unchanged
+    } else if (first === 'X') {
       if (lastContractBid && !hasActiveDouble) hasActiveDouble = true;
     } else if (first === 'XX') {
       if (hasActiveDouble && !hasActiveRedouble) hasActiveRedouble = true;
@@ -293,6 +296,7 @@ export function editChainContext(root: BidNode, nodeId: string): ChainContext {
 }
 
 function isBidValidInContext(bid: string, ctx: ChainContext): boolean {
+  if (bid === 'P') return true;
   if (bid === 'X')
     return ctx.lastContractBid !== null && !ctx.hasActiveDouble && !ctx.hasActiveRedouble;
   if (bid === 'XX') return ctx.hasActiveDouble && !ctx.hasActiveRedouble;
@@ -318,7 +322,7 @@ type SectionLabel = (typeof SECTION_ORDER)[number];
 function classifyOpeningNode(node: BidNode): SectionLabel {
   if (node.byOpponent) return 'Defence';
   const first = node.bids[0];
-  if (!first || first === 'X' || first === 'XX') return 'Defence';
+  if (!first || first === 'P' || first === 'X' || first === 'XX') return 'Defence';
   const parsed = parseBid(first);
   if (!parsed) return 'Other';
   const { level, strain } = parsed;

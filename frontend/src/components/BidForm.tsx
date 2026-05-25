@@ -24,7 +24,7 @@ export interface BidFormData {
   byOpponent: boolean;
 }
 
-type CallKind = 'bid' | 'X' | 'XX';
+type CallKind = 'bid' | 'X' | 'XX' | 'pass';
 
 interface Props {
   mode: 'add' | 'edit';
@@ -49,7 +49,14 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
   // ── Initial state ─────────────────────────────────────────────────────
   const initialBids = useMemo(() => initial?.bids ?? [], [initial?.bids]);
   const firstInitial = initialBids[0];
-  const initialKind: CallKind = firstInitial === 'X' ? 'X' : firstInitial === 'XX' ? 'XX' : 'bid';
+  const initialKind: CallKind =
+    firstInitial === 'P'
+      ? 'pass'
+      : firstInitial === 'X'
+        ? 'X'
+        : firstInitial === 'XX'
+          ? 'XX'
+          : 'bid';
 
   /** Derive level + strains from a group of contract-bid strings. */
   const derived = useMemo(() => {
@@ -69,7 +76,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
     if (contractBidAllowed) return 'bid';
     if (doubleAllowed) return 'X';
     if (redoubleAllowed) return 'XX';
-    return 'bid';
+    return 'pass';
   });
 
   const [level, setLevel] = useState<Level | null>(derived?.level ?? minContract?.level ?? null);
@@ -130,6 +137,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
 
   // ── Compose preview bids ──────────────────────────────────────────────
   const previewBids: string[] = (() => {
+    if (kind === 'pass') return ['P'];
     if (kind === 'X') return ['X'];
     if (kind === 'XX') return ['XX'];
     if (!level || strains.length === 0) return [];
@@ -146,6 +154,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
   const canSubmit = (() => {
     if (!meaning.trim()) return false;
     if (previewBids.length === 0) return false;
+    if (kind === 'pass') return true;
     if (kind === 'X') return doubleAllowed || initialKind === 'X';
     if (kind === 'XX') return redoubleAllowed || initialKind === 'XX';
     return allContractsValid;
@@ -161,21 +170,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
     });
   };
 
-  // ── No legal calls at all ─────────────────────────────────────────────
-  if (!contractBidAllowed && !doubleAllowed && !redoubleAllowed) {
-    return (
-      <div className="rounded-md border border-border bg-surface-2 p-4">
-        <p className="m-0 text-[14px] text-fg-muted">
-          No legal call available — 7NT redoubled is the ceiling.
-        </p>
-        <div className="mt-3">
-          <Button variant="secondary" onClick={onCancel}>
-            Close
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  // Pass is always legal, so the form is never fully blocked.
 
   return (
     <div className="rounded-md border border-border bg-surface-2 p-[18px]">
@@ -193,6 +188,14 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
       <div className="mb-[14px]">
         <div className="mb-1.5 text-[12px] text-fg-muted">Type of call</div>
         <div className="inline-flex overflow-hidden rounded-sm border border-border-strong">
+          <SegBtn
+            selected={kind === 'pass'}
+            onClick={() => setKind('pass')}
+            title="Pass"
+            color="var(--fg-muted)"
+          >
+            Pass (P)
+          </SegBtn>
           <SegBtn
             selected={kind === 'bid'}
             disabled={!contractBidAllowed}
@@ -320,11 +323,13 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
         </div>
         <Input
           placeholder={
-            kind === 'X'
-              ? 'e.g. Takeout — partner should bid'
-              : kind === 'XX'
-                ? 'e.g. Shows extra strength, asks partner to bid'
-                : 'e.g. Major-suit opening'
+            kind === 'pass'
+              ? 'e.g. No interference'
+              : kind === 'X'
+                ? 'e.g. Takeout — partner should bid'
+                : kind === 'XX'
+                  ? 'e.g. Shows extra strength, asks partner to bid'
+                  : 'e.g. Major-suit opening'
           }
           value={meaning}
           onChange={(e) => setMeaning(e.target.value)}
