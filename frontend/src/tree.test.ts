@@ -373,7 +373,10 @@ describe('rootFromTree / treeFromRoot', () => {
         children: [n(['2♣'], [], { id: 'c1r1', meaning: 'Stayman ask' })],
       },
     };
-    const legacyTree = { children: [], conventions: [conv] } as unknown as import('./types').BidTreeRoot;
+    const legacyTree = {
+      children: [],
+      conventions: [conv],
+    } as unknown as import('./types').BidTreeRoot;
     const recovered = conventionsFromTree(legacyTree);
     expect(recovered).toHaveLength(1);
     expect(recovered[0].name).toBe('Stayman');

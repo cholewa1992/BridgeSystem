@@ -36,7 +36,10 @@ export function deleteConvention(id: string): Promise<void> {
   return api(`/api/conventions/${id}`, { method: 'DELETE' });
 }
 
-export function updateConventionVisibility(id: string, isPublic: boolean): Promise<ConventionDetail> {
+export function updateConventionVisibility(
+  id: string,
+  isPublic: boolean,
+): Promise<ConventionDetail> {
   return api<ConventionDetail>(`/api/conventions/${id}/visibility`, {
     method: 'PATCH',
     body: JSON.stringify({ isPublic }),

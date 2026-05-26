@@ -185,10 +185,7 @@ export function ConventionLibraryPage() {
         {/* Right panel — editor */}
         <main className="flex-1 overflow-y-auto">
           {selectedConvention ? (
-            <ConventionEditor
-              key={selectedConvention.id}
-              convention={selectedConvention}
-            />
+            <ConventionEditor key={selectedConvention.id} convention={selectedConvention} />
           ) : (
             <div className="flex h-full items-center justify-center text-[14px] text-fg-muted">
               {isLoading ? 'Loading…' : 'Select or create a convention to edit.'}
@@ -213,8 +210,7 @@ function ConventionListItem({
   onSelect: () => void;
   onDelete: () => void;
 }) {
-  const canEdit =
-    convention.permission === 'OWNER' || convention.permission === 'WRITE';
+  const canEdit = convention.permission === 'OWNER' || convention.permission === 'WRITE';
 
   return (
     <div
@@ -225,20 +221,18 @@ function ConventionListItem({
       )}
     >
       <div className="min-w-0 flex-1">
-        <div className="truncate font-ui text-[14px] font-medium text-fg">
-          {convention.name}
-        </div>
+        <div className="truncate font-ui text-[14px] font-medium text-fg">{convention.name}</div>
         <div className="mt-0.5 flex items-center gap-2 text-[12px] text-fg-muted">
           {convention.isPublic && (
             <span className="rounded-full bg-accent-soft px-1.5 py-0.5 font-ui text-[10px] font-semibold uppercase tracking-[0.05em] text-accent-ink">
               Public
             </span>
           )}
-          {!canEdit && (
-            <span className="text-fg-subtle">read-only</span>
-          )}
+          {!canEdit && <span className="text-fg-subtle">read-only</span>}
           {convention.parameters.length > 0 && (
-            <span>{convention.parameters.length} param{convention.parameters.length !== 1 ? 's' : ''}</span>
+            <span>
+              {convention.parameters.length} param{convention.parameters.length !== 1 ? 's' : ''}
+            </span>
           )}
         </div>
       </div>
@@ -266,8 +260,7 @@ function ConventionEditor({ convention }: { convention: ConventionDetail }) {
   const forkMut = useForkConvention();
   const navigate = useNavigate();
 
-  const readOnly =
-    convention.permission !== 'OWNER' && convention.permission !== 'WRITE';
+  const readOnly = convention.permission !== 'OWNER' && convention.permission !== 'WRITE';
 
   // Local editable state
   const [convName, setConvName] = useState(convention.name);
@@ -663,10 +656,7 @@ function ParameterEditor({
       ) : (
         <div className="flex flex-col gap-2">
           {parameters.map((param, i) => (
-            <div
-              key={param.id}
-              className="rounded-sm border border-border bg-surface-sunken p-2"
-            >
+            <div key={param.id} className="rounded-sm border border-border bg-surface-sunken p-2">
               {readOnly ? (
                 <div>
                   <div className="font-ui text-[13px] font-medium text-fg">{param.name}</div>
