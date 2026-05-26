@@ -1,5 +1,8 @@
 package com.bridgesystem.system;
 
+import com.bridgesystem.convention.ConventionDtos;
+import com.bridgesystem.convention.ConventionRepository;
+import com.bridgesystem.convention.ConventionService;
 import com.bridgesystem.security.SystemAccessGuard;
 import com.bridgesystem.sharing.SystemShare;
 import com.bridgesystem.sharing.SystemLikeRepository;
@@ -13,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,17 +39,23 @@ public class BiddingSystemService {
     private final SystemLikeRepository likeRepository;
     private final SystemAccessGuard accessGuard;
     private final ObjectMapper objectMapper;
+    private final ConventionRepository conventionRepository;
+    private final ConventionService conventionService;
 
     public BiddingSystemService(BiddingSystemRepository systemRepository,
                                 SystemShareRepository shareRepository,
                                 SystemLikeRepository likeRepository,
                                 SystemAccessGuard accessGuard,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                ConventionRepository conventionRepository,
+                                ConventionService conventionService) {
         this.systemRepository = systemRepository;
         this.shareRepository = shareRepository;
         this.likeRepository = likeRepository;
         this.accessGuard = accessGuard;
         this.objectMapper = objectMapper;
+        this.conventionRepository = conventionRepository;
+        this.conventionService = conventionService;
     }
 
     @Transactional(readOnly = true)
@@ -184,6 +194,18 @@ public class BiddingSystemService {
                     ff.getOwner().getUsername()
             );
         }
+        // Resolve convention references embedded in tree_json
+        Set<String> refStrings = collectConventionRefs(tree);
+        List<ConventionDtos.ConventionDetail> conventions = new ArrayList<>();
+        for (String refStr : refStrings) {
+            try {
+                UUID refId = UUID.fromString(refStr);
+                conventionRepository.findById(refId)
+                        .ifPresent(c -> conventions.add(conventionService.toDetail(c, viewer)));
+            } catch (IllegalArgumentException ignored) {
+                // skip non-UUID strings
+            }
+        }
         return new BiddingSystemDtos.SystemDetail(
                 s.getId(),
                 s.getName(),
@@ -198,8 +220,20 @@ public class BiddingSystemService {
                 likeCount,
                 forkCount,
                 likedByMe,
-                forkedFromRef
+                forkedFromRef,
+                conventions
         );
+    }
+
+    private Set<String> collectConventionRefs(JsonNode node) {
+        Set<String> refs = new HashSet<>();
+        if (node.isArray()) {
+            node.forEach(child -> refs.addAll(collectConventionRefs(child)));
+        } else if (node.isObject()) {
+            if (node.has("conventionRef")) refs.add(node.get("conventionRef").asText());
+            node.fields().forEachRemaining(e -> refs.addAll(collectConventionRefs(e.getValue())));
+        }
+        return refs;
     }
 
     private String permissionFor(BiddingSystem s, AppUser viewer) {

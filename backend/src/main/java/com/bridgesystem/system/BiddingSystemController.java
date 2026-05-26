@@ -1,5 +1,6 @@
 package com.bridgesystem.system;
 
+import com.bridgesystem.convention.ConventionDtos;
 import com.bridgesystem.security.CurrentUser;
 import com.bridgesystem.security.OptionalCurrentUser;
 import com.bridgesystem.user.AppUser;
@@ -67,5 +68,11 @@ public class BiddingSystemController {
     @PostMapping("/{id}/fork")
     public BiddingSystemDtos.SystemDetail fork(@CurrentUser AppUser user, @PathVariable UUID id) {
         return service.fork(id, user);
+    }
+
+    @GetMapping("/{id}/conventions")
+    public List<ConventionDtos.ConventionDetail> getConventions(@OptionalCurrentUser AppUser user,
+                                                                @PathVariable UUID id) {
+        return service.get(id, user).conventions();
     }
 }
