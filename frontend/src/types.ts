@@ -26,8 +26,6 @@ export interface BidNode {
 
 export interface BidTreeRoot {
   children: BidNode[];
-  /** Convention library for this system. Stored alongside the tree in tree_json. */
-  conventions?: ConventionDef[];
 }
 
 /** A named, reusable subtree that can be attached to any node in the bid tree. */
@@ -51,13 +49,16 @@ export interface ConventionDef {
 
 /** A substitution variable declared on a ConventionDef. */
 export interface ConventionParam {
+  /** Unique identifier for this parameter. */
+  id: string;
   /** Short identifier used in `{{name}}` placeholders (no spaces). */
   name: string;
-  /** Human-readable label shown in the param-input form. */
-  label: string;
+  description?: string;
   defaultValue?: string;
   /** 'suit' renders a ♣/♦/♥/♠ picker instead of a text input when linking. */
   type?: 'text' | 'suit';
+  /** Human-readable label shown in the param-input form. */
+  label?: string;
 }
 
 export interface BidSection {
@@ -79,10 +80,43 @@ export interface SystemSummary {
   likedByMe: boolean | null; // null = not logged in
 }
 
+export interface ConventionDetail {
+  id: string;
+  name: string;
+  description?: string;
+  parameters: ConventionParam[];
+  root: BidNode;
+  isPublic: boolean;
+  ownerUsername: string;
+  ownedByMe: boolean;
+  permission: 'OWNER' | 'READ' | 'WRITE' | 'NONE';
+  forkedFrom?: { id: string; name: string };
+  createdAt: string;
+  updatedAt: string;
+  likeCount: number;
+  forkCount: number;
+  likedByMe: boolean | null;
+}
+
+export interface ConventionSummary {
+  id: string;
+  name: string;
+  description?: string;
+  paramCount: number;
+  ownerUsername: string;
+  ownedByMe: boolean;
+  isPublic: boolean;
+  updatedAt: string;
+  likeCount: number;
+  forkCount: number;
+  likedByMe: boolean | null;
+}
+
 export interface SystemDetail extends SystemSummary {
   tree: BidTreeRoot;
   createdAt: string;
   forkedFrom?: { id: string; name: string; ownerUsername: string };
+  conventions: ConventionDetail[];
 }
 
 export interface UserProfile {
@@ -101,17 +135,6 @@ export interface CurrentUser {
   id: string;
   username: string;
   displayName: string;
-}
-
-export interface ConventionSummary {
-  id: string;
-  name: string;
-  description?: string;
-  paramCount: number;
-  systemId: string;
-  systemName: string;
-  ownerUsername: string;
-  systemUpdatedAt: string;
 }
 
 export interface Share {

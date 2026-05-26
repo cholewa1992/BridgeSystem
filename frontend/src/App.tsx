@@ -44,13 +44,14 @@ function AppRoutes() {
           }
         />
         <Route
-          path="/systems/:id/conventions"
+          path="/conventions"
           element={
             <Protected>
               <ConventionLibraryPage />
             </Protected>
           }
         />
+        <Route path="/systems/:id/conventions" element={<Navigate to="/conventions" replace />} />
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/users/:username" element={<UserProfilePage />} />
         <Route path="/partners" element={<ComingSoonPage title="Partners" icon={Users} />} />

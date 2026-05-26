@@ -1,7 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { usePublicConventions, usePublicSystems, useToggleLike } from '../api/queries';
+import {
+  usePublicConventions,
+  usePublicSystems,
+  useToggleLike,
+  useToggleConventionLike,
+  useForkConvention,
+} from '../api/queries';
 import { Card } from './ui';
 import { SystemCard } from './SystemCard';
 import type { ConventionSummary } from '../types';
@@ -84,13 +90,19 @@ export function GalleryPage() {
           <Card className="px-6 py-10 text-center text-fg-muted">
             <div className="mb-2.5 text-[32px] opacity-60">♣</div>
             <p className="m-0 font-ui text-[15px]">
-              No public conventions yet — publish a system that contains conventions.
+              No public conventions yet — be the first to publish one.
             </p>
           </Card>
         ) : (
           <div className="flex flex-col gap-2.5">
             {conventions.map((c) => (
-              <ConventionGalleryCard key={`${c.systemId}:${c.id}`} convention={c} />
+              <ConventionGalleryCard
+                key={c.id}
+                convention={c}
+                onNavigateToLogin={() => navigate('/login')}
+                onNavigateToConventions={() => navigate('/conventions')}
+                isLoggedIn={user !== null}
+              />
             ))}
           </div>
         )}
@@ -154,48 +166,106 @@ function GalleryCard({
   );
 }
 
-function ConventionGalleryCard({ convention }: { convention: ConventionSummary }) {
-  const href = `/systems/${convention.systemId}/conventions`;
+/** Convention gallery card with like and fork buttons. */
+function ConventionGalleryCard({
+  convention,
+  onNavigateToLogin,
+  onNavigateToConventions,
+  isLoggedIn,
+}: {
+  convention: ConventionSummary;
+  onNavigateToLogin: () => void;
+  onNavigateToConventions: () => void;
+  isLoggedIn: boolean;
+}) {
+  const likeMut = useToggleConventionLike(convention.id);
+  const forkMut = useForkConvention();
+  const heartFilled = convention.likedByMe === true;
+
+  const handleLike = () => {
+    if (!isLoggedIn) {
+      onNavigateToLogin();
+      return;
+    }
+    likeMut.mutate({ liked: convention.likedByMe === true });
+  };
+
+  const handleFork = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isLoggedIn) {
+      onNavigateToLogin();
+      return;
+    }
+    forkMut.mutate(convention.id, {
+      onSuccess: () => onNavigateToConventions(),
+    });
+  };
 
   return (
-    <Link
-      to={href}
-      className="block rounded-md border border-border bg-surface px-[22px] py-[18px] font-ui shadow-sm transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md no-underline"
-    >
-      <div className="flex flex-wrap items-baseline gap-3">
-        <h3 className="m-0 font-display text-[19px] font-semibold tracking-[-0.005em] text-fg">
-          {convention.name}
-        </h3>
-        {convention.paramCount > 0 && (
-          <span className="rounded-full bg-surface-raised px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.05em] text-fg-muted">
-            {convention.paramCount} param{convention.paramCount !== 1 ? 's' : ''}
-          </span>
+    <div className="relative rounded-md border border-border bg-surface px-[22px] py-[18px] font-ui shadow-sm transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md">
+      <button
+        onClick={isLoggedIn ? onNavigateToConventions : undefined}
+        className={'block w-full text-left' + (isLoggedIn ? ' cursor-pointer' : ' cursor-default')}
+        disabled={!isLoggedIn}
+        style={isLoggedIn ? undefined : { pointerEvents: 'none' }}
+      >
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h3 className="m-0 font-display text-[19px] font-semibold tracking-[-0.005em] text-fg">
+            {convention.name}
+          </h3>
+          {convention.isPublic && (
+            <span className="rounded-full bg-accent-soft px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.05em] text-accent-ink">
+              Public
+            </span>
+          )}
+        </div>
+
+        <p className="mb-0 mt-1 font-ui text-[13px] text-fg-muted">
+          by <span className="font-medium">@{convention.ownerUsername}</span>
+          {convention.paramCount > 0 && (
+            <span className="ml-2 text-fg-subtle">
+              · {convention.paramCount} param{convention.paramCount !== 1 ? 's' : ''}
+            </span>
+          )}
+        </p>
+
+        {convention.description && (
+          <p className="mb-0 mt-2 line-clamp-2 font-ui text-[13px] text-fg-muted">
+            {convention.description}
+          </p>
+        )}
+      </button>
+
+      {/* Bottom row: stats + actions */}
+      <div className="mt-3 flex items-center gap-4">
+        <span className="font-ui text-[13px] text-fg-muted">⑂ {convention.forkCount}</span>
+
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleLike();
+          }}
+          disabled={likeMut.isPending}
+          className={
+            'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-ui text-[13px] transition-colors ' +
+            (heartFilled ? 'text-suit-red' : 'text-fg-muted hover:text-suit-red')
+          }
+          title={heartFilled ? 'Unlike' : 'Like'}
+        >
+          <span aria-hidden="true">{heartFilled ? '♥' : '♡'}</span>
+          <span>{convention.likeCount}</span>
+        </button>
+
+        {isLoggedIn && !convention.ownedByMe && (
+          <button
+            onClick={handleFork}
+            disabled={forkMut.isPending}
+            className="ml-auto rounded-sm border border-border px-2.5 py-1 font-ui text-[12px] text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
+          >
+            Fork
+          </button>
         )}
       </div>
-
-      <p className="mb-0 mt-1 font-ui text-[13px] text-fg-muted">
-        in{' '}
-        <span className="font-medium text-fg">{convention.systemName}</span>
-        {' · by '}
-        <span
-          onClick={(e) => e.preventDefault()}
-          className="inline"
-        >
-          <Link
-            to={`/users/${convention.ownerUsername}`}
-            className="text-fg-muted underline-offset-2 hover:underline"
-            onClick={(e) => e.stopPropagation()}
-          >
-            @{convention.ownerUsername}
-          </Link>
-        </span>
-      </p>
-
-      {convention.description && (
-        <p className="mb-0 mt-2 line-clamp-2 font-ui text-[13px] text-fg-muted">
-          {convention.description}
-        </p>
-      )}
-    </Link>
+    </div>
   );
 }
