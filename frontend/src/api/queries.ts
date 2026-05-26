@@ -1,5 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { BidTreeRoot, ConventionSummary, Share, SystemDetail, SystemSummary, UserProfile } from '../types';
+import type {
+  BidNode,
+  BidTreeRoot,
+  ConventionDetail,
+  ConventionParam,
+  ConventionSummary,
+  Share,
+  SystemDetail,
+  SystemSummary,
+  UserProfile,
+} from '../types';
 import {
   createSystem,
   deleteSystem,
@@ -13,8 +23,20 @@ import { addShare, listShares, removeShare } from './sharing';
 import { listPublicConventions, listPublicSystems } from './gallery';
 import { likeSystem, unlikeSystem } from './likes';
 import { getUserProfile, getUserPublicSystems } from './users';
+import {
+  createConvention,
+  deleteConvention,
+  forkConvention,
+  getConvention,
+  likeConvention,
+  listConventionShares,
+  listMyConventions,
+  unlikeConvention,
+  updateConvention,
+  updateConventionVisibility,
+} from './conventions';
 
-/** Centralized query keys so invalidations stay consistent. */
+/** Centralized query keys so invariations stay consistent. */
 export const queryKeys = {
   systems: ['systems'] as const,
   system: (id: string) => ['system', id] as const,
@@ -23,6 +45,9 @@ export const queryKeys = {
   galleryConventions: (sort: string) => ['galleryConventions', sort] as const,
   userProfile: (username: string) => ['userProfile', username] as const,
   userSystems: (username: string) => ['userSystems', username] as const,
+  conventions: ['conventions'] as const,
+  convention: (id: string) => ['convention', id] as const,
+  conventionShares: (id: string) => ['conventionShares', id] as const,
 };
 
 // ── Systems ────────────────────────────────────────────────────────────────
@@ -177,5 +202,99 @@ export function useUserSystems(username: string) {
   return useQuery<SystemSummary[]>({
     queryKey: queryKeys.userSystems(username),
     queryFn: () => getUserPublicSystems(username),
+  });
+}
+
+// ── Conventions ───────────────────────────────────────────────────────────
+
+export function useMyConventions() {
+  return useQuery<ConventionDetail[]>({
+    queryKey: queryKeys.conventions,
+    queryFn: listMyConventions,
+  });
+}
+
+export function useConvention(id: string | undefined) {
+  return useQuery<ConventionDetail>({
+    queryKey: queryKeys.convention(id ?? ''),
+    queryFn: () => getConvention(id!),
+    enabled: !!id,
+  });
+}
+
+export function useCreateConvention() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, description }: { name: string; description?: string }) =>
+      createConvention(name, description),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.conventions }),
+  });
+}
+
+export function useUpdateConvention(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      name: string;
+      description: string | null;
+      parameters: ConventionParam[];
+      root: BidNode;
+    }) => updateConvention(id, payload),
+    onSuccess: (updated) => {
+      qc.setQueryData(queryKeys.convention(id), updated);
+      qc.invalidateQueries({ queryKey: queryKeys.conventions });
+    },
+  });
+}
+
+export function useDeleteConvention() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteConvention(id),
+    onSuccess: (_data, id) => {
+      qc.removeQueries({ queryKey: queryKeys.convention(id) });
+      qc.invalidateQueries({ queryKey: queryKeys.conventions });
+    },
+  });
+}
+
+export function useUpdateConventionVisibility(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (isPublic: boolean) => updateConventionVisibility(id, isPublic),
+    onSuccess: (updated) => {
+      qc.setQueryData(queryKeys.convention(id), updated);
+      qc.invalidateQueries({ queryKey: queryKeys.conventions });
+      qc.invalidateQueries({ queryKey: queryKeys.galleryConventions('newest') });
+      qc.invalidateQueries({ queryKey: queryKeys.galleryConventions('most_liked') });
+    },
+  });
+}
+
+export function useForkConvention() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => forkConvention(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.conventions }),
+  });
+}
+
+export function useToggleConventionLike(conventionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ liked }: { liked: boolean }) =>
+      liked ? unlikeConvention(conventionId) : likeConvention(conventionId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.galleryConventions('newest') });
+      qc.invalidateQueries({ queryKey: queryKeys.galleryConventions('most_liked') });
+      qc.invalidateQueries({ queryKey: queryKeys.convention(conventionId) });
+    },
+  });
+}
+
+export function useConventionShares(id: string) {
+  return useQuery<Share[]>({
+    queryKey: queryKeys.conventionShares(id),
+    queryFn: () => listConventionShares(id),
   });
 }

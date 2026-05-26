@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { ConventionSummary, SystemSummary } from '../types';
+import type { SystemSummary, ConventionSummary } from '../types';
 
 export function listPublicSystems(
   sort: 'newest' | 'most_liked' = 'newest',
