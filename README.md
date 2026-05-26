@@ -1,6 +1,6 @@
-# Bridge System
+# Codex
 
-A web app for documenting bridge bidding system agreements with a partner. Tree-structured bidding sequences (including interference), passkey (WebAuthn) authentication, sharing with read/write permissions.
+A book of bidding agreements you keep with your partner. Tree-structured bidding sequences (including interference), passkey (WebAuthn) authentication, sharing with read/write permissions.
 
 ## Stack
 
