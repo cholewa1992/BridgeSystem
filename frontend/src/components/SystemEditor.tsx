@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import type { BidNode, ConventionDef, SystemDetail } from '../types';
+import type { BidNode, SystemDetail } from '../types';
 import {
   useDeleteSystem,
   useForkSystem,
@@ -14,7 +14,6 @@ import {
   ROOT_ID,
   addChainContext,
   canDropNode,
-  conventionsFromTree,
   deleteNode as treeDelete,
   editChainContext,
   findNode,
@@ -45,7 +44,6 @@ export function SystemEditor() {
   const visibilityMut = useUpdateVisibility();
 
   const [root, setRoot] = useState<BidNode | null>(null);
-  const [conventions, setConventions] = useState<ConventionDef[]>([]);
   const [systemName, setSystemName] = useState('');
   const [dirty, setDirty] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -71,7 +69,6 @@ export function SystemEditor() {
       loadedId.current = detail.id;
       const tree = detail.tree ?? { children: [] };
       setRoot(rootFromTree(tree));
-      setConventions(conventionsFromTree(tree));
       setSystemName(detail.name);
     }
   }, [detail]);
@@ -88,7 +85,7 @@ export function SystemEditor() {
         {
           name: systemName,
           description: detail.description ?? '',
-          tree: treeFromRoot(r, conventions),
+          tree: treeFromRoot(r),
         },
         {
           onSuccess: () => {
@@ -99,7 +96,7 @@ export function SystemEditor() {
         },
       );
     },
-    [conventions, detail, readOnly, root, systemName, updateMut],
+    [detail, readOnly, root, systemName, updateMut],
   );
 
   // Debounced auto-save for edits flagged dirty.
@@ -354,7 +351,7 @@ export function SystemEditor() {
             small
             onClick={() => navigate(`/systems/${detail.id}/conventions`)}
           >
-            Conventions {conventions.length > 0 && `(${conventions.length})`}
+            Conventions {(detail.conventions?.length ?? 0) > 0 && `(${detail.conventions.length})`}
           </Button>
           {detail.permission === 'OWNER' && (
             <>
@@ -447,7 +444,7 @@ export function SystemEditor() {
             canDrop={canDropHere}
             collapseVersion={collapseVersion}
             expandVersion={expandVersion}
-            conventions={conventions}
+            conventions={detail.conventions ?? []}
           />
 
           {addingTo === ROOT_ID && openingChain && (
@@ -496,7 +493,7 @@ export function SystemEditor() {
               onDelete={deleteSelected}
               onSelect={select}
               systemId={detail.id}
-              conventions={conventions}
+              conventions={detail.conventions ?? []}
               onAttachConvention={handleAttachConvention}
               onDetachConvention={handleDetachConvention}
               onOpenConventionLibrary={() => navigate(`/systems/${detail.id}/conventions`)}
