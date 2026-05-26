@@ -11,11 +11,53 @@ export interface BidNode {
   notes?: string;
   byOpponent?: boolean;
   alerted?: boolean;
+  /**
+   * If set, this node's children are resolved from the matching ConventionDef
+   * rather than from the stored `children` array (which will be `[]`).
+   */
+  conventionRef?: string;
+  /**
+   * Parameter values for the referenced convention, keyed by ConventionParam.name.
+   * Used to substitute `{{paramName}}` placeholders in the convention's subtree.
+   */
+  conventionArgs?: Record<string, string>;
   children: BidNode[];
 }
 
 export interface BidTreeRoot {
   children: BidNode[];
+  /** Convention library for this system. Stored alongside the tree in tree_json. */
+  conventions?: ConventionDef[];
+}
+
+/** A named, reusable subtree that can be attached to any node in the bid tree. */
+export interface ConventionDef {
+  id: string;
+  name: string;
+  description?: string;
+  /**
+   * Declared parameters. Their names are used as placeholders (`{{name}}`) in
+   * the convention subtree's meaning / notes strings, substituted at render
+   * time with values from the referencing node's `conventionArgs`.
+   */
+  parameters?: ConventionParam[];
+  /**
+   * The convention's subtree. Uses the same synthetic-root convention as
+   * BidTreeRoot: `root.bids` is `[]` and `root.children` are the top-level
+   * convention responses (e.g. 5♣/5♦/5♥/5♠ for RKCB 1430).
+   */
+  root: BidNode;
+}
+
+/** A substitution variable declared on a ConventionDef. */
+export interface ConventionParam {
+  /** Short identifier used in `{{name}}` placeholders (no spaces). */
+  name: string;
+  /** Human-readable label shown in the param-input form. */
+  label: string;
+  defaultValue?: string;
+  /** 'suit' renders a ♣/♦/♥/♠ picker instead of a text input when linking. */
+  type?: 'text' | 'suit';
 }
 
 export interface BidSection {

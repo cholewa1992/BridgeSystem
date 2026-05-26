@@ -9,5 +9,7 @@ export type { FieldProps } from './Field';
 export { Input } from './Input';
 export type { InputProps } from './Input';
 export { Label } from './Label';
+export { Select } from './Select';
+export type { SelectOption, SelectProps } from './Select';
 export { Textarea } from './Textarea';
 export type { TextareaProps } from './Textarea';

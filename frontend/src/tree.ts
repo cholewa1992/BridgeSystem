@@ -1,4 +1,4 @@
-import type { BidNode, BidSection, BidTreeRoot } from './types';
+import type { BidNode, BidSection, BidTreeRoot, ConventionDef, ConventionParam } from './types';
 
 // ── Tree manipulation ─────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ export const ROOT_ID = 'root';
 /**
  * Migrate a raw node from the backend into the current shape, handling
  * both old single-bid (`bid: string`) and new group (`bids: string[]`)
- * formats.
+ * formats. Also preserves optional fields: alerted, conventionRef, conventionArgs.
  */
 function migrateNode(n: unknown): BidNode {
   const raw = (n ?? {}) as Record<string, unknown>;
@@ -63,7 +63,47 @@ function migrateNode(n: unknown): BidNode {
     meaning: typeof raw.meaning === 'string' ? raw.meaning : '',
     notes: typeof raw.notes === 'string' && raw.notes ? raw.notes : undefined,
     byOpponent: raw.byOpponent === true ? true : undefined,
+    alerted: raw.alerted === true ? true : undefined,
+    conventionRef: typeof raw.conventionRef === 'string' ? raw.conventionRef : undefined,
+    conventionArgs:
+      raw.conventionArgs !== null &&
+      typeof raw.conventionArgs === 'object' &&
+      !Array.isArray(raw.conventionArgs)
+        ? (raw.conventionArgs as Record<string, string>)
+        : undefined,
     children: Array.isArray(raw.children) ? raw.children.map(migrateNode) : [],
+  };
+}
+
+function migrateParam(p: unknown): ConventionParam {
+  const raw = (p ?? {}) as Record<string, unknown>;
+  return {
+    name: typeof raw.name === 'string' ? raw.name : '',
+    label: typeof raw.label === 'string' ? raw.label : '',
+    defaultValue:
+      typeof raw.defaultValue === 'string' && raw.defaultValue ? raw.defaultValue : undefined,
+    type: raw.type === 'suit' ? 'suit' : raw.type === 'text' ? 'text' : undefined,
+  };
+}
+
+function migrateConvention(c: unknown): ConventionDef {
+  const raw = (c ?? {}) as Record<string, unknown>;
+  const migratedRoot: BidNode =
+    raw.root !== null && typeof raw.root === 'object'
+      ? migrateNode(raw.root)
+      : { id: ROOT_ID, bids: [], meaning: '', children: [] };
+  // Convention roots must carry ROOT_ID so ConventionEditor's updateNode calls work.
+  const rootNode: BidNode =
+    migratedRoot.id === ROOT_ID ? migratedRoot : { ...migratedRoot, id: ROOT_ID };
+  return {
+    id: typeof raw.id === 'string' ? raw.id : newId(),
+    name: typeof raw.name === 'string' && raw.name ? raw.name : 'Untitled convention',
+    description:
+      typeof raw.description === 'string' && raw.description ? raw.description : undefined,
+    parameters: Array.isArray(raw.parameters)
+      ? (raw.parameters as unknown[]).map(migrateParam)
+      : undefined,
+    root: rootNode,
   };
 }
 
@@ -72,8 +112,75 @@ export function rootFromTree(root: BidTreeRoot): BidNode {
   return { id: ROOT_ID, bids: [], meaning: '', children };
 }
 
-export function treeFromRoot(root: BidNode): BidTreeRoot {
-  return { children: root.children };
+/**
+ * Migrate the `conventions` array from the raw tree blob. Returns an empty
+ * array if none are present (backwards-compatible with old system blobs).
+ */
+export function conventionsFromTree(root: BidTreeRoot): ConventionDef[] {
+  const raw = root as unknown as Record<string, unknown>;
+  if (!Array.isArray(raw.conventions)) return [];
+  return (raw.conventions as unknown[]).map(migrateConvention);
+}
+
+export function treeFromRoot(root: BidNode, conventions?: ConventionDef[]): BidTreeRoot {
+  const result: BidTreeRoot = { children: root.children };
+  if (conventions && conventions.length > 0) result.conventions = conventions;
+  return result;
+}
+
+// ── Convention resolution ─────────────────────────────────────────────────
+
+export function findConvention(
+  conventions: ConventionDef[],
+  id: string,
+): ConventionDef | undefined {
+  return conventions.find((c) => c.id === id);
+}
+
+/**
+ * Replace `{{paramName}}` placeholders in `text` with values from `args`.
+ * Unrecognised placeholders are left as-is.
+ */
+function applyParams(text: string, args: Record<string, string>): string {
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key: string) => args[key] ?? `{{${key}}}`);
+}
+
+/**
+ * Recursively substitute param placeholders throughout a node subtree.
+ * Returns a new tree; the original is not mutated.
+ */
+export function expandConventionParams(node: BidNode, args: Record<string, string>): BidNode {
+  return {
+    ...node,
+    bids: node.bids.map((b) => applyParams(b, args)),
+    meaning: applyParams(node.meaning, args),
+    notes: node.notes ? applyParams(node.notes, args) : undefined,
+    children: node.children.map((c) => expandConventionParams(c, args)),
+  };
+}
+
+/**
+ * Returns the effective children for `node`. When the node has a
+ * `conventionRef`, resolves and param-expands the convention's children;
+ * falls back to the node's own stored children if the ref is missing or
+ * the convention is not found.
+ */
+export function resolveConventionChildren(node: BidNode, conventions: ConventionDef[]): BidNode[] {
+  if (!node.conventionRef) return node.children;
+  const conv = findConvention(conventions, node.conventionRef);
+  if (!conv) return node.children; // graceful fallback for dangling refs
+  const args = node.conventionArgs ?? {};
+  return conv.root.children.map((c) => expandConventionParams(c, args));
+}
+
+/**
+ * Count how many nodes in `tree` reference `conventionId` directly.
+ * Used to warn before deleting a convention that is still in use.
+ */
+export function countConventionUsage(tree: BidNode, conventionId: string): number {
+  let n = tree.conventionRef === conventionId ? 1 : 0;
+  for (const c of tree.children) n += countConventionUsage(c, conventionId);
+  return n;
 }
 
 export function canDropNode(root: BidNode, nodeId: string, targetParentId: string): boolean {
@@ -84,6 +191,9 @@ export function canDropNode(root: BidNode, nodeId: string, targetParentId: strin
   // Prevent no-op drop onto current parent
   const path = pathTo(root, nodeId);
   if (path && path.length >= 2 && path[path.length - 2].id === targetParentId) return false;
+  // Can't drop into a convention-ref node — its children are owned by the convention
+  const targetNode = findNode(root, targetParentId);
+  if (targetNode?.conventionRef) return false;
   const ctx = addChainContext(root, targetParentId);
   return node.bids.every((bid) => isBidValidInContext(bid, ctx));
 }
@@ -114,14 +224,8 @@ export function moveNode(root: BidNode, nodeId: string, newParentId: string): Bi
 
 // ── Bid parsing / ordering ────────────────────────────────────────────────
 
-/**
- * Strains in display order. `ma` ("same major") and `om` ("other major")
- * are symbolic placeholders — useful in continuations under major-suit
- * openings, where the actual suit depends on what was opened. For example,
- * after a grouped `1♥/1♠` opening, `2ma` means "raise to 2 of opener's
- * major" and `2om` means "bid the other major at 2".
- */
-export const STRAINS = ['♣', '♦', '♥', '♠', 'NT', 'ma', 'om'] as const;
+/** Strains in display order. */
+export const STRAINS = ['♣', '♦', '♥', '♠', 'NT'] as const;
 export type Strain = (typeof STRAINS)[number];
 export const LEVELS = [1, 2, 3, 4, 5, 6, 7] as const;
 export type Level = (typeof LEVELS)[number];
@@ -133,18 +237,9 @@ export const STRAIN_RANK: Record<Strain, number> = {
   '♥': 2,
   '♠': 3,
   NT: 4,
-  ma: 5,
-  om: 6,
 };
 
-/**
- * Rank used for "is this bid higher than that bid" comparisons. Both `ma`
- * and `om` are treated as `♠` (the higher major) — the most permissive
- * interpretation. The user is responsible for using them in semantically
- * sensible contexts; this rule keeps the ordering arithmetic consistent.
- */
 function strainComparisonRank(s: Strain): number {
-  if (s === 'ma' || s === 'om') return STRAIN_RANK['♠'];
   return STRAIN_RANK[s];
 }
 
@@ -155,7 +250,7 @@ export interface ParsedBid {
 
 export function parseBid(s: string | null | undefined): ParsedBid | null {
   if (!s) return null;
-  const m = s.match(/^([1-7])(NT|ma|om|[♣♦♥♠])$/);
+  const m = s.match(/^([1-7])(NT|[♣♦♥♠])$/);
   if (!m) return null;
   return { level: Number(m[1]) as Level, strain: m[2] as Strain };
 }
@@ -186,7 +281,6 @@ export function minValidBidAfter(after: ParsedBid | null): ParsedBid | null {
   const afterRank = strainComparisonRank(after.strain);
   // First strain at the same level whose comparison rank exceeds `after`'s.
   for (const s of STRAINS) {
-    if (s === 'ma' || s === 'om') continue; // never auto-pick symbolic strains
     if (strainComparisonRank(s) > afterRank) {
       return { level: after.level, strain: s };
     }
@@ -205,7 +299,7 @@ export function isValidContinuation(child: ParsedBid, parent: ParsedBid | null):
 /** True if the call string is a contract bid (incl. the symbolic `Xma`) and not X/XX. */
 export function isContractBid(call: string | null | undefined): boolean {
   if (!call) return false;
-  return /^[1-7](NT|ma|om|[♣♦♥♠])$/.test(call);
+  return /^[1-7](NT|[♣♦♥♠])$/.test(call);
 }
 
 /**

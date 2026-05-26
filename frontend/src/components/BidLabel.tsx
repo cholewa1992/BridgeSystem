@@ -23,12 +23,23 @@ export function BidLabel({ bids, byOpponent, className }: Props) {
   return (
     <span className={clsx('whitespace-nowrap', opp && 'italic opacity-65', className)}>
       {opp && <span>(</span>}
-      {bids.map((b, i) => (
-        <Fragment key={i}>
-          {i > 0 && <span className="mx-1 font-normal not-italic text-fg-subtle">/</span>}
-          <span style={{ color: suitColor(suitOf(b)) }}>{b === 'P' ? 'Pass' : b}</span>
-        </Fragment>
-      ))}
+      {bids.map((b, i) => {
+        // Param placeholder bid: `6{{agreedSuit}}` — render level + italic param name
+        const paramMatch = b.match(/^(\d+)\{\{(.+?)\}\}$/);
+        return (
+          <Fragment key={i}>
+            {i > 0 && <span className="mx-1 font-normal not-italic text-fg-subtle">/</span>}
+            {paramMatch ? (
+              <span>
+                <span style={{ color: 'var(--suit-black)' }}>{paramMatch[1]}</span>
+                <em style={{ color: 'var(--suit-symbolic)' }}>{paramMatch[2]}</em>
+              </span>
+            ) : (
+              <span style={{ color: suitColor(suitOf(b)) }}>{b === 'P' ? 'Pass' : b}</span>
+            )}
+          </Fragment>
+        );
+      })}
       {opp && <span>)</span>}
     </span>
   );

@@ -6,6 +6,7 @@ import { SystemList } from './components/SystemList';
 import { SystemEditor } from './components/SystemEditor';
 import { GalleryPage } from './components/GalleryPage';
 import { UserProfilePage } from './components/UserProfilePage';
+import { ConventionLibraryPage } from './components/ConventionLibraryPage';
 import { AppShell } from './layouts/AppShell';
 import { ComingSoonPage } from './layouts/ComingSoonPage';
 import type { ReactNode } from 'react';
@@ -39,6 +40,14 @@ function AppRoutes() {
           element={
             <Protected>
               <SystemEditor />
+            </Protected>
+          }
+        />
+        <Route
+          path="/systems/:id/conventions"
+          element={
+            <Protected>
+              <ConventionLibraryPage />
             </Protected>
           }
         />
