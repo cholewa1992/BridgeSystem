@@ -1,55 +1,49 @@
-package com.bridgesystem.system;
+package com.bridgesystem.convention;
 
-import com.bridgesystem.convention.ConventionDtos;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
-public final class BiddingSystemDtos {
+public final class ConventionDtos {
 
-    private BiddingSystemDtos() {}
+    private ConventionDtos() {}
 
-    public record SystemSummary(
+    public record ConventionDetail(
             UUID id,
             String name,
             String description,
+            JsonNode parameters,
+            JsonNode root,
+            boolean isPublic,
             String ownerUsername,
             boolean ownedByMe,
             String permission,
+            ForkedFromRef forkedFrom,
+            OffsetDateTime createdAt,
             OffsetDateTime updatedAt,
-            boolean isPublic,
             long likeCount,
             int forkCount,
             Boolean likedByMe
     ) {}
 
-    public record ForkedFromRef(
-            String id,
-            String name,
-            String ownerUsername
-    ) {}
-
-    public record SystemDetail(
+    public record ConventionSummary(
             UUID id,
             String name,
             String description,
+            int paramCount,
             String ownerUsername,
             boolean ownedByMe,
-            String permission,
-            JsonNode tree,
-            OffsetDateTime createdAt,
-            OffsetDateTime updatedAt,
             boolean isPublic,
+            OffsetDateTime updatedAt,
             long likeCount,
             int forkCount,
-            Boolean likedByMe,
-            ForkedFromRef forkedFrom,
-            List<ConventionDtos.ConventionDetail> conventions
+            Boolean likedByMe
     ) {}
+
+    public record ForkedFromRef(String id, String name) {}
 
     public record CreateRequest(
             @NotBlank @Size(max = 200) String name,
@@ -59,17 +53,15 @@ public final class BiddingSystemDtos {
     public record UpdateRequest(
             @NotBlank @Size(max = 200) String name,
             @Size(max = 4000) String description,
-            JsonNode tree
+            JsonNode parameters,
+            JsonNode root
     ) {}
 
     public record VisibilityRequest(boolean isPublic) {}
 
     public record LikeResponse(long likeCount, boolean likedByMe) {}
 
-    public record UserProfileDto(
-            String username,
-            String displayName,
-            OffsetDateTime createdAt,
-            int publicSystemCount
-    ) {}
+    public record ShareDto(String username, String displayName, String permission, OffsetDateTime createdAt) {}
+
+    public record CreateShareRequest(String username, String permission) {}
 }

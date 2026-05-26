@@ -6,13 +6,10 @@ import com.bridgesystem.sharing.SystemLikeRepository;
 import com.bridgesystem.sharing.SystemShare;
 import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.user.AppUser;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,18 +26,15 @@ public class GalleryService {
     private final SystemLikeRepository likeRepository;
     private final SystemShareRepository shareRepository;
     private final SystemAccessGuard accessGuard;
-    private final ObjectMapper objectMapper;
 
     public GalleryService(BiddingSystemRepository systemRepository,
                           SystemLikeRepository likeRepository,
                           SystemShareRepository shareRepository,
-                          SystemAccessGuard accessGuard,
-                          ObjectMapper objectMapper) {
+                          SystemAccessGuard accessGuard) {
         this.systemRepository = systemRepository;
         this.likeRepository = likeRepository;
         this.shareRepository = shareRepository;
         this.accessGuard = accessGuard;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)
@@ -53,46 +47,6 @@ public class GalleryService {
         return systems.stream()
                 .map(s -> toSummary(s, viewer, stats.get(s.getId())))
                 .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public List<BiddingSystemDtos.ConventionSummary> getPublicConventions(String sort) {
-        List<BiddingSystem> systems = switch (sort) {
-            case "most_liked" -> systemRepository.findAllPublicOrderByLikesDesc();
-            default -> systemRepository.findAllByIsPublicTrueOrderByUpdatedAtDesc();
-        };
-        Map<UUID, Long> likeCounts = systems.isEmpty() ? Map.of() :
-                likeRepository.countsBySystemIds(systems.stream().map(BiddingSystem::getId).toList())
-                        .stream().collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
-
-        List<BiddingSystemDtos.ConventionSummary> result = new ArrayList<>();
-        for (BiddingSystem system : systems) {
-            try {
-                JsonNode tree = objectMapper.readTree(system.getTreeJson());
-                JsonNode conventions = tree.path("conventions");
-                if (!conventions.isArray()) continue;
-                for (JsonNode conv : conventions) {
-                    String convId = conv.path("id").asText(null);
-                    String name = conv.path("name").asText(null);
-                    if (convId == null || name == null || name.isBlank()) continue;
-                    String description = conv.path("description").asText(null);
-                    int paramCount = conv.path("parameters").isArray() ? conv.path("parameters").size() : 0;
-                    result.add(new BiddingSystemDtos.ConventionSummary(
-                            convId, name, description, paramCount,
-                            system.getId(), system.getName(),
-                            system.getOwner().getUsername(),
-                            system.getUpdatedAt()
-                    ));
-                }
-            } catch (Exception ignored) {
-            }
-        }
-        if ("most_liked".equals(sort)) {
-            result.sort((a, b) -> Long.compare(
-                    likeCounts.getOrDefault(b.systemId(), 0L),
-                    likeCounts.getOrDefault(a.systemId(), 0L)));
-        }
-        return result;
     }
 
     @Transactional
