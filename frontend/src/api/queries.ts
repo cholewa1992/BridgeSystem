@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { BidTreeRoot, Share, SystemDetail, SystemSummary, UserProfile } from '../types';
+import type { BidTreeRoot, ConventionSummary, Share, SystemDetail, SystemSummary, UserProfile } from '../types';
 import {
   createSystem,
   deleteSystem,
@@ -10,7 +10,7 @@ import {
   updateVisibility,
 } from './systems';
 import { addShare, listShares, removeShare } from './sharing';
-import { listPublicSystems } from './gallery';
+import { listPublicConventions, listPublicSystems } from './gallery';
 import { likeSystem, unlikeSystem } from './likes';
 import { getUserProfile, getUserPublicSystems } from './users';
 
@@ -20,6 +20,7 @@ export const queryKeys = {
   system: (id: string) => ['system', id] as const,
   shares: (systemId: string) => ['shares', systemId] as const,
   gallery: (sort: string) => ['gallery', sort] as const,
+  galleryConventions: (sort: string) => ['galleryConventions', sort] as const,
   userProfile: (username: string) => ['userProfile', username] as const,
   userSystems: (username: string) => ['userSystems', username] as const,
 };
@@ -109,6 +110,13 @@ export function usePublicSystems(sort: 'newest' | 'most_liked' = 'newest') {
   return useQuery({
     queryKey: queryKeys.gallery(sort),
     queryFn: () => listPublicSystems(sort),
+  });
+}
+
+export function usePublicConventions(sort: 'newest' | 'most_liked' = 'newest') {
+  return useQuery<ConventionSummary[]>({
+    queryKey: queryKeys.galleryConventions(sort),
+    queryFn: () => listPublicConventions(sort),
   });
 }
 

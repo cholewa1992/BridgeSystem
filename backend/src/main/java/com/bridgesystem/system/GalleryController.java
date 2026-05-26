@@ -25,4 +25,10 @@ public class GalleryController {
             @RequestParam(defaultValue = "newest") String sort) {
         return galleryService.getPublicSystems(sort, user);
     }
+
+    @GetMapping("/conventions")
+    public List<BiddingSystemDtos.ConventionSummary> listConventions(
+            @RequestParam(defaultValue = "newest") String sort) {
+        return galleryService.getPublicConventions(sort);
+    }
 }

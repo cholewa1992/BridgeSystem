@@ -103,6 +103,17 @@ export interface CurrentUser {
   displayName: string;
 }
 
+export interface ConventionSummary {
+  id: string;
+  name: string;
+  description?: string;
+  paramCount: number;
+  systemId: string;
+  systemName: string;
+  ownerUsername: string;
+  systemUpdatedAt: string;
+}
+
 export interface Share {
   username: string;
   displayName: string;

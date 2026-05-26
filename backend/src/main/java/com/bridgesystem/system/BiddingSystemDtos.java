@@ -63,6 +63,17 @@ public final class BiddingSystemDtos {
 
     public record LikeResponse(long likeCount, boolean likedByMe) {}
 
+    public record ConventionSummary(
+            String id,
+            String name,
+            String description,
+            int paramCount,
+            UUID systemId,
+            String systemName,
+            String ownerUsername,
+            OffsetDateTime systemUpdatedAt
+    ) {}
+
     public record UserProfileDto(
             String username,
             String displayName,
