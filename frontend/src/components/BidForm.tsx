@@ -33,9 +33,10 @@ interface Props {
   initial?: Partial<BidFormData> & { alerted?: boolean };
   onSubmit: (data: BidFormData) => void;
   onCancel: () => void;
+  paramStrains?: Array<{ name: string; label: string }>;
 }
 
-export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
+export function BidForm({ mode, chain, initial, onSubmit, onCancel, paramStrains }: Props) {
   const parsedLastContract = useMemo(
     () => parseBid(chain.lastContractBid),
     [chain.lastContractBid],
@@ -59,9 +60,23 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
           ? 'XX'
           : 'bid';
 
+  /** If the first initial bid is a param-strain bid like `6{{agreedSuit}}`, extract the param name. */
+  const initialParamStrain = useMemo(() => {
+    if (!firstInitial) return null;
+    const m = firstInitial.match(/^(\d+)\{\{(.+)\}\}$/);
+    return m ? m[2] : null;
+  }, [firstInitial]);
+
+  const initialParamLevel = useMemo(() => {
+    if (!firstInitial) return null;
+    const m = firstInitial.match(/^(\d+)\{\{(.+)\}\}$/);
+    return m ? (parseInt(m[1], 10) as Level) : null;
+  }, [firstInitial]);
+
   /** Derive level + strains from a group of contract-bid strings. */
   const derived = useMemo(() => {
     if (initialKind !== 'bid') return null;
+    if (initialParamStrain) return null;
     const parsed = initialBids.map(parseBid).filter((p): p is NonNullable<typeof p> => !!p);
     if (parsed.length === 0) return null;
     // Use the level of the first bid; collect distinct strains at that level
@@ -70,7 +85,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
       new Set(parsed.filter((p) => p.level === level).map((p) => p.strain)),
     );
     return { level, strains };
-  }, [initialKind, initialBids]);
+  }, [initialKind, initialBids, initialParamStrain]);
 
   const [kind, setKind] = useState<CallKind>(() => {
     if (mode === 'edit') return initialKind;
@@ -80,7 +95,10 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
     return 'pass';
   });
 
-  const [level, setLevel] = useState<Level | null>(derived?.level ?? minContract?.level ?? null);
+  const [paramStrain, setParamStrain] = useState<string | null>(initialParamStrain);
+  const [level, setLevel] = useState<Level | null>(
+    initialParamLevel ?? derived?.level ?? minContract?.level ?? null,
+  );
   const [strains, setStrains] = useState<Strain[]>(
     derived?.strains ?? (minContract ? [minContract.strain] : []),
   );
@@ -124,6 +142,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
   const toggleStrain = (S: Strain) => {
     if (!level) return;
     if (!isStrainAllowed(S, level)) return;
+    setParamStrain(null);
     setStrains((prev) => {
       if (prev.includes(S)) {
         // Keep at least one selected
@@ -142,6 +161,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
     if (kind === 'pass') return ['P'];
     if (kind === 'X') return ['X'];
     if (kind === 'XX') return ['XX'];
+    if (paramStrain !== null && level !== null) return [`${level}{{${paramStrain}}}`];
     if (!level || strains.length === 0) return [];
     return strains.map((s) => formatBid({ level, strain: s }));
   })();
@@ -159,6 +179,7 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
     if (kind === 'pass') return true;
     if (kind === 'X') return doubleAllowed || initialKind === 'X';
     if (kind === 'XX') return redoubleAllowed || initialKind === 'XX';
+    if (paramStrain !== null) return level !== null;
     return allContractsValid;
   })();
 
@@ -193,7 +214,10 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
         <div className="inline-flex overflow-hidden rounded-sm border border-border-strong">
           <SegBtn
             selected={kind === 'pass'}
-            onClick={() => setKind('pass')}
+            onClick={() => {
+              setKind('pass');
+              setParamStrain(null);
+            }}
             title="Pass"
             color="var(--fg-muted)"
           >
@@ -210,7 +234,10 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
           <SegBtn
             selected={kind === 'X'}
             disabled={!doubleAllowed && initialKind !== 'X'}
-            onClick={() => setKind('X')}
+            onClick={() => {
+              setKind('X');
+              setParamStrain(null);
+            }}
             title={
               doubleAllowed
                 ? 'Double'
@@ -227,7 +254,10 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
           <SegBtn
             selected={kind === 'XX'}
             disabled={!redoubleAllowed && initialKind !== 'XX'}
-            onClick={() => setKind('XX')}
+            onClick={() => {
+              setKind('XX');
+              setParamStrain(null);
+            }}
             title={
               redoubleAllowed
                 ? 'Redouble'
@@ -266,25 +296,16 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
             <div className="flex flex-wrap gap-1.5">
               {STRAINS.map((S) => {
                 const enabled = level ? isStrainAllowed(S, level) : false;
-                const isSymbolic = S === 'ma' || S === 'om';
-                const isText = S === 'NT' || isSymbolic;
-                const hint =
-                  S === 'ma'
-                    ? "Symbolic — the same major suit just bid (e.g. raise opener's major)"
-                    : S === 'om'
-                      ? 'Symbolic — the other major suit (the one not bid)'
-                      : undefined;
+                const isText = S === 'NT';
                 return (
                   <PickerButton
                     key={S}
                     selected={strains.includes(S)}
                     disabled={!enabled}
                     onClick={() => toggleStrain(S)}
-                    title={hint}
                     className={clsx(
                       'font-display font-semibold',
                       isText ? 'text-[14px]' : 'text-[16px]',
-                      isSymbolic && 'italic',
                     )}
                     style={{
                       color: enabled ? suitColor(S) : 'var(--fg-subtle)',
@@ -297,10 +318,30 @@ export function BidForm({ mode, chain, initial, onSubmit, onCancel }: Props) {
               })}
             </div>
             <div className="mt-1.5 text-[12px] italic text-fg-subtle">
-              Pick more than one for a group (e.g. 1♥/1♠).{' '}
-              <span className="italic text-suit-symbolic">ma</span> = same major,{' '}
-              <span className="italic text-suit-symbolic">om</span> = other major.
+              Pick more than one for a group (e.g. 1♥/1♠).
             </div>
+            {(paramStrains?.length ?? 0) > 0 && (
+              <>
+                <div className="mt-2.5 mb-1.5 text-[12px] text-fg-muted">Convention parameter</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {paramStrains!.map((ps) => (
+                    <PickerButton
+                      key={ps.name}
+                      selected={paramStrain === ps.name}
+                      onClick={() => {
+                        setParamStrain((prev) => (prev === ps.name ? null : ps.name));
+                        setStrains([]);
+                      }}
+                      className="font-display text-[15px] italic font-semibold"
+                      style={{ color: 'var(--suit-symbolic)', minWidth: 40 }}
+                      title={`Parameter: ${ps.label}`}
+                    >
+                      {ps.label}
+                    </PickerButton>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

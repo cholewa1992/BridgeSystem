@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { BidNode } from './types';
+import type { BidNode, ConventionDef } from './types';
 import {
   ROOT_ID,
   addChainContext,
@@ -7,8 +7,11 @@ import {
   canDropNode,
   chainContextFromNodes,
   compareBids,
+  conventionsFromTree,
   deleteNode,
   editChainContext,
+  expandConventionParams,
+  findConvention,
   findNode,
   formatBid,
   highestContractBidIn,
@@ -19,6 +22,7 @@ import {
   newId,
   parseBid,
   pathTo,
+  resolveConventionChildren,
   rootFromTree,
   strainOutranks,
   treeFromRoot,
@@ -62,11 +66,6 @@ describe('parseBid', () => {
     expect(parseBid('7NT')).toEqual({ level: 7, strain: 'NT' });
   });
 
-  it('parses symbolic major strains', () => {
-    expect(parseBid('2ma')).toEqual({ level: 2, strain: 'ma' });
-    expect(parseBid('3om')).toEqual({ level: 3, strain: 'om' });
-  });
-
   it('rejects doubles, out-of-range levels and garbage', () => {
     expect(parseBid('X')).toBeNull();
     expect(parseBid('XX')).toBeNull();
@@ -79,7 +78,7 @@ describe('parseBid', () => {
   });
 
   it('round-trips through formatBid', () => {
-    for (const s of ['1♣', '3♥', '4♠', '2NT', '5ma', '6om']) {
+    for (const s of ['1♣', '3♥', '4♠', '2NT']) {
       expect(formatBid(parseBid(s)!)).toBe(s);
     }
   });
@@ -97,14 +96,6 @@ describe('bid ordering', () => {
   it('orders by level first', () => {
     expect(compareBids(parseBid('1NT')!, parseBid('2♣')!)).toBeLessThan(0);
   });
-
-  it('treats ma and om as the high major (♠) for comparison', () => {
-    // 2♥ ranks below 2ma, 2♠ ties with 2ma, 2ma below 2NT
-    expect(compareBids(parseBid('2♥')!, parseBid('2ma')!)).toBeLessThan(0);
-    expect(compareBids(parseBid('2♠')!, parseBid('2ma')!)).toBe(0);
-    expect(compareBids(parseBid('2ma')!, parseBid('2NT')!)).toBeLessThan(0);
-    expect(compareBids(parseBid('2om')!, parseBid('2ma')!)).toBe(0);
-  });
 });
 
 describe('strainOutranks', () => {
@@ -112,8 +103,6 @@ describe('strainOutranks', () => {
     expect(strainOutranks('♦', '♣')).toBe(true);
     expect(strainOutranks('NT', '♠')).toBe(true);
     expect(strainOutranks('♣', '♦')).toBe(false);
-    expect(strainOutranks('ma', '♥')).toBe(true); // ma == ♠ > ♥
-    expect(strainOutranks('ma', '♠')).toBe(false); // ma == ♠, not strictly greater
   });
 });
 
@@ -134,8 +123,7 @@ describe('minValidBidAfter', () => {
     expect(minValidBidAfter(parseBid('7NT'))).toBeNull();
   });
 
-  it('never auto-selects the symbolic strains', () => {
-    // After 1♠ the next literal strain is NT, not ma/om.
+  it('returns NT after 1♠', () => {
     expect(minValidBidAfter(parseBid('1♠'))).toEqual({ level: 1, strain: 'NT' });
   });
 });
@@ -153,9 +141,9 @@ describe('isValidContinuation', () => {
 });
 
 describe('isContractBid', () => {
-  it('recognises contract bids including symbolic strains', () => {
+  it('recognises contract bids', () => {
     expect(isContractBid('1♣')).toBe(true);
-    expect(isContractBid('2ma')).toBe(true);
+    expect(isContractBid('4NT')).toBe(true);
   });
 
   it('rejects doubles and non-bids', () => {
@@ -369,5 +357,179 @@ describe('rootFromTree / treeFromRoot', () => {
   it('treeFromRoot extracts the children payload', () => {
     const r = root([n(['1♣'], [], { id: 'A' })]);
     expect(treeFromRoot(r)).toEqual({ children: r.children });
+  });
+
+  it('treeFromRoot includes conventions when provided', () => {
+    const r = root([n(['1♣'], [], { id: 'A' })]);
+    const conv: ConventionDef = {
+      id: 'c1',
+      name: 'RKCB 1430',
+      root: { id: 'cr1', bids: [], meaning: '', children: [] },
+    };
+    const result = treeFromRoot(r, [conv]);
+    expect(result.conventions).toHaveLength(1);
+    expect(result.conventions![0].name).toBe('RKCB 1430');
+  });
+
+  it('treeFromRoot omits conventions key when array is empty', () => {
+    const r = root([n(['1♣'], [], { id: 'A' })]);
+    const result = treeFromRoot(r, []);
+    expect(result.conventions).toBeUndefined();
+  });
+
+  it('round-trips conventions through treeFromRoot → conventionsFromTree', () => {
+    const r = root([]);
+    const conv: ConventionDef = {
+      id: 'c1',
+      name: 'Stayman',
+      description: 'Asks for 4-card major',
+      parameters: [{ name: 'level', label: 'Opening level', defaultValue: '1NT' }],
+      root: {
+        id: 'cr1',
+        bids: [],
+        meaning: '',
+        children: [n(['2♣'], [], { id: 'c1r1', meaning: 'Stayman ask' })],
+      },
+    };
+    const tree = treeFromRoot(r, [conv]);
+    const recovered = conventionsFromTree(tree);
+    expect(recovered).toHaveLength(1);
+    expect(recovered[0].name).toBe('Stayman');
+    expect(recovered[0].description).toBe('Asks for 4-card major');
+    expect(recovered[0].parameters).toHaveLength(1);
+    expect(recovered[0].parameters![0].name).toBe('level');
+    expect(recovered[0].root.children).toHaveLength(1);
+  });
+
+  it('migrateNode preserves alerted field', () => {
+    // Cast via unknown to simulate raw JSON arriving from the backend
+    const raw = {
+      id: 't-alert',
+      bids: ['1♣'],
+      meaning: 'test',
+      alerted: true,
+      children: [],
+    } as unknown as BidNode;
+    const tree = rootFromTree({ children: [raw] });
+    expect(tree.children[0].alerted).toBe(true);
+  });
+
+  it('migrateNode preserves conventionRef and conventionArgs', () => {
+    const raw = {
+      id: 't-conv',
+      bids: ['4NT'],
+      meaning: 'RKCB',
+      conventionRef: 'c1',
+      conventionArgs: { agreedSuit: '♠' },
+      children: [],
+    } as unknown as BidNode;
+    const tree = rootFromTree({ children: [raw] });
+    const node = tree.children[0];
+    expect(node.conventionRef).toBe('c1');
+    expect(node.conventionArgs).toEqual({ agreedSuit: '♠' });
+  });
+});
+
+// ── Convention helpers ────────────────────────────────────────────────────────
+
+function makeConvention(id: string, children: BidNode[]): ConventionDef {
+  return {
+    id,
+    name: id,
+    root: { id: `${id}-root`, bids: [], meaning: '', children },
+  };
+}
+
+describe('findConvention', () => {
+  it('returns the matching convention', () => {
+    const convs = [makeConvention('c1', []), makeConvention('c2', [])];
+    expect(findConvention(convs, 'c2')?.id).toBe('c2');
+  });
+
+  it('returns undefined for unknown id', () => {
+    expect(findConvention([], 'nope')).toBeUndefined();
+  });
+});
+
+describe('expandConventionParams', () => {
+  it('substitutes placeholders in meaning and notes', () => {
+    const node = n(['5♣'], [], {
+      id: 'n1',
+      meaning: '1 or 4 key cards in {{agreedSuit}}',
+      notes: 'Trump suit: {{agreedSuit}}',
+    });
+    const expanded = expandConventionParams(node, { agreedSuit: '♠' });
+    expect(expanded.meaning).toBe('1 or 4 key cards in ♠');
+    expect(expanded.notes).toBe('Trump suit: ♠');
+  });
+
+  it('substitutes placeholders in bid labels', () => {
+    const node = n(['6{{agreedSuit}}'], [], { id: 'n1', meaning: 'Queen yes, no kings' });
+    const expanded = expandConventionParams(node, { agreedSuit: '♠' });
+    expect(expanded.bids).toEqual(['6♠']);
+  });
+
+  it('leaves unknown placeholders intact', () => {
+    const node = n(['5♣'], [], { id: 'n1', meaning: '{{unknown}} placeholder' });
+    const expanded = expandConventionParams(node, {});
+    expect(expanded.meaning).toBe('{{unknown}} placeholder');
+  });
+
+  it('recursively expands children', () => {
+    const child = n(['5NT'], [], { id: 'c1', meaning: 'King ask in {{agreedSuit}}' });
+    const parent = n(['5♣'], [child], { id: 'p1', meaning: 'Responses for {{agreedSuit}}' });
+    const expanded = expandConventionParams(parent, { agreedSuit: '♥' });
+    expect(expanded.meaning).toBe('Responses for ♥');
+    expect(expanded.children[0].meaning).toBe('King ask in ♥');
+  });
+});
+
+describe('resolveConventionChildren', () => {
+  it('returns stored children when no conventionRef', () => {
+    const child = n(['5♣'], [], { id: 'c1' });
+    const node = n(['4NT'], [child], { id: 'p1' });
+    expect(resolveConventionChildren(node, [])).toEqual([child]);
+  });
+
+  it('returns convention children when ref is set', () => {
+    const convChild = n(['5♣'], [], { id: 'cc1', meaning: '1 or 4 KC' });
+    const conv = makeConvention('rkcb', [convChild]);
+    const node = n(['4NT'], [], { id: 'p1' });
+    (node as BidNode & { conventionRef: string }).conventionRef = 'rkcb';
+    const resolved = resolveConventionChildren(node, [conv]);
+    expect(resolved).toHaveLength(1);
+    expect(resolved[0].meaning).toBe('1 or 4 KC');
+  });
+
+  it('applies param substitution when conventionArgs are present', () => {
+    const convChild = n(['5♣'], [], { id: 'cc1', meaning: '1 or 4 KC in {{suit}}' });
+    const conv = makeConvention('rkcb', [convChild]);
+    const node: BidNode = {
+      ...n(['4NT'], [], { id: 'p1' }),
+      conventionRef: 'rkcb',
+      conventionArgs: { suit: '♠' },
+    };
+    const resolved = resolveConventionChildren(node, [conv]);
+    expect(resolved[0].meaning).toBe('1 or 4 KC in ♠');
+  });
+
+  it('falls back to stored children when convention is not found', () => {
+    const child = n(['5♣'], [], { id: 'c1' });
+    const node: BidNode = { ...n(['4NT'], [child], { id: 'p1' }), conventionRef: 'missing' };
+    expect(resolveConventionChildren(node, [])).toEqual([child]);
+  });
+});
+
+describe('canDropNode convention guard', () => {
+  it('disallows dropping into a convention-ref node', () => {
+    const convChild = n(['5♣'], [], { id: 'cc' });
+    const conv = makeConvention('rkcb', [convChild]);
+    // 4NT node has a convention ref — its children are from the convention.
+    const fourNT: BidNode = { ...n(['4NT'], [], { id: 'n4nt' }), conventionRef: 'rkcb' };
+    const fiveSpade = n(['5♠'], [], { id: 'n5s' });
+    const r = root([fourNT, fiveSpade]);
+    // Dropping 5♠ under 4NT should be disallowed (convention owns its children).
+    expect(canDropNode(r, 'n5s', 'n4nt')).toBe(false);
+    void conv; // silence unused variable warning
   });
 });

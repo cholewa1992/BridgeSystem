@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import type { BidNode, SystemDetail } from '../types';
+import type { BidNode, ConventionDef, SystemDetail } from '../types';
 import {
   useDeleteSystem,
   useForkSystem,
@@ -14,6 +14,7 @@ import {
   ROOT_ID,
   addChainContext,
   canDropNode,
+  conventionsFromTree,
   deleteNode as treeDelete,
   editChainContext,
   findNode,
@@ -44,12 +45,16 @@ export function SystemEditor() {
   const visibilityMut = useUpdateVisibility();
 
   const [root, setRoot] = useState<BidNode | null>(null);
+  const [conventions, setConventions] = useState<ConventionDef[]>([]);
   const [systemName, setSystemName] = useState('');
   const [dirty, setDirty] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const loadedId = useRef<string | null>(null);
 
   const [selected, setSelected] = useState<string | null>(null);
+  const [convChildDetail, setConvChildDetail] = useState<{ node: BidNode; convRef: string } | null>(
+    null,
+  );
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -64,7 +69,9 @@ export function SystemEditor() {
   useEffect(() => {
     if (detail && loadedId.current !== detail.id) {
       loadedId.current = detail.id;
-      setRoot(rootFromTree(detail.tree ?? { children: [] }));
+      const tree = detail.tree ?? { children: [] };
+      setRoot(rootFromTree(tree));
+      setConventions(conventionsFromTree(tree));
       setSystemName(detail.name);
     }
   }, [detail]);
@@ -81,7 +88,7 @@ export function SystemEditor() {
         {
           name: systemName,
           description: detail.description ?? '',
-          tree: treeFromRoot(r),
+          tree: treeFromRoot(r, conventions),
         },
         {
           onSuccess: () => {
@@ -92,7 +99,7 @@ export function SystemEditor() {
         },
       );
     },
-    [detail, readOnly, root, systemName, updateMut],
+    [conventions, detail, readOnly, root, systemName, updateMut],
   );
 
   // Debounced auto-save for edits flagged dirty.
@@ -123,9 +130,10 @@ export function SystemEditor() {
 
   // ── Derived ───────────────────────────────────────────────────────────
   const selectedNode = useMemo(() => {
+    if (convChildDetail) return convChildDetail.node;
     if (!root || !selected) return null;
     return findNode(root, selected);
-  }, [root, selected]);
+  }, [root, selected, convChildDetail]);
 
   const breadcrumb = useMemo(() => {
     if (!root || !selected) return [];
@@ -228,6 +236,31 @@ export function SystemEditor() {
     markDirty();
   };
 
+  const handleAttachConvention = (convId: string, args: Record<string, string>) => {
+    if (!root || !selected) return;
+    setRoot(
+      updateNode(root, selected, (n) => ({
+        ...n,
+        conventionRef: convId,
+        conventionArgs: Object.keys(args).length > 0 ? args : undefined,
+        children: [], // stored children cleared; effective children come from convention
+      })),
+    );
+    markDirty();
+  };
+
+  const handleDetachConvention = () => {
+    if (!root || !selected) return;
+    setRoot(
+      updateNode(root, selected, (n) => ({
+        ...n,
+        conventionRef: undefined,
+        conventionArgs: undefined,
+      })),
+    );
+    markDirty();
+  };
+
   const onRename = () => {
     setEditingName(false);
     markDirty();
@@ -262,6 +295,14 @@ export function SystemEditor() {
   // Reset transient form state when selection changes
   const select = (nodeId: string) => {
     setSelected(nodeId);
+    setConvChildDetail(null);
+    setEditing(false);
+    setAddingTo(null);
+  };
+
+  const selectConventionChild = (node: BidNode, fromConvRef: string) => {
+    setSelected(null);
+    setConvChildDetail({ node, convRef: fromConvRef });
     setEditing(false);
     setAddingTo(null);
   };
@@ -308,6 +349,13 @@ export function SystemEditor() {
         )}
         <div className="ml-auto flex items-center gap-3">
           <SaveIndicator state={saveState} permission={detail.permission} />
+          <Button
+            variant="ghost"
+            small
+            onClick={() => navigate(`/systems/${detail.id}/conventions`)}
+          >
+            Conventions {conventions.length > 0 && `(${conventions.length})`}
+          </Button>
           {detail.permission === 'OWNER' && (
             <>
               <Button
@@ -388,8 +436,9 @@ export function SystemEditor() {
           <BidTree
             node={root}
             depth={0}
-            selectedId={selected}
+            selectedId={selected ?? convChildDetail?.node.id ?? null}
             onSelect={select}
+            onSelectConventionChild={selectConventionChild}
             readOnly={readOnly}
             draggingId={draggingId}
             onDragStart={startDrag}
@@ -398,6 +447,7 @@ export function SystemEditor() {
             canDrop={canDropHere}
             collapseVersion={collapseVersion}
             expandVersion={expandVersion}
+            conventions={conventions}
           />
 
           {addingTo === ROOT_ID && openingChain && (
@@ -445,6 +495,12 @@ export function SystemEditor() {
               onSubmitEdit={submitEdit}
               onDelete={deleteSelected}
               onSelect={select}
+              systemId={detail.id}
+              conventions={conventions}
+              onAttachConvention={handleAttachConvention}
+              onDetachConvention={handleDetachConvention}
+              onOpenConventionLibrary={() => navigate(`/systems/${detail.id}/conventions`)}
+              fromConventionRef={convChildDetail?.convRef}
             />
           </div>
         </main>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
-import type { BidNode } from '../types';
-import { groupIntoSections } from '../tree';
+import type { BidNode, ConventionDef } from '../types';
+import { findNode, groupIntoSections, resolveConventionChildren } from '../tree';
 import { BidLabel } from './BidLabel';
 import { BidTreeSection } from './BidTreeSection';
 
@@ -10,6 +10,8 @@ interface Props {
   depth?: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Called when a convention-resolved child is clicked; receives the expanded node and the ref ID. */
+  onSelectConventionChild?: (node: BidNode, fromConvRef: string) => void;
   readOnly?: boolean;
   draggingId?: string | null;
   onDragStart?: (id: string) => void;
@@ -18,14 +20,26 @@ interface Props {
   canDrop?: (targetParentId: string) => boolean;
   collapseVersion?: number;
   expandVersion?: number;
+  conventions?: ConventionDef[];
+  /** True when this node was resolved from a convention — renders read-only and dimmed. */
+  isConventionChild?: boolean;
 }
 
 export function BidTree(props: Props) {
   const { node, depth = 0 } = props;
-  const [open, setOpen] = useState(depth < 2);
+  const conventions = props.conventions ?? [];
+  const isConventionChild = props.isConventionChild ?? false;
+
+  // Convention-ref nodes always start open so responses are visible.
+  const [open, setOpen] = useState(depth < 2 || !!node.conventionRef);
   const [hovered, setHovered] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const hasChildren = (node.children?.length ?? 0) > 0;
+
+  // Effective children: resolved from the convention when a ref is set.
+  const effectiveChildren = resolveConventionChildren(node, conventions);
+  const hasChildren = effectiveChildren.length > 0;
+  const hasConventionRef = !!node.conventionRef;
+
   const isDragging = props.draggingId === node.id;
   // canDrop reads from a ref in SystemEditor so it's always current,
   // even before draggingId state has propagated through React.
@@ -62,6 +76,7 @@ export function BidTree(props: Props) {
               onDragEnd={props.onDragEnd}
               onDrop={props.onDrop}
               canDrop={props.canDrop}
+              conventions={conventions}
             />
           ))}
         </div>
@@ -70,19 +85,26 @@ export function BidTree(props: Props) {
     return (
       <div>
         {node.children?.map((c) => (
-          <BidTree key={c.id} {...props} node={c} depth={depth} />
+          <BidTree key={c.id} {...props} node={c} depth={depth} conventions={conventions} />
         ))}
       </div>
     );
   }
 
   const isSelected = props.selectedId === node.id;
-  const showHandle = !props.readOnly && (hovered || !!props.draggingId);
+  // Convention children are never draggable; also suppress handle for the whole isConventionChild subtree.
+  const showHandle = !props.readOnly && !isConventionChild && (hovered || !!props.draggingId);
 
   return (
-    <div className={clsx(depth !== 0 && 'ml-4', isDragging && 'opacity-40')}>
+    <div
+      className={clsx(
+        depth !== 0 && 'ml-4',
+        isDragging && 'opacity-40',
+        isConventionChild && 'opacity-70',
+      )}
+    >
       <div
-        draggable={!props.readOnly}
+        draggable={!props.readOnly && !isConventionChild}
         onClick={() => props.onSelect(node.id)}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -123,15 +145,21 @@ export function BidTree(props: Props) {
           }
         }}
         className={clsx(
-          'flex items-center gap-2 px-[10px] py-[6px] mb-0.5 rounded-sm border select-none transition-colors duration-100',
-          isValidDrop
-            ? 'bg-accent-soft border-accent'
-            : isSelected
-              ? 'bg-accent-soft border-accent-border'
+          'flex items-center gap-2 px-[10px] py-[6px] mb-0.5 rounded-sm border select-none transition-colors duration-100 cursor-pointer',
+          isConventionChild
+            ? isSelected
+              ? 'bg-surface-2 border-border'
               : hovered
                 ? 'bg-surface-2 border-transparent'
-                : 'border-transparent',
-          props.draggingId ? (isValidDrop ? 'cursor-copy' : 'cursor-default') : 'cursor-pointer',
+                : 'border-transparent'
+            : isValidDrop
+              ? 'bg-accent-soft border-accent cursor-copy'
+              : isSelected
+                ? 'bg-accent-soft border-accent-border'
+                : hovered
+                  ? 'bg-surface-2 border-transparent'
+                  : 'border-transparent',
+          !isConventionChild && props.draggingId && !isValidDrop && 'cursor-default',
         )}
       >
         {/* Drag handle — visible on hover when editable */}
@@ -170,12 +198,42 @@ export function BidTree(props: Props) {
         <span className="ml-1 flex-1 font-ui text-[13px] text-fg-body">
           {node.meaning || <em className="text-fg-muted opacity-45">no meaning set</em>}
         </span>
+
+        {/* Convention badge — small indicator that children come from a convention */}
+        {hasConventionRef && !isConventionChild && (
+          <span
+            title={`Responses from convention: ${conventions.find((c) => c.id === node.conventionRef)?.name ?? node.conventionRef}`}
+            className="ml-auto shrink-0 rounded-sm bg-surface-sunken px-1.5 py-0.5 font-ui text-[10px] font-semibold uppercase tracking-[0.05em] text-fg-muted"
+          >
+            conv
+          </span>
+        )}
       </div>
 
       {open && hasChildren && (
-        <div className="ml-[13px] border-l border-dashed border-border-strong pl-[6px]">
-          {node.children.map((c) => (
-            <BidTree key={c.id} {...props} node={c} depth={depth + 1} />
+        <div
+          className={clsx(
+            'ml-[13px] border-l pl-[6px]',
+            hasConventionRef ? 'border-solid border-border' : 'border-dashed border-border-strong',
+          )}
+        >
+          {effectiveChildren.map((c) => (
+            <BidTree
+              key={c.id}
+              {...props}
+              node={c}
+              depth={depth + 1}
+              conventions={conventions}
+              isConventionChild={isConventionChild || hasConventionRef}
+              onSelect={
+                hasConventionRef
+                  ? (id) => {
+                      const found = findNode({ ...node, children: effectiveChildren }, id);
+                      if (found) props.onSelectConventionChild?.(found, node.conventionRef!);
+                    }
+                  : props.onSelect
+              }
+            />
           ))}
         </div>
       )}

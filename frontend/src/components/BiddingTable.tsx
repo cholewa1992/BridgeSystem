@@ -89,11 +89,7 @@ function bidCardColors(node: BidNode): { bg: string; fg: string } {
   const firstBid = node.bids[0];
   if (firstBid === 'X') return { bg: '#c8443a', fg: '#fff' };
   if (firstBid === 'XX') return { bg: '#3b5878', fg: '#fff' };
-  const suit = firstBid.endsWith('NT')
-    ? 'NT'
-    : firstBid.endsWith('ma') || firstBid.endsWith('om')
-      ? 'sym'
-      : firstBid.slice(-1);
+  const suit = firstBid.endsWith('NT') ? 'NT' : firstBid.slice(-1);
   if (suit === '♥' || suit === '♦') return { bg: '#f6d4cd', fg: '#a83323' };
   if (suit === '♠' || suit === '♣') return { bg: '#dad6cc', fg: '#1a1a1a' };
   if (suit === 'NT') return { bg: '#d6e0ed', fg: '#2f4866' };

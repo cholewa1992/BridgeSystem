@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Globe, LogIn, LogOut, User, Users } from 'lucide-react';
+import {
+  BookOpen,
+  Clock,
+  Globe,
+  Library,
+  LogIn,
+  LogOut,
+  TreePine,
+  User,
+  Users,
+} from 'lucide-react';
 import { BrandLockup } from '../components/BrandLockup';
 import { useAuth } from '../context/AuthContext';
 
@@ -60,6 +70,10 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
     navigate('/login');
   };
 
+  // Extract system ID when on a system route: /systems/:id or /systems/:id/conventions
+  const systemRouteMatch = location.pathname.match(/^\/systems\/([^/]+)/);
+  const systemId = systemRouteMatch ? systemRouteMatch[1] : null;
+
   return (
     <nav className="flex h-full flex-col overflow-y-auto bg-surface py-4" style={{ width: 240 }}>
       {/* Brand */}
@@ -88,6 +102,29 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
           );
         })}
       </div>
+
+      {/* Context-sensitive: system nav */}
+      {systemId && (
+        <>
+          <div className="px-3 pb-1.5 pt-4 font-ui text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">
+            This system
+          </div>
+          <div className="flex flex-col gap-0.5 px-1.5">
+            <NavButton
+              active={location.pathname === `/systems/${systemId}`}
+              onClick={() => onNav(`/systems/${systemId}`)}
+              icon={TreePine}
+              label="Bidding tree"
+            />
+            <NavButton
+              active={location.pathname === `/systems/${systemId}/conventions`}
+              onClick={() => onNav(`/systems/${systemId}/conventions`)}
+              icon={Library}
+              label="Conventions"
+            />
+          </div>
+        </>
+      )}
 
       {/* Spacer */}
       <div className="flex-1" />

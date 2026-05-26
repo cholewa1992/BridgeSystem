@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
-import type { BidNode } from '../types';
+import type { BidNode, ConventionDef } from '../types';
 import { BidTree } from './BidTree';
 
 interface Props {
@@ -10,12 +10,14 @@ interface Props {
   expandVersion: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onSelectConventionChild?: (node: BidNode, fromConvRef: string) => void;
   readOnly?: boolean;
   draggingId?: string | null;
   onDragStart?: (id: string) => void;
   onDragEnd?: () => void;
   onDrop?: (targetParentId: string) => void;
   canDrop?: (targetParentId: string) => boolean;
+  conventions?: ConventionDef[];
 }
 
 export function BidTreeSection({
@@ -23,6 +25,7 @@ export function BidTreeSection({
   nodes,
   collapseVersion,
   expandVersion,
+  conventions,
   ...treeProps
 }: Props) {
   const [open, setOpen] = useState(true);
@@ -63,6 +66,7 @@ export function BidTreeSection({
               depth={0}
               collapseVersion={collapseVersion}
               expandVersion={expandVersion}
+              conventions={conventions}
             />
           ))}
         </div>
