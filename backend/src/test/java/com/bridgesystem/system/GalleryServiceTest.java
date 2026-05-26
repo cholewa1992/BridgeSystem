@@ -6,7 +6,6 @@ import com.bridgesystem.sharing.SystemLike;
 import com.bridgesystem.sharing.SystemLikeRepository;
 import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.user.AppUser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +39,7 @@ class GalleryServiceTest {
     @BeforeEach
     void setUp() {
         service = new GalleryService(systemRepository, likeRepository, shareRepository,
-                accessGuard, new ObjectMapper());
+                accessGuard);
 
         user = new AppUser(UUID.randomUUID(), "alice", "Alice", new byte[32]);
         systemId = UUID.randomUUID();

@@ -359,26 +359,8 @@ describe('rootFromTree / treeFromRoot', () => {
     expect(treeFromRoot(r)).toEqual({ children: r.children });
   });
 
-  it('treeFromRoot includes conventions when provided', () => {
-    const r = root([n(['1♣'], [], { id: 'A' })]);
-    const conv: ConventionDef = {
-      id: 'c1',
-      name: 'RKCB 1430',
-      root: { id: 'cr1', bids: [], meaning: '', children: [] },
-    };
-    const result = treeFromRoot(r, [conv]);
-    expect(result.conventions).toHaveLength(1);
-    expect(result.conventions![0].name).toBe('RKCB 1430');
-  });
-
-  it('treeFromRoot omits conventions key when array is empty', () => {
-    const r = root([n(['1♣'], [], { id: 'A' })]);
-    const result = treeFromRoot(r, []);
-    expect(result.conventions).toBeUndefined();
-  });
-
-  it('round-trips conventions through treeFromRoot → conventionsFromTree', () => {
-    const r = root([]);
+  it('conventionsFromTree reads embedded conventions for backward compat', () => {
+    // Simulates old tree_json that still has an inline conventions array
     const conv: ConventionDef = {
       id: 'c1',
       name: 'Stayman',
@@ -391,8 +373,8 @@ describe('rootFromTree / treeFromRoot', () => {
         children: [n(['2♣'], [], { id: 'c1r1', meaning: 'Stayman ask' })],
       },
     };
-    const tree = treeFromRoot(r, [conv]);
-    const recovered = conventionsFromTree(tree);
+    const legacyTree = { children: [], conventions: [conv] } as unknown as import('./types').BidTreeRoot;
+    const recovered = conventionsFromTree(legacyTree);
     expect(recovered).toHaveLength(1);
     expect(recovered[0].name).toBe('Stayman');
     expect(recovered[0].description).toBe('Asks for 4-card major');

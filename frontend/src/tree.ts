@@ -122,10 +122,8 @@ export function conventionsFromTree(root: BidTreeRoot): ConventionDef[] {
   return (raw.conventions as unknown[]).map(migrateConvention);
 }
 
-export function treeFromRoot(root: BidNode, conventions?: ConventionDef[]): BidTreeRoot {
-  const result: BidTreeRoot = { children: root.children };
-  if (conventions && conventions.length > 0) result.conventions = conventions;
-  return result;
+export function treeFromRoot(root: BidNode): BidTreeRoot {
+  return { children: root.children };
 }
 
 // ── Convention resolution ─────────────────────────────────────────────────
