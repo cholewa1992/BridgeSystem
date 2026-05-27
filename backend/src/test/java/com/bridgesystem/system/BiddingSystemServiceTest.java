@@ -1,5 +1,7 @@
 package com.bridgesystem.system;
 
+import com.bridgesystem.convention.ConventionRepository;
+import com.bridgesystem.convention.ConventionService;
 import com.bridgesystem.security.SystemAccessGuard;
 import com.bridgesystem.security.SystemAccessGuard.Permission;
 import com.bridgesystem.sharing.SystemLikeRepository;
@@ -34,6 +36,8 @@ class BiddingSystemServiceTest {
     @Mock private SystemShareRepository shareRepository;
     @Mock private SystemLikeRepository likeRepository;
     @Mock private SystemAccessGuard accessGuard;
+    @Mock private ConventionRepository conventionRepository;
+    @Mock private ConventionService conventionService;
 
     private ObjectMapper objectMapper;
     private BiddingSystemService service;
@@ -47,7 +51,7 @@ class BiddingSystemServiceTest {
         objectMapper = new ObjectMapper();
         service = new BiddingSystemService(
                 systemRepository, shareRepository, likeRepository,
-                accessGuard, objectMapper);
+                accessGuard, objectMapper, conventionRepository, conventionService);
 
         user = new AppUser(UUID.randomUUID(), "alice", "Alice", new byte[32]);
         systemId = UUID.randomUUID();
@@ -136,7 +140,7 @@ class BiddingSystemServiceTest {
         ObjectMapper brokenMapper = mock(ObjectMapper.class);
         BiddingSystemService svcWithBrokenMapper = new BiddingSystemService(
                 systemRepository, shareRepository, likeRepository,
-                accessGuard, brokenMapper);
+                accessGuard, brokenMapper, conventionRepository, conventionService);
 
         when(accessGuard.requireAccess(systemId, user, Permission.WRITE)).thenReturn(system);
         JsonNode treeNode = mock(JsonNode.class);

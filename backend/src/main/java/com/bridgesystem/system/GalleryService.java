@@ -6,7 +6,6 @@ import com.bridgesystem.sharing.SystemLikeRepository;
 import com.bridgesystem.sharing.SystemShare;
 import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.user.AppUser;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,18 +26,15 @@ public class GalleryService {
     private final SystemLikeRepository likeRepository;
     private final SystemShareRepository shareRepository;
     private final SystemAccessGuard accessGuard;
-    private final ObjectMapper objectMapper;
 
     public GalleryService(BiddingSystemRepository systemRepository,
                           SystemLikeRepository likeRepository,
                           SystemShareRepository shareRepository,
-                          SystemAccessGuard accessGuard,
-                          ObjectMapper objectMapper) {
+                          SystemAccessGuard accessGuard) {
         this.systemRepository = systemRepository;
         this.likeRepository = likeRepository;
         this.shareRepository = shareRepository;
         this.accessGuard = accessGuard;
-        this.objectMapper = objectMapper;
     }
 
     @Transactional(readOnly = true)

@@ -70,7 +70,7 @@ class BiddingSystemControllerTest {
                 systemId, "My System", "desc", "alice",
                 true, "OWNER", emptyTree,
                 OffsetDateTime.now(), OffsetDateTime.now(),
-                false, 0L, 0, null, null
+                false, 0L, 0, null, null, List.of()
         );
 
         sampleSummary = new BiddingSystemDtos.SystemSummary(
@@ -126,7 +126,7 @@ class BiddingSystemControllerTest {
                 systemId, "Updated", "new desc", "alice",
                 true, "OWNER", tree,
                 OffsetDateTime.now(), OffsetDateTime.now(),
-                false, 0L, 0, null, null
+                false, 0L, 0, null, null, List.of()
         );
         when(service.update(eq(systemId), eq(testUser), any(BiddingSystemDtos.UpdateRequest.class)))
                 .thenReturn(updated);
@@ -157,7 +157,7 @@ class BiddingSystemControllerTest {
                 systemId, "My System", "desc", "alice",
                 true, "OWNER", objectMapper.createObjectNode(),
                 OffsetDateTime.now(), OffsetDateTime.now(),
-                true, 0L, 0, null, null
+                true, 0L, 0, null, null, List.of()
         );
         when(service.updateVisibility(systemId, testUser, true)).thenReturn(publicDetail);
 
@@ -179,7 +179,7 @@ class BiddingSystemControllerTest {
                 UUID.randomUUID(), "Original (fork)", "desc", "alice",
                 true, "OWNER", objectMapper.createObjectNode(),
                 OffsetDateTime.now(), OffsetDateTime.now(),
-                false, 0L, 0, null, ref
+                false, 0L, 0, null, ref, List.of()
         );
         when(service.fork(originalId, testUser)).thenReturn(forked);
 

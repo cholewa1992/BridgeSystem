@@ -54,10 +54,11 @@ public class SecurityConfig {
                             "/actuator/health/**"
                     ).permitAll()
                     // Gallery and user profiles are publicly readable; individual system
-                    // GET access for public systems is enforced by SystemAccessGuard.
+                    // and convention GET access for public items is enforced by AccessGuard.
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/gallery/**").permitAll()
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/users/**").permitAll()
                     .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/systems/**").permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/conventions/*").permitAll()
                     .requestMatchers("/api/**").authenticated()
                     .anyRequest().permitAll()
             )

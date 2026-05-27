@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { useNavigate, useParams } from 'react-router-dom';
-import type { BidNode, ConventionDef, ConventionParam } from '../types';
-import { useSystem, useUpdateSystem } from '../api/queries';
+import { useNavigate } from 'react-router-dom';
+import type { BidNode, ConventionDetail, ConventionParam } from '../types';
+import {
+  useMyConventions,
+  useCreateConvention,
+  useUpdateConvention,
+  useDeleteConvention,
+  useUpdateConventionVisibility,
+  useForkConvention,
+} from '../api/queries';
 import {
   ROOT_ID,
   addChainContext,
-  conventionsFromTree,
-  countConventionUsage,
+  canDropNode,
   deleteNode as treeDelete,
   editChainContext,
   findNode,
@@ -15,217 +21,174 @@ import {
   newId,
   pathTo,
   rootFromTree,
-  treeFromRoot,
   updateNode,
 } from '../tree';
 import { Button, Input, Label, Textarea } from './ui';
 import { BidTree } from './BidTree';
+import { BidDetailPanel } from './BidDetailPanel';
 import { BidForm, type BidFormData } from './BidForm';
 
-// ── Page ─────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────
+
+type SaveState = 'idle' | 'saving' | 'dirty' | 'saved';
+
+// ── Main page ─────────────────────────────────────────────────────────────
 
 export function ConventionLibraryPage() {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { data: detail, error: loadError } = useSystem(id);
-  const updateMut = useUpdateSystem(id ?? '');
+  const { data: conventions, isLoading } = useMyConventions();
+  const createMut = useCreateConvention();
+  const deleteMut = useDeleteConvention();
 
-  const [conventions, setConventions] = useState<ConventionDef[]>([]);
-  const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
-  const loadedId = useRef<string | null>(null);
+  const [selectedConventionId, setSelectedConventionId] = useState<string | null>(null);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newDesc, setNewDesc] = useState('');
 
-  // Seed conventions from system tree once per load
+  // Select first convention when loaded if none selected
   useEffect(() => {
-    if (detail && loadedId.current !== detail.id) {
-      loadedId.current = detail.id;
-      setConventions(conventionsFromTree(detail.tree ?? { children: [] }));
+    if (conventions && conventions.length > 0 && !selectedConventionId) {
+      setSelectedConventionId(conventions[0].id);
     }
-  }, [detail]);
+  }, [conventions, selectedConventionId]);
 
-  const readOnly = !detail || (detail.permission !== 'OWNER' && detail.permission !== 'WRITE');
-
-  // Debounced auto-save
-  const persist = useCallback(
-    (updated: ConventionDef[]) => {
-      if (!detail || readOnly) return;
-      // Preserve the bidding tree; only update conventions.
-      const treeRoot = rootFromTree(detail.tree ?? { children: [] });
-      updateMut.mutate(
-        {
-          name: detail.name,
-          description: detail.description ?? '',
-          tree: treeFromRoot(treeRoot, updated),
-        },
-        {
-          onSuccess: () => {
-            setDirty(false);
-            setJustSaved(true);
-          },
-        },
-      );
-    },
-    [detail, readOnly, updateMut],
+  const selectedConvention = useMemo(
+    () => conventions?.find((c) => c.id === selectedConventionId) ?? null,
+    [conventions, selectedConventionId],
   );
 
-  useEffect(() => {
-    if (!dirty) return;
-    const t = window.setTimeout(() => persist(conventions), 800);
-    return () => window.clearTimeout(t);
-  }, [dirty, conventions, persist]);
-
-  useEffect(() => {
-    if (!justSaved) return;
-    const t = window.setTimeout(() => setJustSaved(false), 1500);
-    return () => window.clearTimeout(t);
-  }, [justSaved]);
-
-  const markDirty = useCallback(() => setDirty(true), []);
-
-  // Compute usage counts from the main tree
-  const usageCounts = useMemo(() => {
-    if (!detail) return new Map<string, number>();
-    const mainRoot = rootFromTree(detail.tree ?? { children: [] });
-    const map = new Map<string, number>();
-    for (const c of conventions) {
-      map.set(c.id, countConventionUsage(mainRoot, c.id));
+  const handleCreate = async () => {
+    if (!newName.trim()) return;
+    try {
+      const created = await createMut.mutateAsync({
+        name: newName.trim(),
+        description: newDesc.trim() || undefined,
+      });
+      setSelectedConventionId(created.id);
+      setShowNewForm(false);
+      setNewName('');
+      setNewDesc('');
+    } catch {
+      // surfaced via createMut.error
     }
-    return map;
-  }, [detail, conventions]);
-
-  // ── CRUD ──────────────────────────────────────────────────────────────────
-
-  const handleCreate = () => {
-    const id = newId();
-    const newConv: ConventionDef = {
-      id,
-      name: 'New convention',
-      // Root must use ROOT_ID so that updateNode(convRoot, ROOT_ID, ...) can find it.
-      root: { id: ROOT_ID, bids: [], meaning: '', children: [] },
-    };
-    const updated = [...conventions, newConv];
-    setConventions(updated);
-    setSelectedConvId(id);
-    markDirty();
   };
 
-  const handleUpdate = useCallback(
-    (updated: ConventionDef) => {
-      setConventions((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
-      markDirty();
-    },
-    [markDirty],
-  );
-
-  const handleDelete = (convId: string) => {
-    const usage = usageCounts.get(convId) ?? 0;
-    if (usage > 0) {
-      alert(
-        `This convention is used in ${usage} place${usage === 1 ? '' : 's'} in the bidding tree. Detach it from all nodes before deleting.`,
-      );
-      return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Delete this convention? This cannot be undone.')) return;
+    try {
+      await deleteMut.mutateAsync(id);
+      if (selectedConventionId === id) {
+        const remaining = conventions?.filter((c) => c.id !== id) ?? [];
+        setSelectedConventionId(remaining.length > 0 ? remaining[0].id : null);
+      }
+    } catch {
+      // surfaced via deleteMut.error
     }
-    if (!confirm('Delete this convention?')) return;
-    setConventions((prev) => prev.filter((c) => c.id !== convId));
-    if (selectedConvId === convId) setSelectedConvId(null);
-    markDirty();
   };
-
-  const selectedConv = conventions.find((c) => c.id === selectedConvId) ?? null;
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
-  if (loadError && !detail) {
-    return (
-      <div className="p-[60px] font-ui text-danger">
-        <p className="mt-0">{(loadError as Error).message}</p>
-        <Button variant="secondary" onClick={() => navigate('/')}>
-          Back to list
-        </Button>
-      </div>
-    );
-  }
-
-  if (!detail) return <div className="p-[60px] text-fg-muted">Loading…</div>;
-
-  const saveLabel = updateMut.isPending
-    ? 'Saving…'
-    : justSaved
-      ? 'Saved'
-      : dirty
-        ? 'Unsaved changes'
-        : '';
 
   return (
     <div className="flex min-h-screen flex-col bg-bg">
       {/* Header */}
-      <header className="flex items-center gap-4 border-b border-border bg-surface px-6 py-3">
-        <Button variant="ghost" small onClick={() => navigate(`/systems/${detail.id}`)}>
-          ← {detail.name}
+      <header className="flex items-center gap-[14px] border-b border-border bg-surface px-6 py-3">
+        <Button variant="ghost" onClick={() => navigate('/')}>
+          ← Back
         </Button>
+        <div className="h-[22px] w-px bg-border" />
+        <div className="flex gap-[3px] text-[14px] opacity-70">
+          <span className="text-suit-black">♠</span>
+          <span className="text-suit-red">♥</span>
+          <span className="text-suit-red">♦</span>
+          <span className="text-suit-black">♣</span>
+        </div>
         <h1 className="m-0 font-display text-lg font-semibold tracking-[-0.005em] text-fg">
-          Convention Library
+          My Conventions
         </h1>
-        {saveLabel && <span className="ml-auto font-ui text-xs text-fg-muted">{saveLabel}</span>}
       </header>
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left pane: convention list */}
-        <aside className="flex w-[300px] shrink-0 flex-col border-r border-border bg-surface">
+        {/* Left sidebar — convention list */}
+        <aside className="flex w-[280px] flex-col border-r border-border bg-surface">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <Label>Conventions ({conventions.length})</Label>
-            {!readOnly && (
-              <Button variant="secondary" small onClick={handleCreate}>
-                + New
-              </Button>
-            )}
+            <Label>Conventions</Label>
+            <Button variant="secondary" small onClick={() => setShowNewForm((v) => !v)}>
+              + New
+            </Button>
           </div>
+
+          {showNewForm && (
+            <div className="border-b border-border px-4 py-3">
+              <div className="mb-2">
+                <Input
+                  placeholder="Convention name"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                  autoFocus
+                  className="w-full"
+                />
+              </div>
+              <div className="mb-2">
+                <Input
+                  placeholder="Description (optional)"
+                  value={newDesc}
+                  onChange={(e) => setNewDesc(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  small
+                  onClick={handleCreate}
+                  loading={createMut.isPending}
+                  disabled={!newName.trim()}
+                >
+                  Create
+                </Button>
+                <Button
+                  variant="ghost"
+                  small
+                  onClick={() => {
+                    setShowNewForm(false);
+                    setNewName('');
+                    setNewDesc('');
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto py-1">
-            {conventions.length === 0 ? (
-              <p className="px-4 py-6 text-center font-ui text-[13px] text-fg-muted">
-                No conventions yet.
-                {!readOnly && (
-                  <>
-                    <br />
-                    Click "+ New" to create one.
-                  </>
-                )}
-              </p>
+            {isLoading ? (
+              <div className="px-4 py-3 text-[13px] text-fg-muted">Loading…</div>
+            ) : !conventions || conventions.length === 0 ? (
+              <div className="px-4 py-6 text-center text-[13px] text-fg-muted">
+                No conventions yet. Create your first one above.
+              </div>
             ) : (
-              conventions.map((c) => (
+              conventions.map((conv) => (
                 <ConventionListItem
-                  key={c.id}
-                  convention={c}
-                  usageCount={usageCounts.get(c.id) ?? 0}
-                  selected={selectedConvId === c.id}
-                  readOnly={readOnly}
-                  onClick={() => setSelectedConvId(c.id)}
-                  onDelete={() => handleDelete(c.id)}
+                  key={conv.id}
+                  convention={conv}
+                  selected={selectedConventionId === conv.id}
+                  onSelect={() => setSelectedConventionId(conv.id)}
+                  onDelete={() => handleDelete(conv.id)}
                 />
               ))
             )}
           </div>
         </aside>
 
-        {/* Right pane: convention editor */}
-        <main className="flex-1 overflow-y-auto px-10 py-8">
-          {selectedConv ? (
-            <ConventionEditor
-              key={selectedConvId!}
-              convention={selectedConv}
-              readOnly={readOnly}
-              onChange={handleUpdate}
-            />
+        {/* Right panel — editor */}
+        <main className="flex-1 overflow-y-auto">
+          {selectedConvention ? (
+            <ConventionEditor key={selectedConvention.id} convention={selectedConvention} />
           ) : (
-            <div className="mt-20 text-center font-ui text-fg-subtle">
-              <div className="mb-3 text-[36px] opacity-50">⬡</div>
-              <p className="m-0 text-[15px]">
-                {conventions.length === 0
-                  ? 'Create a convention to get started.'
-                  : 'Select a convention to edit it.'}
-              </p>
+            <div className="flex h-full items-center justify-center text-[14px] text-fg-muted">
+              {isLoading ? 'Loading…' : 'Select or create a convention to edit.'}
             </div>
           )}
         </main>
@@ -234,50 +197,52 @@ export function ConventionLibraryPage() {
   );
 }
 
-// ── ConventionListItem ────────────────────────────────────────────────────────
+// ── ConventionListItem ─────────────────────────────────────────────────────
 
 function ConventionListItem({
   convention,
-  usageCount,
   selected,
-  readOnly,
-  onClick,
+  onSelect,
   onDelete,
 }: {
-  convention: ConventionDef;
-  usageCount: number;
+  convention: ConventionDetail;
   selected: boolean;
-  readOnly: boolean;
-  onClick: () => void;
+  onSelect: () => void;
   onDelete: () => void;
 }) {
+  const canEdit = convention.permission === 'OWNER' || convention.permission === 'WRITE';
+
   return (
     <div
-      onClick={onClick}
+      onClick={onSelect}
       className={clsx(
-        'group flex cursor-pointer items-start justify-between gap-2 border-b border-border px-4 py-3 transition-colors',
+        'group flex cursor-pointer items-start justify-between px-4 py-2.5 transition-colors',
         selected ? 'bg-accent-soft' : 'hover:bg-surface-2',
       )}
     >
       <div className="min-w-0 flex-1">
-        <div className="truncate font-ui text-[13px] font-medium text-fg">{convention.name}</div>
-        <div className="mt-0.5 flex items-center gap-2">
-          {(convention.parameters?.length ?? 0) > 0 && (
-            <span className="font-ui text-[11px] text-fg-muted">
-              {convention.parameters!.length} param
-              {convention.parameters!.length !== 1 ? 's' : ''}
+        <div className="truncate font-ui text-[14px] font-medium text-fg">{convention.name}</div>
+        <div className="mt-0.5 flex items-center gap-2 text-[12px] text-fg-muted">
+          {convention.isPublic && (
+            <span className="rounded-full bg-accent-soft px-1.5 py-0.5 font-ui text-[10px] font-semibold uppercase tracking-[0.05em] text-accent-ink">
+              Public
             </span>
           )}
-          <span className="font-ui text-[11px] text-fg-muted">used {usageCount}×</span>
+          {!canEdit && <span className="text-fg-subtle">read-only</span>}
+          {convention.parameters.length > 0 && (
+            <span>
+              {convention.parameters.length} param{convention.parameters.length !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
       </div>
-      {!readOnly && (
+      {convention.permission === 'OWNER' && (
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="shrink-0 rounded px-1.5 py-0.5 font-ui text-[11px] text-danger opacity-0 transition-opacity group-hover:opacity-100 hover:bg-danger-soft"
+          className="ml-2 shrink-0 rounded-sm p-0.5 text-[12px] text-fg-muted opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
           title="Delete convention"
         >
           ✕
@@ -287,84 +252,101 @@ function ConventionListItem({
   );
 }
 
-// ── ConventionEditor ──────────────────────────────────────────────────────────
+// ── ConventionEditor ───────────────────────────────────────────────────────
 
-function ConventionEditor({
-  convention,
-  readOnly,
-  onChange,
-}: {
-  convention: ConventionDef;
-  readOnly: boolean;
-  onChange: (updated: ConventionDef) => void;
-}) {
-  const [name, setName] = useState(convention.name);
-  const [description, setDescription] = useState(convention.description ?? '');
-  const [params, setParams] = useState<ConventionParam[]>(convention.parameters ?? []);
+function ConventionEditor({ convention }: { convention: ConventionDetail }) {
+  const updateMut = useUpdateConvention(convention.id);
+  const visibilityMut = useUpdateConventionVisibility(convention.id);
+  const forkMut = useForkConvention();
+  const navigate = useNavigate();
 
-  const paramStrains = useMemo(
-    () =>
-      (params ?? [])
-        .filter((p) => p.type === 'suit')
-        .map((p) => ({ name: p.name, label: p.label })),
-    [params],
+  const readOnly = convention.permission !== 'OWNER' && convention.permission !== 'WRITE';
+
+  // Local editable state
+  const [convName, setConvName] = useState(convention.name);
+  const [convDesc, setConvDesc] = useState(convention.description ?? '');
+  const [parameters, setParameters] = useState<ConventionParam[]>(convention.parameters);
+  const [root, setRoot] = useState<BidNode>(() =>
+    rootFromTree(convention.root ? { children: convention.root.children ?? [] } : { children: [] }),
   );
 
-  // Subtree editing state
-  const [convRoot, setConvRoot] = useState<BidNode>(convention.root);
+  const [dirty, setDirty] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+
+  // Bid tree UI state
   const [selected, setSelected] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const draggingIdRef = useRef<string | null>(null);
+  const [rootDragOver, setRootDragOver] = useState(false);
 
-  const commitRoot = (newRoot: BidNode) => {
-    setConvRoot(newRoot);
-    onChange({
-      ...convention,
-      name,
-      description: description || undefined,
-      parameters: params.length ? params : undefined,
-      root: newRoot,
-    });
-  };
+  const markDirty = () => setDirty(true);
 
-  const commitMeta = (updates: {
-    name?: string;
-    description?: string;
-    params?: ConventionParam[];
-  }) => {
-    const n = updates.name ?? name;
-    const d = updates.description ?? description;
-    const p = updates.params ?? params;
-    onChange({
-      ...convention,
-      name: n,
-      description: d || undefined,
-      parameters: p.length ? p : undefined,
-      root: convRoot,
-    });
-  };
-
-  // ── Subtree CRUD ──
-  const selectedNode = useMemo(
-    () => (selected ? findNode(convRoot, selected) : null),
-    [convRoot, selected],
+  // ── Persistence ────────────────────────────────────────────────────────
+  const persist = useCallback(
+    (rootOverride?: BidNode) => {
+      if (readOnly) return;
+      const r = rootOverride ?? root;
+      updateMut.mutate(
+        {
+          name: convName,
+          description: convDesc || null,
+          parameters,
+          root: r,
+        },
+        {
+          onSuccess: () => {
+            setDirty(false);
+            setJustSaved(true);
+          },
+          onError: () => setDirty(false),
+        },
+      );
+    },
+    [readOnly, root, convName, convDesc, parameters, updateMut],
   );
+
+  // Debounced auto-save
+  useEffect(() => {
+    if (!dirty) return;
+    const t = window.setTimeout(() => persist(), 800);
+    return () => window.clearTimeout(t);
+  }, [dirty, persist]);
+
+  // Flash "Saved"
+  useEffect(() => {
+    if (!justSaved) return;
+    const t = window.setTimeout(() => setJustSaved(false), 1500);
+    return () => window.clearTimeout(t);
+  }, [justSaved]);
+
+  // ── Derived ────────────────────────────────────────────────────────────
+  const selectedNode = useMemo(() => {
+    if (!selected) return null;
+    return findNode(root, selected);
+  }, [root, selected]);
+
   const breadcrumb = useMemo(() => {
     if (!selected) return [];
-    const path = pathTo(convRoot, selected);
+    const path = pathTo(root, selected);
     return path ? path.filter((n) => n.bids.length > 0) : [];
-  }, [convRoot, selected]);
+  }, [root, selected]);
 
-  const addChain = useMemo(
-    () => (selected ? addChainContext(convRoot, selected) : null),
-    [convRoot, selected],
-  );
-  const rootChain = useMemo(() => addChainContext(convRoot, ROOT_ID), [convRoot]);
-  const editChain = useMemo(
-    () => (selected ? editChainContext(convRoot, selected) : null),
-    [convRoot, selected],
-  );
+  const addChain = useMemo(() => {
+    if (!selected) return null;
+    return addChainContext(root, selected);
+  }, [root, selected]);
 
+  const openingChain = useMemo(() => addChainContext(root, ROOT_ID), [root]);
+
+  const editChain = useMemo(() => {
+    if (!selected) return null;
+    return editChainContext(root, selected);
+  }, [root, selected]);
+
+  // ── Commands ───────────────────────────────────────────────────────────
   const submitAdd = (parentId: string) => (data: BidFormData) => {
     const node: BidNode = {
       id: newId(),
@@ -372,405 +354,399 @@ function ConventionEditor({
       meaning: data.meaning,
       ...(data.notes ? { notes: data.notes } : {}),
       ...(data.byOpponent ? { byOpponent: true } : {}),
-      ...(data.alerted ? { alerted: true } : {}),
       children: [],
     };
-    const newRoot = updateNode(convRoot, parentId, (n) => ({
-      ...n,
-      children: [...n.children, node],
-    }));
+    setRoot(updateNode(root, parentId, (n) => ({ ...n, children: [...n.children, node] })));
     setAddingTo(null);
     setSelected(node.id);
-    commitRoot(newRoot);
+    markDirty();
   };
 
   const submitEdit = (data: BidFormData) => {
     if (!selected) return;
-    const newRoot = updateNode(convRoot, selected, (n) => ({
-      ...n,
-      bids: data.bids,
-      meaning: data.meaning,
-      notes: data.notes || undefined,
-      byOpponent: data.byOpponent || undefined,
-      alerted: data.alerted || undefined,
-    }));
+    setRoot(
+      updateNode(root, selected, (n) => ({
+        ...n,
+        bids: data.bids,
+        meaning: data.meaning,
+        notes: data.notes || undefined,
+        byOpponent: data.byOpponent || undefined,
+      })),
+    );
     setEditing(false);
-    commitRoot(newRoot);
+    markDirty();
+  };
+
+  const handleMove = (newParentId: string) => {
+    const movingId = draggingIdRef.current;
+    if (!movingId) return;
+    const newRoot = moveNode(root, movingId, newParentId);
+    setRoot(newRoot);
+    draggingIdRef.current = null;
+    setDraggingId(null);
+    persist(newRoot);
+  };
+
+  const canDropHere = (targetParentId: string): boolean => {
+    const movingId = draggingIdRef.current;
+    if (!movingId) return false;
+    return canDropNode(root, movingId, targetParentId);
+  };
+
+  const startDrag = (nodeId: string) => {
+    draggingIdRef.current = nodeId;
+    setTimeout(() => setDraggingId(nodeId), 0);
+  };
+
+  const endDrag = () => {
+    draggingIdRef.current = null;
+    setDraggingId(null);
   };
 
   const deleteSelected = () => {
     if (!selected) return;
     if (!confirm('Delete this bid and its continuations?')) return;
-    commitRoot(treeDelete(convRoot, selected));
+    setRoot(treeDelete(root, selected));
     setSelected(null);
     setEditing(false);
+    markDirty();
   };
 
-  const handleMoveNode = (newParentId: string) => {
-    if (!selected) return;
-    commitRoot(moveNode(convRoot, selected, newParentId));
+  const select = (nodeId: string) => {
+    setSelected(nodeId);
+    setEditing(false);
+    setAddingTo(null);
   };
 
-  // ── Param CRUD ──
-  const addParam = () => {
-    const updated = [...params, { name: '', label: '', defaultValue: undefined }];
-    setParams(updated);
-    commitMeta({ params: updated });
+  const onRename = () => {
+    setEditingName(false);
+    markDirty();
   };
 
-  const updateParam = (index: number, field: keyof ConventionParam, value: string) => {
-    const updated = params.map((p, i) => {
-      if (i !== index) return p;
-      const next = { ...p, [field]: value || undefined };
-      // Reset defaultValue when switching type
-      if (field === 'type') next.defaultValue = undefined;
-      return next;
-    });
-    setParams(updated);
-    commitMeta({ params: updated });
+  const onToggleVisibility = () => {
+    visibilityMut.mutate(!convention.isPublic);
   };
 
-  const removeParam = (index: number) => {
-    const updated = params.filter((_, i) => i !== index);
-    setParams(updated);
-    commitMeta({ params: updated });
+  const onFork = async () => {
+    try {
+      await forkMut.mutateAsync(convention.id);
+      navigate('/conventions');
+    } catch {
+      // surfaced via forkMut.error
+    }
   };
+
+  const saveState: SaveState = updateMut.isPending
+    ? 'saving'
+    : dirty
+      ? 'dirty'
+      : justSaved
+        ? 'saved'
+        : 'idle';
 
   return (
-    <div className="max-w-[720px]">
-      {/* Convention name */}
-      {readOnly ? (
-        <h2 className="mb-5 font-display text-2xl font-semibold text-fg">{name}</h2>
-      ) : (
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={() => commitMeta({ name })}
-          className="mb-5 font-display text-2xl font-semibold"
-          placeholder="Convention name"
-        />
-      )}
+    <div className="flex h-full flex-col">
+      {/* Convention header bar */}
+      <div className="flex items-center gap-3 border-b border-border bg-surface px-6 py-3">
+        {editingName && !readOnly ? (
+          <Input
+            value={convName}
+            onChange={(e) => setConvName(e.target.value)}
+            onBlur={onRename}
+            onKeyDown={(e) => e.key === 'Enter' && onRename()}
+            autoFocus
+            className="flex-1 font-display text-base font-semibold"
+          />
+        ) : (
+          <h2
+            onClick={() => !readOnly && setEditingName(true)}
+            className={clsx(
+              'm-0 font-display text-base font-semibold tracking-[-0.005em] text-fg',
+              readOnly ? 'cursor-default' : 'cursor-pointer',
+            )}
+            title={readOnly ? '' : 'Click to rename'}
+          >
+            {convName}
+          </h2>
+        )}
 
-      {/* Parameters */}
-      <section className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <Label>Parameters</Label>
-          {!readOnly && (
-            <Button variant="ghost" small onClick={addParam}>
-              + Add param
+        <div className="ml-auto flex items-center gap-3">
+          <ConventionSaveIndicator state={saveState} permission={convention.permission} />
+          {convention.permission === 'OWNER' && (
+            <Button
+              variant="secondary"
+              small
+              onClick={onToggleVisibility}
+              loading={visibilityMut.isPending}
+            >
+              {convention.isPublic ? 'Unpublish' : 'Publish'}
+            </Button>
+          )}
+          {convention.permission !== 'OWNER' && (
+            <Button variant="secondary" small onClick={onFork} loading={forkMut.isPending}>
+              Fork
             </Button>
           )}
         </div>
-        {params.length === 0 ? (
-          <p className="font-ui text-[13px] text-fg-muted">
-            No parameters.{!readOnly && ' Add one to use {{placeholders}} in bid meanings.'}
-          </p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {params.map((p, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-2 rounded border border-border bg-surface px-3 py-2"
-              >
-                <div className="flex flex-1 flex-wrap gap-2">
-                  <label className="flex flex-col gap-0.5">
-                    <span className="font-ui text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
-                      Name
-                    </span>
-                    {readOnly ? (
-                      <span className="font-mono text-[13px]">
-                        {'{{'}
-                        {p.name}
-                        {'}}'}
-                      </span>
-                    ) : (
-                      <Input
-                        value={p.name}
-                        onChange={(e) => updateParam(i, 'name', e.target.value)}
-                        placeholder="e.g. agreedSuit"
-                        className="w-[130px] font-mono text-[13px]"
-                      />
-                    )}
-                  </label>
-                  <label className="flex flex-col gap-0.5">
-                    <span className="font-ui text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
-                      Label
-                    </span>
-                    {readOnly ? (
-                      <span className="font-ui text-[13px]">{p.label}</span>
-                    ) : (
-                      <Input
-                        value={p.label}
-                        onChange={(e) => updateParam(i, 'label', e.target.value)}
-                        placeholder="e.g. Agreed suit"
-                        className="w-[180px] text-[13px]"
-                      />
-                    )}
-                  </label>
-                  <label className="flex flex-col gap-0.5">
-                    <span className="font-ui text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
-                      Type
-                    </span>
-                    {readOnly ? (
-                      <span className="font-ui text-[13px] text-fg-muted">
-                        {p.type === 'suit' ? 'Suit' : 'Text'}
-                      </span>
-                    ) : (
-                      <div className="flex overflow-hidden rounded border border-border text-[12px]">
-                        {(['text', 'suit'] as const).map((t) => (
-                          <button
-                            key={t}
-                            type="button"
-                            onClick={() => updateParam(i, 'type', t)}
-                            className={
-                              'px-2 py-1 font-ui capitalize transition-colors ' +
-                              ((p.type ?? 'text') === t
-                                ? 'bg-accent text-white'
-                                : 'bg-surface text-fg-body hover:bg-surface-2')
-                            }
-                          >
-                            {t === 'suit' ? '♣♦♥♠' : 'Abc'}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </label>
-                  {(p.type ?? 'text') === 'text' && (
-                    <label className="flex flex-col gap-0.5">
-                      <span className="font-ui text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
-                        Default
-                      </span>
-                      {readOnly ? (
-                        <span className="font-ui text-[13px] text-fg-muted">
-                          {p.defaultValue ?? '—'}
-                        </span>
-                      ) : (
-                        <Input
-                          value={p.defaultValue ?? ''}
-                          onChange={(e) => updateParam(i, 'defaultValue', e.target.value)}
-                          placeholder="optional"
-                          className="w-[100px] text-[13px]"
-                        />
-                      )}
-                    </label>
-                  )}
-                  {p.type === 'suit' && !readOnly && (
-                    <label className="flex flex-col gap-0.5">
-                      <span className="font-ui text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
-                        Default
-                      </span>
-                      <SuitPicker
-                        value={p.defaultValue ?? ''}
-                        onChange={(v) => updateParam(i, 'defaultValue', v)}
-                      />
-                    </label>
-                  )}
-                  {p.type === 'suit' && readOnly && (
-                    <label className="flex flex-col gap-0.5">
-                      <span className="font-ui text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
-                        Default
-                      </span>
-                      <span className="font-ui text-[13px] text-fg-muted">
-                        {p.defaultValue ?? '—'}
-                      </span>
-                    </label>
-                  )}
-                </div>
-                {!readOnly && (
-                  <button
-                    onClick={() => removeParam(i)}
-                    className="mt-4 shrink-0 rounded px-1.5 py-0.5 font-ui text-[11px] text-danger hover:bg-danger-soft"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        {params.length > 0 && (
-          <p className="mt-2 font-ui text-[11px] text-fg-muted">
-            Use <code className="rounded bg-surface-sunken px-1">{'{{name}}'}</code> in bid meanings
-            and notes below to insert parameter values at runtime.
-          </p>
-        )}
-      </section>
+      </div>
 
-      {/* Description / notes */}
-      <section className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <Label>Notes</Label>
-        </div>
-        {readOnly ? (
-          description ? (
-            <p className="font-ui text-[14px] text-fg-body">{description}</p>
-          ) : (
-            <p className="font-ui text-[13px] text-fg-muted">No notes.</p>
-          )
-        ) : (
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            onBlur={() => commitMeta({ description })}
-            placeholder="Longer explanation — when to use it, conditions, partnership notes…"
-            className="w-full resize-y font-body leading-normal"
-            rows={4}
-          />
-        )}
-      </section>
-
-      {/* Subtree editor */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <Label>Convention bids</Label>
-          {!readOnly && addingTo !== ROOT_ID && (
-            <Button variant="secondary" small onClick={() => setAddingTo(ROOT_ID)}>
-              + Add bid
-            </Button>
-          )}
-        </div>
-
-        {convRoot.children.length === 0 && addingTo !== ROOT_ID && (
-          <p className="mb-3 font-ui text-[13px] text-fg-muted">
-            No bids defined yet. Click "+ Add bid" to add the first response.
-          </p>
-        )}
-
-        <div className="mb-4">
-          <BidTree
-            node={convRoot}
-            depth={0}
-            selectedId={selected}
-            onSelect={(nodeId) => {
-              setSelected(nodeId);
-              setEditing(false);
-              setAddingTo(null);
-            }}
-            readOnly={readOnly}
-            onDrop={handleMoveNode}
-          />
-        </div>
-
-        {addingTo === ROOT_ID && (
-          <div className="mb-4">
-            <BidForm
-              mode="add"
-              chain={rootChain}
-              onSubmit={submitAdd(ROOT_ID)}
-              onCancel={() => setAddingTo(null)}
-              paramStrains={paramStrains}
-            />
-          </div>
-        )}
-
-        {/* Selected node detail */}
-        {selectedNode && (
-          <div className="rounded-md border border-border bg-surface px-5 py-4">
-            {editing && !readOnly && editChain ? (
-              <BidForm
-                mode="edit"
-                chain={editChain}
-                initial={{
-                  bids: selectedNode.bids,
-                  meaning: selectedNode.meaning,
-                  notes: selectedNode.notes ?? '',
-                  byOpponent: selectedNode.byOpponent ?? false,
-                  alerted: selectedNode.alerted ?? false,
-                }}
-                onSubmit={submitEdit}
-                onCancel={() => setEditing(false)}
-                paramStrains={paramStrains}
-              />
+      {/* Scrollable editor body */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Bid tree pane */}
+        <div className="w-[420px] shrink-0 overflow-y-auto border-r border-border bg-surface px-[18px] py-5">
+          <div className="mb-3">
+            <Label>Description</Label>
+            {readOnly ? (
+              <p className="mt-1 font-ui text-[13px] text-fg-muted">
+                {convDesc || <em>No description.</em>}
+              </p>
             ) : (
-              <>
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <div className="font-display text-[18px] font-semibold text-fg">
-                    {selectedNode.meaning || (
-                      <em className="text-fg-muted opacity-50">No meaning defined</em>
-                    )}
-                  </div>
-                  {!readOnly && (
-                    <div className="flex shrink-0 gap-1.5">
-                      <Button variant="secondary" small onClick={() => setEditing(true)}>
-                        Edit
-                      </Button>
-                      <Button variant="danger" small onClick={deleteSelected}>
-                        Delete
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                {selectedNode.notes && (
-                  <p className="mb-3 whitespace-pre-wrap font-body text-[14px] leading-relaxed text-fg-body">
-                    {selectedNode.notes}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-1.5">
-                  {breadcrumb.map((n, i) => (
-                    <span
-                      key={n.id}
-                      className="font-display text-[13px] font-semibold text-fg-muted"
-                    >
-                      {i > 0 && <span className="mx-1 text-fg-subtle">›</span>}
-                      {n.bids.join('/')}
-                    </span>
-                  ))}
-                </div>
-                {!readOnly && addChain && (
-                  <div className="mt-3">
-                    {addingTo === selected ? (
-                      <BidForm
-                        mode="add"
-                        chain={addChain}
-                        onSubmit={submitAdd(selected!)}
-                        onCancel={() => setAddingTo(null)}
-                        paramStrains={paramStrains}
-                      />
-                    ) : (
-                      <Button variant="secondary" small onClick={() => setAddingTo(selected!)}>
-                        + Add continuation
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </>
+              <Textarea
+                value={convDesc}
+                onChange={(e) => {
+                  setConvDesc(e.target.value);
+                  markDirty();
+                }}
+                placeholder="Describe when and how to use this convention…"
+                rows={2}
+                className="mt-1 w-full"
+              />
             )}
           </div>
-        )}
-      </section>
+
+          <ParameterEditor
+            parameters={parameters}
+            readOnly={readOnly}
+            onChange={(p) => {
+              setParameters(p);
+              markDirty();
+            }}
+          />
+
+          <div className="mb-[14px] mt-4 flex items-center justify-between">
+            <Label>Bidding sequences</Label>
+            {!readOnly && addingTo !== ROOT_ID && (
+              <Button variant="secondary" small onClick={() => setAddingTo(ROOT_ID)}>
+                + Opening bid
+              </Button>
+            )}
+          </div>
+
+          {!readOnly && draggingId && canDropHere(ROOT_ID) && (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setRootDragOver(true);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) setRootDragOver(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setRootDragOver(false);
+                handleMove(ROOT_ID);
+              }}
+              className={clsx(
+                'mb-2 cursor-copy rounded-sm border border-dashed px-2.5 py-1.5 text-center text-[12px] text-fg-muted',
+                rootDragOver
+                  ? 'border-accent bg-accent-soft'
+                  : 'border-border-strong bg-transparent',
+              )}
+            >
+              Move here as opening bid
+            </div>
+          )}
+
+          <BidTree
+            node={root}
+            depth={0}
+            selectedId={selected}
+            onSelect={select}
+            readOnly={readOnly}
+            draggingId={draggingId}
+            onDragStart={startDrag}
+            onDragEnd={endDrag}
+            onDrop={handleMove}
+            canDrop={canDropHere}
+          />
+
+          {addingTo === ROOT_ID && openingChain && (
+            <div className="mt-3">
+              <BidForm
+                mode="add"
+                chain={openingChain}
+                onSubmit={submitAdd(ROOT_ID)}
+                onCancel={() => setAddingTo(null)}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Detail pane */}
+        <div className="flex-1 overflow-y-auto px-10 py-8">
+          <div className="max-w-[760px]">
+            {convention.forkedFrom && (
+              <div className="mb-4 rounded-sm border border-border bg-surface-sunken px-3 py-2 font-ui text-[13px] text-fg-muted">
+                Forked from{' '}
+                <span className="font-medium text-fg">"{convention.forkedFrom.name}"</span>
+              </div>
+            )}
+            <BidDetailPanel
+              selected={selectedNode}
+              breadcrumb={breadcrumb}
+              readOnly={readOnly}
+              addChain={addChain}
+              editChain={editChain}
+              addingTo={addingTo}
+              editing={editing}
+              onRequestAdd={() => {
+                if (selected) setAddingTo(selected);
+              }}
+              onCancelAdd={() => setAddingTo(null)}
+              onSubmitAdd={selected ? submitAdd(selected) : () => {}}
+              onRequestEdit={() => setEditing(true)}
+              onCancelEdit={() => setEditing(false)}
+              onSubmitEdit={submitEdit}
+              onDelete={deleteSelected}
+              onSelect={select}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── SuitPicker ────────────────────────────────────────────────────────────────
+// ── ParameterEditor ────────────────────────────────────────────────────────
 
-const SUITS = [
-  { symbol: '♣', value: '♣', color: 'var(--suit-black)' },
-  { symbol: '♦', value: '♦', color: 'var(--suit-red)' },
-  { symbol: '♥', value: '♥', color: 'var(--suit-red)' },
-  { symbol: '♠', value: '♠', color: 'var(--suit-black)' },
-] as const;
+function ParameterEditor({
+  parameters,
+  readOnly,
+  onChange,
+}: {
+  parameters: ConventionParam[];
+  readOnly: boolean;
+  onChange: (params: ConventionParam[]) => void;
+}) {
+  const addParam = () => {
+    onChange([...parameters, { id: newId(), name: '', description: '', defaultValue: '' }]);
+  };
 
-function SuitPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const updateParam = (index: number, patch: Partial<ConventionParam>) => {
+    const updated = parameters.map((p, i) => (i === index ? { ...p, ...patch } : p));
+    onChange(updated);
+  };
+
+  const removeParam = (index: number) => {
+    onChange(parameters.filter((_, i) => i !== index));
+  };
+
   return (
-    <div className="flex gap-1">
-      {SUITS.map((s) => (
-        <button
-          key={s.value}
-          type="button"
-          onClick={() => onChange(value === s.value ? '' : s.value)}
-          className={clsx(
-            'flex h-7 w-7 items-center justify-center rounded border text-[16px] transition-colors',
-            value === s.value
-              ? 'border-accent bg-accent-soft'
-              : 'border-border bg-surface hover:bg-surface-2',
-          )}
-          style={{ color: s.color }}
-          title={s.symbol}
-        >
-          {s.symbol}
-        </button>
-      ))}
+    <div className="mb-3">
+      <div className="mb-1 flex items-center justify-between">
+        <Label>Parameters</Label>
+        {!readOnly && (
+          <Button variant="secondary" small onClick={addParam}>
+            + Param
+          </Button>
+        )}
+      </div>
+      {parameters.length === 0 ? (
+        <p className="font-ui text-[12px] text-fg-muted">No parameters defined.</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {parameters.map((param, i) => (
+            <div key={param.id} className="rounded-sm border border-border bg-surface-sunken p-2">
+              {readOnly ? (
+                <div>
+                  <div className="font-ui text-[13px] font-medium text-fg">{param.name}</div>
+                  {param.description && (
+                    <div className="mt-0.5 font-ui text-[12px] text-fg-muted">
+                      {param.description}
+                    </div>
+                  )}
+                  {param.defaultValue && (
+                    <div className="mt-0.5 font-ui text-[12px] text-fg-muted">
+                      Default: {param.defaultValue}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Name"
+                      value={param.name}
+                      onChange={(e) => updateParam(i, { name: e.target.value })}
+                      className="flex-1 text-[12px]"
+                    />
+                    <button
+                      onClick={() => removeParam(i)}
+                      className="shrink-0 rounded-sm p-0.5 text-[12px] text-fg-muted hover:text-danger"
+                      title="Remove parameter"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <Input
+                    placeholder="Description (optional)"
+                    value={param.description ?? ''}
+                    onChange={(e) => updateParam(i, { description: e.target.value })}
+                    className="text-[12px]"
+                  />
+                  <Input
+                    placeholder="Default value (optional)"
+                    value={param.defaultValue ?? ''}
+                    onChange={(e) => updateParam(i, { defaultValue: e.target.value })}
+                    className="text-[12px]"
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
+  );
+}
+
+// ── ConventionSaveIndicator ────────────────────────────────────────────────
+
+function ConventionSaveIndicator({
+  state,
+  permission,
+}: {
+  state: SaveState;
+  permission: ConventionDetail['permission'];
+}) {
+  let text: string;
+  let colorClass: string;
+
+  if (state === 'saving') {
+    text = 'Saving…';
+    colorClass = 'text-accent';
+  } else if (state === 'saved') {
+    text = 'Saved';
+    colorClass = 'text-success';
+  } else if (state === 'dirty') {
+    text = 'Unsaved changes';
+    colorClass = 'text-accent';
+  } else {
+    text = permission === 'OWNER' ? 'Owner' : permission;
+    colorClass = 'text-fg-muted';
+  }
+
+  return (
+    <span
+      className={clsx('inline-flex items-center gap-1.5 font-ui text-xs font-medium', colorClass)}
+    >
+      <span
+        className={clsx(
+          'h-1.5 w-1.5 rounded-full bg-current',
+          state === 'saving' ? 'opacity-100' : 'opacity-70',
+        )}
+      />
+      {text}
+    </span>
   );
 }
