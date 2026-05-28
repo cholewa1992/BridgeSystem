@@ -116,17 +116,20 @@ export function ConventionLibraryPage() {
             </TabButton>
           </div>
 
-          {/* Sort (public tab only) */}
-          {tab === 'public' && (
-            <div className="flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
-              <TabButton active={sort === 'newest'} onClick={() => setSort('newest')}>
-                Newest
-              </TabButton>
-              <TabButton active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
-                Most liked
-              </TabButton>
-            </div>
-          )}
+          {/* Sort (public tab only — always in DOM to prevent layout shift) */}
+          <div
+            className={
+              'flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1' +
+              (tab !== 'public' ? ' invisible pointer-events-none' : '')
+            }
+          >
+            <TabButton active={sort === 'newest'} onClick={() => setSort('newest')}>
+              Newest
+            </TabButton>
+            <TabButton active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
+              Most liked
+            </TabButton>
+          </div>
         </div>
       </header>
 
