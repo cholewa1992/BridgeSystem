@@ -346,13 +346,6 @@ export function SystemEditor() {
         )}
         <div className="ml-auto flex items-center gap-3">
           <SaveIndicator state={saveState} permission={detail.permission} />
-          <Button
-            variant="ghost"
-            small
-            onClick={() => navigate(`/systems/${detail.id}/conventions`)}
-          >
-            Conventions {(detail.conventions?.length ?? 0) > 0 && `(${detail.conventions.length})`}
-          </Button>
           {detail.permission === 'OWNER' && (
             <>
               <Button
