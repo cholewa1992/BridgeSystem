@@ -6,6 +6,7 @@ import type { BidNode, SystemDetail } from '../types';
 import {
   useDeleteSystem,
   useForkSystem,
+  useMyConventions,
   useSystem,
   useUpdateSystem,
   useUpdateVisibility,
@@ -38,6 +39,7 @@ export function SystemEditor() {
   const { user } = useAuth();
 
   const { data: detail, error: loadError } = useSystem(id);
+  const { data: myConventions = [] } = useMyConventions();
   const updateMut = useUpdateSystem(id ?? '');
   const deleteMut = useDeleteSystem();
   const forkMut = useForkSystem();
@@ -437,7 +439,7 @@ export function SystemEditor() {
             canDrop={canDropHere}
             collapseVersion={collapseVersion}
             expandVersion={expandVersion}
-            conventions={detail.conventions ?? []}
+            conventions={myConventions}
           />
 
           {addingTo === ROOT_ID && openingChain && (
@@ -486,7 +488,7 @@ export function SystemEditor() {
               onDelete={deleteSelected}
               onSelect={select}
               systemId={detail.id}
-              conventions={detail.conventions ?? []}
+              conventions={myConventions}
               onAttachConvention={handleAttachConvention}
               onDetachConvention={handleDetachConvention}
               onOpenConventionLibrary={() => navigate(`/systems/${detail.id}/conventions`)}
