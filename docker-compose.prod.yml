@@ -1,0 +1,56 @@
+# Production compose — standalone (not an override of docker-compose.yml).
+# Images are pulled from GHCR; the CI pipeline builds and pushes them on every
+# push to main. The deploy job on the server runs:
+#
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Secrets (DB_USER, DB_PASSWORD) are injected from a .env file on the server
+# that is never committed to the repository.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bridge
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/cholewa1992/bridge-system-backend:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/bridge
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      WEBAUTHN_RP_ID: codex.cholewa.dk
+      WEBAUTHN_RP_NAME: Bridge System
+      WEBAUTHN_ORIGINS: https://codex.cholewa.dk
+      CORS_ORIGINS: https://codex.cholewa.dk
+      COOKIE_SECURE: "true"
+    # Not exposed to the host — only reachable within the Docker network.
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/cholewa1992/bridge-system-frontend:latest
+    depends_on:
+      - backend
+    environment:
+      BACKEND_HOST: backend:8080
+    # Bind to loopback only — Caddy (running on the host) proxies here.
+    ports:
+      - "127.0.0.1:3000:80"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
