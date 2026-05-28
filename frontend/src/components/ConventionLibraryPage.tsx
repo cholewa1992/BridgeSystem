@@ -157,93 +157,93 @@ export function ConventionLibraryPage() {
           </div>
         </div>
       ) : (
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar — convention list */}
-        <aside className="flex w-[280px] flex-col border-r border-border bg-surface">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <Label>Conventions</Label>
-            <Button variant="secondary" small onClick={() => setShowNewForm((v) => !v)}>
-              + New
-            </Button>
-          </div>
-
-          {showNewForm && (
-            <div className="border-b border-border px-4 py-3">
-              <div className="mb-2">
-                <Input
-                  placeholder="Convention name"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-                  autoFocus
-                  className="w-full"
-                />
-              </div>
-              <div className="mb-2">
-                <Input
-                  placeholder="Description (optional)"
-                  value={newDesc}
-                  onChange={(e) => setNewDesc(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="primary"
-                  small
-                  onClick={handleCreate}
-                  loading={createMut.isPending}
-                  disabled={!newName.trim()}
-                >
-                  Create
-                </Button>
-                <Button
-                  variant="ghost"
-                  small
-                  onClick={() => {
-                    setShowNewForm(false);
-                    setNewName('');
-                    setNewDesc('');
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left sidebar — convention list */}
+          <aside className="flex w-[280px] flex-col border-r border-border bg-surface">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <Label>Conventions</Label>
+              <Button variant="secondary" small onClick={() => setShowNewForm((v) => !v)}>
+                + New
+              </Button>
             </div>
-          )}
 
-          <div className="flex-1 overflow-y-auto py-1">
-            {isLoading ? (
-              <div className="px-4 py-3 text-[13px] text-fg-muted">Loading…</div>
-            ) : !conventions || conventions.length === 0 ? (
-              <div className="px-4 py-6 text-center text-[13px] text-fg-muted">
-                No conventions yet. Create your first one above.
+            {showNewForm && (
+              <div className="border-b border-border px-4 py-3">
+                <div className="mb-2">
+                  <Input
+                    placeholder="Convention name"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                    autoFocus
+                    className="w-full"
+                  />
+                </div>
+                <div className="mb-2">
+                  <Input
+                    placeholder="Description (optional)"
+                    value={newDesc}
+                    onChange={(e) => setNewDesc(e.target.value)}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="primary"
+                    small
+                    onClick={handleCreate}
+                    loading={createMut.isPending}
+                    disabled={!newName.trim()}
+                  >
+                    Create
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    small
+                    onClick={() => {
+                      setShowNewForm(false);
+                      setNewName('');
+                      setNewDesc('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
-            ) : (
-              conventions.map((conv) => (
-                <ConventionListItem
-                  key={conv.id}
-                  convention={conv}
-                  selected={selectedConventionId === conv.id}
-                  onSelect={() => setSelectedConventionId(conv.id)}
-                  onDelete={() => handleDelete(conv.id)}
-                />
-              ))
             )}
-          </div>
-        </aside>
 
-        {/* Right panel — editor */}
-        <main className="flex-1 overflow-y-auto">
-          {selectedConvention ? (
-            <ConventionEditor key={selectedConvention.id} convention={selectedConvention} />
-          ) : (
-            <div className="flex h-full items-center justify-center text-[14px] text-fg-muted">
-              {isLoading ? 'Loading…' : 'Select or create a convention to edit.'}
+            <div className="flex-1 overflow-y-auto py-1">
+              {isLoading ? (
+                <div className="px-4 py-3 text-[13px] text-fg-muted">Loading…</div>
+              ) : !conventions || conventions.length === 0 ? (
+                <div className="px-4 py-6 text-center text-[13px] text-fg-muted">
+                  No conventions yet. Create your first one above.
+                </div>
+              ) : (
+                conventions.map((conv) => (
+                  <ConventionListItem
+                    key={conv.id}
+                    convention={conv}
+                    selected={selectedConventionId === conv.id}
+                    onSelect={() => setSelectedConventionId(conv.id)}
+                    onDelete={() => handleDelete(conv.id)}
+                  />
+                ))
+              )}
             </div>
-          )}
-        </main>
-      </div>
+          </aside>
+
+          {/* Right panel — editor */}
+          <main className="flex-1 overflow-y-auto">
+            {selectedConvention ? (
+              <ConventionEditor key={selectedConvention.id} convention={selectedConvention} />
+            ) : (
+              <div className="flex h-full items-center justify-center text-[14px] text-fg-muted">
+                {isLoading ? 'Loading…' : 'Select or create a convention to edit.'}
+              </div>
+            )}
+          </main>
+        </div>
       )}
     </div>
   );

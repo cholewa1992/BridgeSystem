@@ -143,9 +143,7 @@ export function SystemList() {
                           {s.name}
                         </h3>
                         <Tag tone={s.ownedByMe ? 'accent' : 'neutral'}>
-                          {s.ownedByMe
-                            ? 'Owner'
-                            : `Shared by ${s.ownerUsername} · ${s.permission}`}
+                          {s.ownedByMe ? 'Owner' : `Shared by ${s.ownerUsername} · ${s.permission}`}
                         </Tag>
                         {s.isPublic && <Tag tone="public">Public</Tag>}
                       </div>

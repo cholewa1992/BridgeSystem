@@ -1,15 +1,6 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import {
-  BookOpen,
-  Clock,
-  Library,
-  LogIn,
-  LogOut,
-  TreePine,
-  User,
-  Users,
-} from 'lucide-react';
+import { BookOpen, Clock, Library, LogIn, LogOut, TreePine, User, Users } from 'lucide-react';
 import { BrandLockup } from '../components/BrandLockup';
 import { useAuth } from '../context/AuthContext';
 
