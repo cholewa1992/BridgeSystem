@@ -3,7 +3,6 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   Clock,
-  Globe,
   Library,
   LogIn,
   LogOut,
@@ -15,14 +14,14 @@ import { BrandLockup } from '../components/BrandLockup';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
-  { id: 'list', icon: BookOpen, label: 'My systems', route: '/' },
-  { id: 'gallery', icon: Globe, label: 'Gallery', route: '/gallery' },
+  { id: 'systems', icon: BookOpen, label: 'Systems', route: '/' },
+  { id: 'conventions', icon: Library, label: 'Conventions', route: '/conventions' },
   { id: 'partners', icon: Users, label: 'Partners', route: '/partners', stub: true },
   { id: 'history', icon: Clock, label: 'Recent edits', route: '/history', stub: true },
 ] as const;
 
 function isRouteActive(id: string, route: string, pathname: string): boolean {
-  if (id === 'list') return pathname === '/' || pathname.startsWith('/systems/');
+  if (id === 'systems') return pathname === '/' || pathname.startsWith('/systems/');
   return pathname === route || pathname.startsWith(route + '/');
 }
 

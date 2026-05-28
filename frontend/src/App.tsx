@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { SystemList } from './components/SystemList';
 import { SystemEditor } from './components/SystemEditor';
-import { GalleryPage } from './components/GalleryPage';
 import { UserProfilePage } from './components/UserProfilePage';
 import { ConventionLibraryPage } from './components/ConventionLibraryPage';
 import { AppShell } from './layouts/AppShell';
@@ -52,7 +51,7 @@ function AppRoutes() {
           }
         />
         <Route path="/systems/:id/conventions" element={<Navigate to="/conventions" replace />} />
-        <Route path="/gallery" element={<GalleryPage />} />
+        <Route path="/gallery" element={<Navigate to="/" replace />} />
         <Route path="/users/:username" element={<UserProfilePage />} />
         <Route path="/partners" element={<ComingSoonPage title="Partners" icon={Users} />} />
         <Route path="/history" element={<ComingSoonPage title="Recent edits" icon={Clock} />} />

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
-import type { BidNode, ConventionDetail, ConventionParam } from '../types';
+import type { BidNode, ConventionDetail, ConventionParam, ConventionSummary } from '../types';
 import {
   useMyConventions,
   useCreateConvention,
@@ -9,6 +9,8 @@ import {
   useDeleteConvention,
   useUpdateConventionVisibility,
   useForkConvention,
+  usePublicConventions,
+  useToggleConventionLike,
 } from '../api/queries';
 import {
   ROOT_ID,
@@ -35,10 +37,13 @@ type SaveState = 'idle' | 'saving' | 'dirty' | 'saved';
 // ── Main page ─────────────────────────────────────────────────────────────
 
 export function ConventionLibraryPage() {
-  const navigate = useNavigate();
   const { data: conventions, isLoading } = useMyConventions();
   const createMut = useCreateConvention();
   const deleteMut = useDeleteConvention();
+
+  const [tab, setTab] = useState<'mine' | 'public'>('mine');
+  const [sort, setSort] = useState<'newest' | 'most_liked'>('newest');
+  const { data: publicConventions } = usePublicConventions(sort);
 
   const [selectedConventionId, setSelectedConventionId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
@@ -90,10 +95,6 @@ export function ConventionLibraryPage() {
     <div className="flex min-h-screen flex-col bg-bg">
       {/* Header */}
       <header className="flex items-center gap-[14px] border-b border-border bg-surface px-6 py-3">
-        <Button variant="ghost" onClick={() => navigate('/')}>
-          ← Back
-        </Button>
-        <div className="h-[22px] w-px bg-border" />
         <div className="flex gap-[3px] text-[14px] opacity-70">
           <span className="text-suit-black">♠</span>
           <span className="text-suit-red">♥</span>
@@ -101,11 +102,61 @@ export function ConventionLibraryPage() {
           <span className="text-suit-black">♣</span>
         </div>
         <h1 className="m-0 font-display text-lg font-semibold tracking-[-0.005em] text-fg">
-          My Conventions
+          Conventions
         </h1>
+
+        <div className="ml-auto flex items-center gap-2">
+          {/* Mine / Public toggle */}
+          <div className="flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
+            <TabButton active={tab === 'mine'} onClick={() => setTab('mine')}>
+              Mine
+            </TabButton>
+            <TabButton active={tab === 'public'} onClick={() => setTab('public')}>
+              Public
+            </TabButton>
+          </div>
+
+          {/* Sort (public tab only) */}
+          {tab === 'public' && (
+            <div className="flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
+              <TabButton active={sort === 'newest'} onClick={() => setSort('newest')}>
+                Newest
+              </TabButton>
+              <TabButton active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
+                Most liked
+              </TabButton>
+            </div>
+          )}
+        </div>
       </header>
 
-      {/* Body */}
+      {/* Body — mine: editor layout; public: scrollable card list */}
+      {tab === 'public' ? (
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[32px]">
+            {publicConventions === undefined ? (
+              <div className="text-[14px] text-fg-muted">Loading…</div>
+            ) : publicConventions.length === 0 ? (
+              <div className="rounded-md border border-border bg-surface px-6 py-10 text-center text-fg-muted">
+                <div className="mb-2.5 text-[32px] opacity-60">♣</div>
+                <p className="m-0 font-ui text-[15px]">
+                  No public conventions yet — be the first to publish one.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {publicConventions.map((c) => (
+                  <PublicConventionCard
+                    key={c.id}
+                    convention={c}
+                    onForkSuccess={() => setTab('mine')}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar — convention list */}
         <aside className="flex w-[280px] flex-col border-r border-border bg-surface">
@@ -193,7 +244,106 @@ export function ConventionLibraryPage() {
           )}
         </main>
       </div>
+      )}
     </div>
+  );
+}
+
+// ── PublicConventionCard ───────────────────────────────────────────────────
+
+function PublicConventionCard({
+  convention,
+  onForkSuccess,
+}: {
+  convention: ConventionSummary;
+  onForkSuccess: () => void;
+}) {
+  const forkMut = useForkConvention();
+  const likeMut = useToggleConventionLike(convention.id);
+  const heartFilled = convention.likedByMe === true;
+
+  return (
+    <div className="rounded-md border border-border bg-surface px-[22px] py-[18px] font-ui shadow-sm transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h3 className="m-0 font-display text-[19px] font-semibold tracking-[-0.005em] text-fg">
+          {convention.name}
+        </h3>
+        {convention.isPublic && (
+          <span className="rounded-full bg-accent-soft px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.05em] text-accent-ink">
+            Public
+          </span>
+        )}
+      </div>
+
+      <p className="mb-0 mt-1 font-ui text-[13px] text-fg-muted">
+        by <span className="font-medium">@{convention.ownerUsername}</span>
+        {convention.paramCount > 0 && (
+          <span className="ml-2 text-fg-subtle">
+            · {convention.paramCount} param{convention.paramCount !== 1 ? 's' : ''}
+          </span>
+        )}
+      </p>
+
+      {convention.description && (
+        <p className="mb-0 mt-2 line-clamp-2 font-ui text-[13px] text-fg-muted">
+          {convention.description}
+        </p>
+      )}
+
+      <div className="mt-3 flex items-center gap-4">
+        <span className="font-ui text-[13px] text-fg-muted">⑂ {convention.forkCount}</span>
+
+        <button
+          onClick={() => likeMut.mutate({ liked: convention.likedByMe === true })}
+          disabled={likeMut.isPending}
+          className={
+            'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-ui text-[13px] transition-colors ' +
+            (heartFilled ? 'text-suit-red' : 'text-fg-muted hover:text-suit-red')
+          }
+          title={heartFilled ? 'Unlike' : 'Like'}
+        >
+          <span aria-hidden="true">{heartFilled ? '♥' : '♡'}</span>
+          <span>{convention.likeCount}</span>
+        </button>
+
+        {!convention.ownedByMe && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              forkMut.mutate(convention.id, { onSuccess: onForkSuccess });
+            }}
+            disabled={forkMut.isPending}
+            className="ml-auto rounded-sm border border-border px-2.5 py-1 font-ui text-[12px] text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
+          >
+            {forkMut.isPending ? 'Forking…' : 'Fork'}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── TabButton ──────────────────────────────────────────────────────────────
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        'rounded-sm px-3 py-1.5 font-ui text-[13px] font-medium transition-colors ' +
+        (active ? 'bg-accent text-white shadow-sm' : 'text-fg-muted hover:text-fg')
+      }
+    >
+      {children}
+    </button>
   );
 }
 
