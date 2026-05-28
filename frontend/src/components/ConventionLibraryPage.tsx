@@ -106,7 +106,7 @@ export function ConventionLibraryPage() {
         </h1>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Mine / Public toggle */}
+          {/* Mine / Public toggle — expands to include sort on public tab */}
           <div className="flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
             <TabButton active={tab === 'mine'} onClick={() => setTab('mine')}>
               Mine
@@ -114,21 +114,17 @@ export function ConventionLibraryPage() {
             <TabButton active={tab === 'public'} onClick={() => setTab('public')}>
               Public
             </TabButton>
-          </div>
-
-          {/* Sort (public tab only — always in DOM to prevent layout shift) */}
-          <div
-            className={
-              'flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1' +
-              (tab !== 'public' ? ' invisible pointer-events-none' : '')
-            }
-          >
-            <TabButton active={sort === 'newest'} onClick={() => setSort('newest')}>
-              Newest
-            </TabButton>
-            <TabButton active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
-              Most liked
-            </TabButton>
+            {tab === 'public' && (
+              <>
+                <span className="mx-0.5 h-4 w-px bg-border" />
+                <TabButton active={sort === 'newest'} onClick={() => setSort('newest')}>
+                  Newest
+                </TabButton>
+                <TabButton active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
+                  Most liked
+                </TabButton>
+              </>
+            )}
           </div>
         </div>
       </header>
