@@ -365,7 +365,7 @@ describe('rootFromTree / treeFromRoot', () => {
       id: 'c1',
       name: 'Stayman',
       description: 'Asks for 4-card major',
-      parameters: [{ name: 'level', label: 'Opening level', defaultValue: '1NT' }],
+      parameters: [{ id: 'p1', name: 'level', label: 'Opening level', defaultValue: '1NT' }],
       root: {
         id: 'cr1',
         bids: [],

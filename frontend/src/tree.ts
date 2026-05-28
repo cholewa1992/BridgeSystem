@@ -78,6 +78,7 @@ function migrateNode(n: unknown): BidNode {
 function migrateParam(p: unknown): ConventionParam {
   const raw = (p ?? {}) as Record<string, unknown>;
   return {
+    id: typeof raw.id === 'string' ? raw.id : crypto.randomUUID(),
     name: typeof raw.name === 'string' ? raw.name : '',
     label: typeof raw.label === 'string' ? raw.label : '',
     defaultValue:

@@ -61,6 +61,7 @@ const baseDetail: SystemDetail = {
   isPublic: false,
   likedByMe: null,
   tree: { children: [] },
+  conventions: [],
 };
 
 describe('SystemEditor', () => {
