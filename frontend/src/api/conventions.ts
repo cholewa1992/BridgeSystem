@@ -2,12 +2,16 @@ import { api } from './client';
 import type { ConventionDetail, ConventionSummary, Share } from '../types';
 import type { BidNode, ConventionParam } from '../types';
 
+function normalizeConvention(c: ConventionDetail): ConventionDetail {
+  return { ...c, parameters: c.parameters ?? [] };
+}
+
 export function listMyConventions(): Promise<ConventionDetail[]> {
-  return api<ConventionDetail[]>('/api/conventions');
+  return api<ConventionDetail[]>('/api/conventions').then((cs) => cs.map(normalizeConvention));
 }
 
 export function getConvention(id: string): Promise<ConventionDetail> {
-  return api<ConventionDetail>(`/api/conventions/${id}`);
+  return api<ConventionDetail>(`/api/conventions/${id}`).then(normalizeConvention);
 }
 
 export function createConvention(name: string, description?: string): Promise<ConventionDetail> {

@@ -13,6 +13,8 @@ const mockState = vi.hoisted(() => ({
 vi.mock('../api/queries', () => ({
   useSystems: () => ({ data: mockState.systems, error: null }),
   useCreateSystem: () => ({ mutateAsync: vi.fn(), isPending: false, error: null }),
+  usePublicSystems: () => ({ data: [] }),
+  useToggleLike: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
 const sampleSystem: SystemSummary = {
