@@ -29,7 +29,7 @@ public class ConventionController {
     }
 
     @GetMapping
-    public List<ConventionDtos.ConventionSummary> list(@CurrentUser AppUser user) {
+    public List<ConventionDtos.ConventionDetail> list(@CurrentUser AppUser user) {
         return service.listLibrary(user);
     }
 

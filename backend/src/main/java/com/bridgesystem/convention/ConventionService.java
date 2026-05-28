@@ -49,7 +49,7 @@ public class ConventionService {
     }
 
     @Transactional(readOnly = true)
-    public List<ConventionDtos.ConventionSummary> listLibrary(AppUser user) {
+    public List<ConventionDtos.ConventionDetail> listLibrary(AppUser user) {
         List<Convention> owned = conventionRepository.findByOwnerOrderByUpdatedAtDesc(user);
         List<Convention> shared = conventionRepository.findSharedWith(user);
 
@@ -65,9 +65,10 @@ public class ConventionService {
         Map<UUID, Long> likeCounts = buildLikeCountMap(ids);
         Map<UUID, Integer> forkCounts = buildForkCountMap(ids);
         List<UUID> likedIds = ids.isEmpty() ? List.of() : conventionRepository.conventionIdsLikedByUser(ids, user);
+        Map<UUID, String> permissions = buildPermissionMap(all, user);
 
         return all.stream()
-                .map(c -> toSummary(c, user, likeCounts, forkCounts, likedIds))
+                .map(c -> toDetailBulk(c, user, likeCounts, forkCounts, likedIds, permissions))
                 .toList();
     }
 
@@ -237,6 +238,68 @@ public class ConventionService {
         Boolean likedByMe = viewer != null ? likeRepository.existsByConventionAndUser(c, viewer) : null;
         boolean ownedByMe = viewer != null && c.getOwner().getId().equals(viewer.getId());
         String permission = viewer != null ? permissionFor(c, viewer) : "NONE";
+        ConventionDtos.ForkedFromRef forkedFromRef = null;
+        if (c.getForkedFrom() != null) {
+            Convention ff = c.getForkedFrom();
+            forkedFromRef = new ConventionDtos.ForkedFromRef(ff.getId().toString(), ff.getName());
+        }
+        return new ConventionDtos.ConventionDetail(
+                c.getId(),
+                c.getName(),
+                c.getDescription(),
+                parameters,
+                root,
+                c.isPublic(),
+                c.getOwner().getUsername(),
+                ownedByMe,
+                permission,
+                forkedFromRef,
+                c.getCreatedAt(),
+                c.getUpdatedAt(),
+                likeCount,
+                forkCount,
+                likedByMe
+        );
+    }
+
+    private Map<UUID, String> buildPermissionMap(List<Convention> conventions, AppUser viewer) {
+        Map<UUID, String> map = new LinkedHashMap<>();
+        for (Convention c : conventions) {
+            if (c.getOwner().getId().equals(viewer.getId())) {
+                map.put(c.getId(), "OWNER");
+            } else {
+                String perm = shareRepository.findByConventionAndSharedWith(c, viewer)
+                        .map(ConventionShare::getPermission)
+                        .map(Enum::name)
+                        .orElse("NONE");
+                map.put(c.getId(), perm);
+            }
+        }
+        return map;
+    }
+
+    private ConventionDtos.ConventionDetail toDetailBulk(Convention c, AppUser viewer,
+                                                         Map<UUID, Long> likeCounts,
+                                                         Map<UUID, Integer> forkCounts,
+                                                         List<UUID> likedIds,
+                                                         Map<UUID, String> permissions) {
+        JsonNode parameters;
+        JsonNode root;
+        try {
+            parameters = objectMapper.readTree(c.getParametersJson());
+        } catch (JsonProcessingException e) {
+            parameters = objectMapper.createArrayNode();
+        }
+        try {
+            root = objectMapper.readTree(c.getRootJson());
+        } catch (JsonProcessingException e) {
+            root = objectMapper.createObjectNode();
+        }
+        long likeCount = likeCounts.getOrDefault(c.getId(), 0L);
+        int forkCount = forkCounts.getOrDefault(c.getId(), 0);
+        Boolean likedByMe = likedIds.contains(c.getId());
+        boolean ownedByMe = c.getOwner().getId().equals(viewer.getId());
+        String permission = permissions.getOrDefault(c.getId(), "NONE");
         ConventionDtos.ForkedFromRef forkedFromRef = null;
         if (c.getForkedFrom() != null) {
             Convention ff = c.getForkedFrom();
