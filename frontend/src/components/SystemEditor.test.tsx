@@ -25,6 +25,7 @@ const mockState = vi.hoisted(() => ({
 
 vi.mock('../api/queries', () => ({
   useSystem: () => ({ data: mockState.detail, error: mockState.error }),
+  useMyConventions: () => ({ data: [] }),
   useUpdateSystem: () => ({
     mutate: mockState.mutateFn,
     isPending: mockState.isPending,
