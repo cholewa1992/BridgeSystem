@@ -6,7 +6,6 @@ import {
   useMyConventions,
   useCreateConvention,
   useUpdateConvention,
-  useDeleteConvention,
   useUpdateConventionVisibility,
   useForkConvention,
   usePublicConventions,
@@ -37,227 +36,233 @@ type SaveState = 'idle' | 'saving' | 'dirty' | 'saved';
 // ── Main page ─────────────────────────────────────────────────────────────
 
 export function ConventionLibraryPage() {
-  const { data: conventions, isLoading } = useMyConventions();
-  const createMut = useCreateConvention();
-  const deleteMut = useDeleteConvention();
-
+  const navigate = useNavigate();
   const [sort, setSort] = useState<'newest' | 'most_liked'>('newest');
-  const { data: publicConventions } = usePublicConventions(sort);
 
-  const [selectedConventionId, setSelectedConventionId] = useState<string | null>(null);
-  const [showNewForm, setShowNewForm] = useState(false);
+  const { data: myConventions, error: loadError } = useMyConventions();
+  const { data: publicConventions } = usePublicConventions(sort);
+  const createMut = useCreateConvention();
+
+  const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
 
-  // Select first convention when loaded if none selected
-  useEffect(() => {
-    if (conventions && conventions.length > 0 && !selectedConventionId) {
-      setSelectedConventionId(conventions[0].id);
-    }
-  }, [conventions, selectedConventionId]);
+  const error = (loadError ?? createMut.error) as Error | null;
 
-  const selectedConvention = useMemo(
-    () => conventions?.find((c) => c.id === selectedConventionId) ?? null,
-    [conventions, selectedConventionId],
-  );
-
-  const handleCreate = async () => {
+  const onCreate = async () => {
     if (!newName.trim()) return;
     try {
       const created = await createMut.mutateAsync({
         name: newName.trim(),
         description: newDesc.trim() || undefined,
       });
-      setSelectedConventionId(created.id);
-      setShowNewForm(false);
-      setNewName('');
-      setNewDesc('');
+      navigate(`/conventions/${created.id}`);
     } catch {
       // surfaced via createMut.error
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this convention? This cannot be undone.')) return;
-    try {
-      await deleteMut.mutateAsync(id);
-      if (selectedConventionId === id) {
-        const remaining = conventions?.filter((c) => c.id !== id) ?? [];
-        setSelectedConventionId(remaining.length > 0 ? remaining[0].id : null);
-      }
-    } catch {
-      // surfaced via deleteMut.error
-    }
-  };
-
   return (
     <div className="flex h-full flex-col bg-bg">
-      {/* Header */}
-      <header className="flex items-center gap-[14px] border-b border-border bg-surface px-6 py-3">
-        <div className="flex gap-[3px] text-[14px] opacity-70">
-          <span className="text-suit-black">♠</span>
-          <span className="text-suit-red">♥</span>
-          <span className="text-suit-red">♦</span>
-          <span className="text-suit-black">♣</span>
-        </div>
+      <header className="flex items-center gap-3 border-b border-border bg-surface px-6 py-3">
         <h1 className="m-0 font-display text-lg font-semibold tracking-[-0.005em] text-fg">
           Conventions
         </h1>
+        {!creating && (
+          <Button variant="primary" className="ml-auto" onClick={() => setCreating(true)}>
+            New convention
+          </Button>
+        )}
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar — mine + public conventions */}
-        <aside className="flex w-[280px] flex-col border-r border-border bg-surface">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <Label>My conventions</Label>
-            <Button variant="secondary" small onClick={() => setShowNewForm((v) => !v)}>
-              + New
-            </Button>
-          </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[32px]">
+          {error && (
+            <div className="mb-5 rounded-sm border border-[#e6c8c4] bg-danger-soft px-[12px] py-[10px] font-ui text-[13px] text-danger">
+              {error.message}
+            </div>
+          )}
 
-          {showNewForm && (
-            <div className="border-b border-border px-4 py-3">
-              <div className="mb-2">
+          {creating && (
+            <div className="mb-6 rounded-md border border-border bg-surface p-5 shadow-sm">
+              <Label className="mb-3 block">New convention</Label>
+              <div className="flex flex-col gap-2.5">
                 <Input
-                  placeholder="Convention name"
+                  placeholder="Name (e.g. Stayman)"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                  onKeyDown={(e) => e.key === 'Enter' && onCreate()}
                   autoFocus
-                  className="w-full"
                 />
-              </div>
-              <div className="mb-2">
                 <Input
                   placeholder="Description (optional)"
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  className="w-full"
                 />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="primary"
-                  small
-                  onClick={handleCreate}
-                  loading={createMut.isPending}
-                  disabled={!newName.trim()}
-                >
-                  Create
-                </Button>
-                <Button
-                  variant="ghost"
-                  small
-                  onClick={() => {
-                    setShowNewForm(false);
-                    setNewName('');
-                    setNewDesc('');
-                  }}
-                >
-                  Cancel
-                </Button>
+                <div className="mt-1 flex gap-2">
+                  <Button variant="primary" onClick={onCreate} disabled={createMut.isPending}>
+                    {createMut.isPending ? 'Creating…' : 'Create'}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setCreating(false);
+                      setNewName('');
+                      setNewDesc('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               </div>
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto">
-            {/* Mine list */}
-            <div className="py-1">
-              {isLoading ? (
-                <div className="px-4 py-3 text-[13px] text-fg-muted">Loading…</div>
-              ) : !conventions || conventions.length === 0 ? (
-                <div className="px-4 py-6 text-center text-[13px] text-fg-muted">
-                  No conventions yet. Create your first one above.
-                </div>
-              ) : (
-                conventions.map((conv) => (
-                  <ConventionListItem
-                    key={conv.id}
-                    convention={conv}
-                    selected={selectedConventionId === conv.id}
-                    onSelect={() => setSelectedConventionId(conv.id)}
-                    onDelete={() => handleDelete(conv.id)}
-                  />
-                ))
-              )}
+          {/* My conventions */}
+          <ConvSectionHeading>My conventions</ConvSectionHeading>
+          {myConventions === undefined ? (
+            <div className="text-[14px] text-fg-muted">Loading…</div>
+          ) : myConventions.length === 0 ? (
+            <div className="rounded-md border border-border bg-surface px-6 py-10 text-center text-fg-muted">
+              <div className="mb-2.5 text-[32px] opacity-60">♣</div>
+              <p className="m-0 font-ui text-[15px]">
+                No conventions yet — create one to get started.
+              </p>
             </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {myConventions.map((c) => (
+                <MyConventionCard
+                  key={c.id}
+                  convention={c}
+                  onClick={() => navigate(`/conventions/${c.id}`)}
+                />
+              ))}
+            </div>
+          )}
 
-            {/* Public section */}
-            <div className="mt-1 flex items-center justify-between border-t border-border px-4 py-2">
-              <span className="font-ui text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">
-                Public
-              </span>
-              <div className="flex items-center gap-0.5 rounded-md border border-border bg-surface-2 p-0.5">
-                <TabButton active={sort === 'newest'} onClick={() => setSort('newest')}>
-                  Newest
-                </TabButton>
-                <TabButton active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
-                  Most liked
-                </TabButton>
-              </div>
-            </div>
-            <div className="py-1">
-              {publicConventions === undefined ? (
-                <div className="px-4 py-3 text-[13px] text-fg-muted">Loading…</div>
-              ) : publicConventions.length === 0 ? (
-                <div className="px-4 py-4 text-center text-[13px] text-fg-muted">
-                  No public conventions yet.
-                </div>
-              ) : (
-                publicConventions.map((c) => (
-                  <PublicConventionSidebarItem key={c.id} convention={c} />
-                ))
-              )}
+          {/* Public conventions */}
+          <div className="mb-4 mt-10 flex items-center justify-between">
+            <ConvSectionHeading>Public conventions</ConvSectionHeading>
+            <div className="flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
+              <ConvSortButton active={sort === 'newest'} onClick={() => setSort('newest')}>
+                Newest
+              </ConvSortButton>
+              <ConvSortButton active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
+                Most liked
+              </ConvSortButton>
             </div>
           </div>
-        </aside>
-
-        {/* Right panel — editor */}
-        <main className="flex-1 overflow-y-auto">
-          {selectedConvention ? (
-            <ConventionEditor key={selectedConvention.id} convention={selectedConvention} />
+          {publicConventions === undefined ? (
+            <div className="text-[14px] text-fg-muted">Loading…</div>
+          ) : publicConventions.length === 0 ? (
+            <div className="rounded-md border border-border bg-surface px-6 py-10 text-center text-fg-muted">
+              <div className="mb-2.5 text-[32px] opacity-60">♣</div>
+              <p className="m-0 font-ui text-[15px]">
+                No public conventions yet — be the first to publish one.
+              </p>
+            </div>
           ) : (
-            <div className="flex h-full items-center justify-center text-[14px] text-fg-muted">
-              {isLoading ? 'Loading…' : 'Select or create a convention to edit.'}
+            <div className="flex flex-col gap-2.5">
+              {publicConventions.map((c) => (
+                <PublicConventionCard key={c.id} convention={c} />
+              ))}
             </div>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── PublicConventionSidebarItem ────────────────────────────────────────────
+// ── MyConventionCard ───────────────────────────────────────────────────────
 
-function PublicConventionSidebarItem({ convention }: { convention: ConventionSummary }) {
+function MyConventionCard({
+  convention,
+  onClick,
+}: {
+  convention: ConventionDetail;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="block w-full cursor-pointer rounded-md border border-border bg-surface px-[22px] py-[18px] text-left font-ui shadow-sm transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md"
+    >
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h3 className="m-0 font-display text-[19px] font-semibold tracking-[-0.005em] text-fg">
+          {convention.name}
+        </h3>
+        <ConvTag tone={convention.ownedByMe ? 'accent' : 'neutral'}>
+          {convention.ownedByMe
+            ? 'Owner'
+            : `Shared by ${convention.ownerUsername} · ${convention.permission}`}
+        </ConvTag>
+        {convention.isPublic && <ConvTag tone="accent">Public</ConvTag>}
+      </div>
+      {convention.description && (
+        <p className="mb-0 mt-2 font-ui text-[14px] text-fg-body">{convention.description}</p>
+      )}
+      <div className="mt-2 flex items-center gap-4 font-ui text-[13px] text-fg-muted">
+        <span>♥ {convention.likeCount}</span>
+        <span>⑂ {convention.forkCount}</span>
+        {convention.parameters.length > 0 && (
+          <span>
+            {convention.parameters.length} param{convention.parameters.length !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
+
+// ── PublicConventionCard ───────────────────────────────────────────────────
+
+function PublicConventionCard({ convention }: { convention: ConventionSummary }) {
   const forkMut = useForkConvention();
   const likeMut = useToggleConventionLike(convention.id);
   const heartFilled = convention.likedByMe === true;
 
   return (
-    <div className="group flex items-center gap-2 px-4 py-2 hover:bg-surface-2">
-      <div className="min-w-0 flex-1">
-        <div className="truncate font-ui text-[13px] font-medium text-fg">{convention.name}</div>
-        <div className="font-ui text-[11px] text-fg-muted">@{convention.ownerUsername}</div>
+    <div className="rounded-md border border-border bg-surface px-[22px] py-[18px] font-ui shadow-sm transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md">
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h3 className="m-0 font-display text-[19px] font-semibold tracking-[-0.005em] text-fg">
+          {convention.name}
+        </h3>
       </div>
-      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <p className="mb-0 mt-1 font-ui text-[13px] text-fg-muted">
+        by <span className="font-medium">@{convention.ownerUsername}</span>
+        {convention.paramCount > 0 && (
+          <span className="ml-2 text-fg-subtle">
+            · {convention.paramCount} param{convention.paramCount !== 1 ? 's' : ''}
+          </span>
+        )}
+      </p>
+      {convention.description && (
+        <p className="mb-0 mt-2 line-clamp-2 font-ui text-[13px] text-fg-muted">
+          {convention.description}
+        </p>
+      )}
+      <div className="mt-3 flex items-center gap-4">
+        <span className="font-ui text-[13px] text-fg-muted">⑂ {convention.forkCount}</span>
         <button
           onClick={() => likeMut.mutate({ liked: heartFilled })}
           disabled={likeMut.isPending}
           className={
-            'font-ui text-[11px] transition-colors ' +
+            'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-ui text-[13px] transition-colors ' +
             (heartFilled ? 'text-suit-red' : 'text-fg-muted hover:text-suit-red')
           }
         >
-          {heartFilled ? '♥' : '♡'} {convention.likeCount}
+          <span>{heartFilled ? '♥' : '♡'}</span>
+          <span>{convention.likeCount}</span>
         </button>
         {!convention.ownedByMe && (
           <button
             onClick={() => forkMut.mutate(convention.id)}
             disabled={forkMut.isPending}
-            className="rounded-sm border border-border px-1.5 py-0.5 font-ui text-[11px] text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
+            className="ml-auto rounded-sm border border-border px-2.5 py-1 font-ui text-[12px] text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
           >
-            {forkMut.isPending ? '…' : 'Fork'}
+            {forkMut.isPending ? 'Forking…' : 'Fork'}
           </button>
         )}
       </div>
@@ -265,9 +270,15 @@ function PublicConventionSidebarItem({ convention }: { convention: ConventionSum
   );
 }
 
-// ── TabButton ──────────────────────────────────────────────────────────────
+function ConvSectionHeading({ children }: { children: React.ReactNode }) {
+  return (
+    <h2 className="mb-3 font-ui text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">
+      {children}
+    </h2>
+  );
+}
 
-function TabButton({
+function ConvSortButton({
   active,
   onClick,
   children,
@@ -289,64 +300,22 @@ function TabButton({
   );
 }
 
-// ── ConventionListItem ─────────────────────────────────────────────────────
-
-function ConventionListItem({
-  convention,
-  selected,
-  onSelect,
-  onDelete,
-}: {
-  convention: ConventionDetail;
-  selected: boolean;
-  onSelect: () => void;
-  onDelete: () => void;
-}) {
-  const canEdit = convention.permission === 'OWNER' || convention.permission === 'WRITE';
-
+function ConvTag({ tone, children }: { tone: 'accent' | 'neutral'; children: React.ReactNode }) {
   return (
-    <div
-      onClick={onSelect}
-      className={clsx(
-        'group flex cursor-pointer items-start justify-between px-4 py-2.5 transition-colors',
-        selected ? 'bg-accent-soft' : 'hover:bg-surface-2',
-      )}
+    <span
+      className={
+        'rounded-full px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.05em] ' +
+        (tone === 'accent' ? 'bg-accent-soft text-accent-ink' : 'bg-surface-sunken text-fg-muted')
+      }
     >
-      <div className="min-w-0 flex-1">
-        <div className="truncate font-ui text-[14px] font-medium text-fg">{convention.name}</div>
-        <div className="mt-0.5 flex items-center gap-2 text-[12px] text-fg-muted">
-          {convention.isPublic && (
-            <span className="rounded-full bg-accent-soft px-1.5 py-0.5 font-ui text-[10px] font-semibold uppercase tracking-[0.05em] text-accent-ink">
-              Public
-            </span>
-          )}
-          {!canEdit && <span className="text-fg-subtle">read-only</span>}
-          {convention.parameters.length > 0 && (
-            <span>
-              {convention.parameters.length} param{convention.parameters.length !== 1 ? 's' : ''}
-            </span>
-          )}
-        </div>
-      </div>
-      {convention.permission === 'OWNER' && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="ml-2 shrink-0 rounded-sm p-0.5 text-[12px] text-fg-muted opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-          title="Delete convention"
-        >
-          ✕
-        </button>
-      )}
-    </div>
+      {children}
+    </span>
   );
 }
 
 // ── ConventionEditor ───────────────────────────────────────────────────────
 
-function ConventionEditor({ convention }: { convention: ConventionDetail }) {
+export function ConventionEditor({ convention }: { convention: ConventionDetail }) {
   const updateMut = useUpdateConvention(convention.id);
   const visibilityMut = useUpdateConventionVisibility(convention.id);
   const forkMut = useForkConvention();
@@ -540,6 +509,13 @@ function ConventionEditor({ convention }: { convention: ConventionDetail }) {
     <div className="flex h-full flex-col">
       {/* Convention header bar */}
       <div className="flex items-center gap-3 border-b border-border bg-surface px-6 py-3">
+        <button
+          onClick={() => navigate('/conventions')}
+          className="shrink-0 font-ui text-[13px] text-fg-muted hover:text-fg"
+        >
+          ← Conventions
+        </button>
+        <span className="text-border">|</span>
         {editingName && !readOnly ? (
           <Input
             value={convName}
