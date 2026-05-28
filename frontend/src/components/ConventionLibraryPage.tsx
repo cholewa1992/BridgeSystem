@@ -92,7 +92,7 @@ export function ConventionLibraryPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg">
+    <div className="flex h-full flex-col bg-bg">
       {/* Header */}
       <header className="flex items-center gap-[14px] border-b border-border bg-surface px-6 py-3">
         <div className="flex gap-[3px] text-[14px] opacity-70">

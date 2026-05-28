@@ -37,7 +37,7 @@ export function SystemList() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg">
+    <div className="flex h-full flex-col bg-bg">
       {/* Header */}
       <header className="flex items-center gap-3 border-b border-border bg-surface px-6 py-3">
         <h1 className="m-0 font-display text-lg font-semibold tracking-[-0.005em] text-fg">
