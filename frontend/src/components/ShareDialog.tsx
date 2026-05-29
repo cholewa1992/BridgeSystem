@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useAddShare, useRemoveShare, useShares } from '../api/queries';
-import { Button, Input } from './ui';
-import { Label } from './ui';
+import { Button, Input, Label } from './ui';
 
 interface Props {
   systemId: string;

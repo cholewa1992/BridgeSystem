@@ -93,14 +93,6 @@ public class Convention {
 
     // ── Domain methods ─────────────────────────────────────────────────────
 
-    public void publish() {
-        this.isPublic = true;
-    }
-
-    public void unpublish() {
-        this.isPublic = false;
-    }
-
     public Convention fork(UUID newId, AppUser newOwner) {
         return new Convention(newId, newOwner, this.name + " (fork)", this.description,
                 this.parametersJson, this.rootJson, this);
@@ -131,32 +123,16 @@ public class Convention {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getDescription() {
         return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public String getParametersJson() {
         return parametersJson;
     }
 
-    public void setParametersJson(String parametersJson) {
-        this.parametersJson = parametersJson;
-    }
-
     public String getRootJson() {
         return rootJson;
-    }
-
-    public void setRootJson(String rootJson) {
-        this.rootJson = rootJson;
     }
 
     public boolean isPublic() {

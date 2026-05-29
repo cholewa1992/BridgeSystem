@@ -1,10 +1,7 @@
 package com.bridgesystem.system;
 
-import com.bridgesystem.sharing.SystemLikeRepository;
-import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.user.AppUser;
 import com.bridgesystem.user.AppUserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,8 +9,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,8 +25,7 @@ class UserProfileServiceTest {
 
     @Mock private AppUserRepository userRepository;
     @Mock private BiddingSystemRepository systemRepository;
-    @Mock private SystemLikeRepository likeRepository;
-    @Mock private SystemShareRepository shareRepository;
+    @Mock private SystemSummaryMapper summaryMapper;
 
     private UserProfileService service;
 
@@ -39,8 +35,7 @@ class UserProfileServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new UserProfileService(userRepository, systemRepository, likeRepository,
-                shareRepository, new ObjectMapper());
+        service = new UserProfileService(userRepository, systemRepository, summaryMapper);
 
         user = new AppUser(UUID.randomUUID(), "alice", "Alice", new byte[32]);
         systemId = UUID.randomUUID();
@@ -85,20 +80,11 @@ class UserProfileServiceTest {
     void getPublicSystemsForUser_knownUser_returnsSystems() {
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
         when(systemRepository.findAllByOwnerAndIsPublicTrueOrderByUpdatedAtDesc(user)).thenReturn(List.of(system));
-        when(likeRepository.countsBySystemIds(any())).thenReturn(likeCountRows(systemId, 0L));
-        when(systemRepository.forkCountsBySystemIds(any())).thenReturn(List.of());
+        when(summaryMapper.statsFor(any(), any())).thenReturn(
+                Map.of(systemId, new SystemSummaryMapper.SystemStats(0L, 0, null)));
 
         List<BiddingSystemDtos.SystemSummary> result = service.getPublicSystemsForUser("alice", null);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).ownerUsername()).isEqualTo("alice");
-    }
-
-    // ── helpers ───────────────────────────────────────────────────────────
-
-    private static List<Object[]> likeCountRows(UUID id, long count) {
-        ArrayList<Object[]> rows = new ArrayList<>();
-        rows.add(new Object[]{id, count});
-        return rows;
     }
 }

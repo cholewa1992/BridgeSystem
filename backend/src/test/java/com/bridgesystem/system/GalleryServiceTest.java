@@ -4,7 +4,6 @@ import com.bridgesystem.security.SystemAccessGuard;
 import com.bridgesystem.security.SystemAccessGuard.Permission;
 import com.bridgesystem.sharing.SystemLike;
 import com.bridgesystem.sharing.SystemLikeRepository;
-import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.user.AppUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,8 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,8 +26,8 @@ class GalleryServiceTest {
 
     @Mock private BiddingSystemRepository systemRepository;
     @Mock private SystemLikeRepository likeRepository;
-    @Mock private SystemShareRepository shareRepository;
     @Mock private SystemAccessGuard accessGuard;
+    @Mock private SystemSummaryMapper summaryMapper;
 
     private GalleryService service;
 
@@ -38,8 +37,7 @@ class GalleryServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new GalleryService(systemRepository, likeRepository, shareRepository,
-                accessGuard);
+        service = new GalleryService(systemRepository, likeRepository, accessGuard, summaryMapper);
 
         user = new AppUser(UUID.randomUUID(), "alice", "Alice", new byte[32]);
         systemId = UUID.randomUUID();
@@ -51,8 +49,8 @@ class GalleryServiceTest {
     @Test
     void getPublicSystems_mostLiked_callsFindAllPublicOrderByLikesDesc() {
         when(systemRepository.findAllPublicOrderByLikesDesc()).thenReturn(List.of(system));
-        when(likeRepository.countsBySystemIds(any())).thenReturn(likeCountRows(systemId, 0L));
-        when(systemRepository.forkCountsBySystemIds(any())).thenReturn(List.of());
+        when(summaryMapper.statsFor(any(), any())).thenReturn(
+                Map.of(systemId, new SystemSummaryMapper.SystemStats(0L, 0, null)));
 
         List<BiddingSystemDtos.SystemSummary> result = service.getPublicSystems("most_liked", null);
 
@@ -63,8 +61,8 @@ class GalleryServiceTest {
     @Test
     void getPublicSystems_otherSort_callsFindAllByIsPublicTrue() {
         when(systemRepository.findAllByIsPublicTrueOrderByUpdatedAtDesc()).thenReturn(List.of(system));
-        when(likeRepository.countsBySystemIds(any())).thenReturn(likeCountRows(systemId, 0L));
-        when(systemRepository.forkCountsBySystemIds(any())).thenReturn(List.of());
+        when(summaryMapper.statsFor(any(), any())).thenReturn(
+                Map.of(systemId, new SystemSummaryMapper.SystemStats(0L, 0, null)));
 
         List<BiddingSystemDtos.SystemSummary> result = service.getPublicSystems("recent", null);
 
@@ -113,13 +111,5 @@ class GalleryServiceTest {
         verify(likeRepository).deleteBySystemAndUser(system, user);
         assertThat(response.likedByMe()).isFalse();
         assertThat(response.likeCount()).isEqualTo(0L);
-    }
-
-    // ── helpers ───────────────────────────────────────────────────────────
-
-    private static List<Object[]> likeCountRows(UUID id, long count) {
-        ArrayList<Object[]> rows = new ArrayList<>();
-        rows.add(new Object[]{id, count});
-        return rows;
     }
 }

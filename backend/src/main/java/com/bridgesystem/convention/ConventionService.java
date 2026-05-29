@@ -16,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -174,13 +173,11 @@ public class ConventionService {
             throw new ResponseStatusException(BAD_REQUEST, "Invalid permission value");
         }
         ConventionShare share = shareRepository.findByConventionAndSharedWith(convention, target)
-                .orElse(null);
-        if (share == null) {
-            share = new ConventionShare(convention, target, perm);
-            shareRepository.save(share);
-        } else {
-            share.setPermission(perm);
-        }
+                .map(existing -> {
+                    existing.setPermission(perm);
+                    return shareRepository.save(existing);
+                })
+                .orElseGet(() -> shareRepository.save(new ConventionShare(convention, target, perm)));
         return new ConventionDtos.ShareDto(
                 target.getUsername(),
                 target.getDisplayName(),
@@ -295,7 +292,7 @@ public class ConventionService {
         return shareRepository.findByConventionAndSharedWith(c, viewer)
                 .map(ConventionShare::getPermission)
                 .map(Enum::name)
-                .orElse("NONE");
+                .orElse(c.isPublic() ? "READ" : "NONE");
     }
 
     private Map<UUID, Long> buildLikeCountMap(List<UUID> ids) {
