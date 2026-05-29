@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import type { BidNode, SystemDetail } from '../types';
 import {
@@ -37,6 +38,7 @@ export function SystemEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation(['editor', 'common']);
 
   const { data: detail, error: loadError } = useSystem(id);
   const { data: myConventions = [] } = useMyConventions();
@@ -140,24 +142,13 @@ export function SystemEditor() {
     return path ? path.filter((n) => n.bids.length > 0) : [];
   }, [root, selected]);
 
-  /**
-   * Chain context for adding a child under the currently selected node. Includes the
-   * selected node in the walk so the new child sees it as the last call.
-   */
   const addChain = useMemo(() => {
     if (!root || !selected) return null;
     return addChainContext(root, selected);
   }, [root, selected]);
 
-  /**
-   * Chain context for adding an opening bid at the root.
-   */
   const openingChain = useMemo(() => (root ? addChainContext(root, ROOT_ID) : null), [root]);
 
-  /**
-   * Chain context for editing the currently selected node — excludes the
-   * node itself, since its call is what's being changed.
-   */
   const editChain = useMemo(() => {
     if (!root || !selected) return null;
     return editChainContext(root, selected);
@@ -228,7 +219,7 @@ export function SystemEditor() {
 
   const deleteSelected = () => {
     if (!root || !selected) return;
-    if (!confirm('Delete this bid and its continuations?')) return;
+    if (!confirm(t('systemEditor.deleteBidConfirm'))) return;
     setRoot(treeDelete(root, selected));
     setSelected(null);
     setEditing(false);
@@ -282,7 +273,7 @@ export function SystemEditor() {
 
   const onDeleteSystem = async () => {
     if (!detail) return;
-    if (!confirm(`Delete "${detail.name}"? This cannot be undone.`)) return;
+    if (!confirm(t('systemEditor.deleteSystemConfirm', { name: detail.name }))) return;
     try {
       await deleteMut.mutateAsync(detail.id);
       navigate('/');
@@ -312,13 +303,13 @@ export function SystemEditor() {
       <div className="p-[60px] font-ui text-danger">
         <p className="mt-0">{(loadError as Error).message}</p>
         <Button variant="secondary" onClick={() => navigate('/')}>
-          Back to list
+          {t('systemEditor.backToList')}
         </Button>
       </div>
     );
   }
   if (!detail || !root) {
-    return <div className="p-[60px] text-fg-muted">Loading…</div>;
+    return <div className="p-[60px] text-fg-muted">{t('common:status.loading')}</div>;
   }
 
   return (
@@ -341,7 +332,7 @@ export function SystemEditor() {
               'm-0 font-display text-lg font-semibold tracking-[-0.005em] text-fg',
               readOnly ? 'cursor-default' : 'cursor-pointer',
             )}
-            title={readOnly ? '' : 'Click to rename'}
+            title={readOnly ? '' : t('systemEditor.clickToRename')}
           >
             {systemName}
           </h1>
@@ -356,13 +347,13 @@ export function SystemEditor() {
                 loading={visibilityMut.isPending}
                 small
               >
-                {detail.isPublic ? 'Make Private' : 'Make Public'}
+                {detail.isPublic ? t('systemEditor.makePrivate') : t('systemEditor.makePublic')}
               </Button>
               <Button variant="secondary" onClick={() => setShowShare(true)}>
-                Share
+                {t('systemEditor.share')}
               </Button>
               <Button variant="danger" onClick={onDeleteSystem} disabled={deleteMut.isPending}>
-                Delete
+                {t('systemEditor.delete')}
               </Button>
             </>
           )}
@@ -374,7 +365,7 @@ export function SystemEditor() {
                 </span>
               )}
               <Button variant="secondary" onClick={onFork} loading={forkMut.isPending}>
-                Fork
+                {forkMut.isPending ? t('common:action.forking') : t('common:action.fork')}
               </Button>
             </>
           )}
@@ -386,16 +377,16 @@ export function SystemEditor() {
         {/* Tree pane */}
         <aside className="w-[460px] overflow-y-auto border-r border-border bg-surface px-[18px] py-5">
           <div className="mb-[14px] flex items-center gap-2">
-            <Label className="flex-1">Bidding sequences</Label>
+            <Label className="flex-1">{t('systemEditor.biddingSequences')}</Label>
             <Button variant="ghost" small onClick={() => setCollapseVersion((v) => v + 1)}>
-              Collapse all
+              {t('systemEditor.collapseAll')}
             </Button>
             <Button variant="ghost" small onClick={() => setExpandVersion((v) => v + 1)}>
-              Expand all
+              {t('systemEditor.expandAll')}
             </Button>
             {!readOnly && addingTo !== ROOT_ID && (
               <Button variant="secondary" onClick={() => setAddingTo(ROOT_ID)}>
-                + Opening bid
+                {t('systemEditor.openingBid')}
               </Button>
             )}
           </div>
@@ -421,7 +412,7 @@ export function SystemEditor() {
                   : 'border-border-strong bg-transparent',
               )}
             >
-              Move here as opening bid
+              {t('systemEditor.moveHereAsOpeningBid')}
             </div>
           )}
 
@@ -459,8 +450,7 @@ export function SystemEditor() {
           <div className="max-w-[760px]">
             {detail.forkedFrom && (
               <div className="mb-4 rounded-sm border border-border bg-surface-sunken px-3 py-2 font-ui text-[13px] text-fg-muted">
-                Forked from <span className="font-medium text-fg">"{detail.forkedFrom.name}"</span>{' '}
-                by{' '}
+                {t('systemEditor.forkedFrom', { name: detail.forkedFrom.name })}{' '}
                 <button
                   onClick={() => navigate(`/users/${detail.forkedFrom!.ownerUsername}`)}
                   className="text-fg-muted underline-offset-2 hover:underline"
@@ -510,23 +500,24 @@ function SaveIndicator({
   state: SaveState;
   permission: SystemDetail['permission'];
 }) {
+  const { t } = useTranslation('editor');
   let text: string;
   let colorClass: string;
 
   if (state === 'saving') {
-    text = 'Saving…';
+    text = t('saveIndicator.saving');
     colorClass = 'text-accent';
   } else if (state === 'saved') {
-    text = 'Saved';
+    text = t('saveIndicator.saved');
     colorClass = 'text-success';
   } else if (state === 'dirty') {
-    text = 'Unsaved changes';
+    text = t('saveIndicator.unsavedChanges');
     colorClass = 'text-accent';
   } else if (state === 'error') {
-    text = 'Save failed';
+    text = t('saveIndicator.saveFailed');
     colorClass = 'text-danger';
   } else {
-    text = permission === 'OWNER' ? 'Owner' : permission;
+    text = permission === 'OWNER' ? t('saveIndicator.owner') : permission;
     colorClass = 'text-fg-muted';
   }
 

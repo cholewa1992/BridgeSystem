@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "systems": "Systems",
+    "conventions": "Conventions",
+    "partners": "Partners",
+    "history": "Recent edits",
+    "workspace": "Workspace",
+    "thisSystem": "This system",
+    "account": "Account",
+    "signOut": "Sign out",
+    "signIn": "Sign in",
+    "openNavigation": "Open navigation",
+    "biddingTree": "Bidding tree",
+    "soon": "Soon"
+  },
+  "sort": {
+    "newest": "Newest",
+    "mostLiked": "Most liked"
+  },
+  "tabs": {
+    "systems": "Systems",
+    "conventions": "Conventions"
+  },
+  "tag": {
+    "public": "Public",
+    "owner": "Owner",
+    "sharedBy": "Shared by {{username}} · {{permission}}"
+  },
+  "action": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "fork": "Fork",
+    "forking": "Forking…",
+    "like": "Like",
+    "unlike": "Unlike"
+  },
+  "status": {
+    "loading": "Loading…",
+    "comingSoon": "This feature is coming soon."
+  },
+  "gallery": {
+    "publicSystems": "Public systems",
+    "publicConventions": "Public conventions",
+    "browseSystems": "Browse bidding systems shared by the community.",
+    "browseConventions": "Browse conventions shared by the community.",
+    "noPublicSystems": "No public systems yet — be the first to publish one.",
+    "noPublicConventions": "No public conventions yet — be the first to publish one.",
+    "mostLiked": "Most Liked"
+  },
+  "profile": {
+    "memberSince": "Member since {{year}}",
+    "publicSystemCount_one": "{{count}} public system",
+    "publicSystemCount_other": "{{count}} public systems",
+    "publicSystems": "Public systems",
+    "userNotFound": "User not found.",
+    "noSystemsYet": "{{displayName}} hasn't published any systems yet."
+  },
+  "language": {
+    "da": "Dansk",
+    "en": "English"
+  }
+}

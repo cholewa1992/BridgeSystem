@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAddShare, useRemoveShare, useShares } from '../api/queries';
 import { Button, Input } from './ui';
 import { Label } from './ui';
@@ -12,6 +13,7 @@ const selectClasses =
   'w-[110px] bg-surface border border-border-strong rounded-sm text-fg text-[14px] px-[12px] py-[8px] outline-none';
 
 export function ShareDialog({ systemId, onClose }: Props) {
+  const { t } = useTranslation(['editor', 'common']);
   const { data: shares, error: loadError } = useShares(systemId);
   const addMut = useAddShare(systemId);
   const removeMut = useRemoveShare(systemId);
@@ -43,15 +45,15 @@ export function ShareDialog({ systemId, onClose }: Props) {
         <div className="mb-[18px] flex items-start">
           <div>
             <h2 className="m-0 font-display text-[22px] font-semibold tracking-[-0.01em] text-fg">
-              Share this system
+              {t('share.title')}
             </h2>
             <p className="mb-0 mt-1 font-ui text-[13px] text-fg-muted">
-              Add a partner by username. Choose read or write access.
+              {t('share.subtitle')}
             </p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common:action.close')}
             className="ml-auto cursor-pointer px-2 py-1 text-[16px] text-fg-muted"
           >
             ✕
@@ -60,7 +62,7 @@ export function ShareDialog({ systemId, onClose }: Props) {
 
         <div className="mb-[14px] flex items-stretch gap-2">
           <Input
-            placeholder="Partner's username"
+            placeholder={t('share.usernamePlaceholder')}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="flex-1"
@@ -70,11 +72,11 @@ export function ShareDialog({ systemId, onClose }: Props) {
             onChange={(e) => setPermission(e.target.value as 'READ' | 'WRITE')}
             className={selectClasses}
           >
-            <option value="READ">Read</option>
-            <option value="WRITE">Write</option>
+            <option value="READ">{t('share.permissionRead')}</option>
+            <option value="WRITE">{t('share.permissionWrite')}</option>
           </select>
           <Button variant="primary" onClick={onAdd} disabled={addMut.isPending}>
-            {addMut.isPending ? 'Sharing…' : 'Share'}
+            {addMut.isPending ? t('share.sharing') : t('share.share')}
           </Button>
         </div>
 
@@ -84,11 +86,11 @@ export function ShareDialog({ systemId, onClose }: Props) {
           </div>
         )}
 
-        <Label className="mb-2 block">Collaborators</Label>
+        <Label className="mb-2 block">{t('share.collaborators')}</Label>
         {shares === undefined ? (
-          <div className="text-[13px] text-fg-muted">Loading…</div>
+          <div className="text-[13px] text-fg-muted">{t('common:status.loading')}</div>
         ) : shares.length === 0 ? (
-          <div className="font-ui text-[13px] italic text-fg-muted">No collaborators yet.</div>
+          <div className="font-ui text-[13px] italic text-fg-muted">{t('share.noCollaborators')}</div>
         ) : (
           <div className="flex flex-col overflow-hidden rounded-sm border border-border">
             {shares.map((s) => (
@@ -115,7 +117,7 @@ export function ShareDialog({ systemId, onClose }: Props) {
                   onClick={() => removeMut.mutate(s.username)}
                   disabled={removeMut.isPending}
                 >
-                  Remove
+                  {t('share.remove')}
                 </Button>
               </div>
             ))}

@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { BookOpen, Clock, Library, LogIn, LogOut, TreePine, User, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { BrandLockup } from '../components/BrandLockup';
 import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
-  { id: 'systems', icon: BookOpen, label: 'Systems', route: '/' },
-  { id: 'conventions', icon: Library, label: 'Conventions', route: '/conventions' },
-  { id: 'partners', icon: Users, label: 'Partners', route: '/partners', stub: true },
-  { id: 'history', icon: Clock, label: 'Recent edits', route: '/history', stub: true },
+  { id: 'systems', icon: BookOpen, labelKey: 'nav.systems', route: '/' },
+  { id: 'conventions', icon: Library, labelKey: 'nav.conventions', route: '/conventions' },
+  { id: 'partners', icon: Users, labelKey: 'nav.partners', route: '/partners', stub: true },
+  { id: 'history', icon: Clock, labelKey: 'nav.history', route: '/history', stub: true },
 ] as const;
 
 function isRouteActive(id: string, route: string, pathname: string): boolean {
@@ -29,6 +30,7 @@ function NavButton({
   label: string;
   stub?: boolean;
 }) {
+  const { t } = useTranslation('common');
   return (
     <button
       onClick={onClick}
@@ -43,10 +45,35 @@ function NavButton({
       <span className="flex-1 text-left">{label}</span>
       {stub && (
         <span className="ml-auto font-ui text-[10px] uppercase tracking-[0.05em] text-fg-subtle">
-          Soon
+          {t('nav.soon')}
         </span>
       )}
     </button>
+  );
+}
+
+function LanguageSwitcher() {
+  const { i18n } = useTranslation();
+  const current = i18n.resolvedLanguage ?? 'da';
+  return (
+    <div className="px-3 pb-3 pt-2">
+      <div className="flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
+        {(['da', 'en'] as const).map((lang) => (
+          <button
+            key={lang}
+            onClick={() => i18n.changeLanguage(lang)}
+            className={
+              'flex-1 rounded-sm px-2 py-1 font-ui text-[12px] font-medium transition-colors ' +
+              (current === lang
+                ? 'bg-accent text-white shadow-sm'
+                : 'text-fg-muted hover:text-fg')
+            }
+          >
+            {lang === 'da' ? 'Dansk' : 'English'}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -54,6 +81,7 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
   const location = useLocation();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
 
   const handleSignOut = async () => {
     await logout();
@@ -73,7 +101,7 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
 
       {/* Workspace section */}
       <div className="px-3 pb-1.5 pt-3.5 font-ui text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">
-        Workspace
+        {t('nav.workspace')}
       </div>
 
       <div className="flex flex-col gap-0.5 px-1.5">
@@ -86,7 +114,7 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
               active={active}
               onClick={() => onNav(item.route)}
               icon={item.icon}
-              label={item.label}
+              label={t(item.labelKey)}
               stub={stub}
             />
           );
@@ -97,20 +125,20 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
       {systemId && (
         <>
           <div className="px-3 pb-1.5 pt-4 font-ui text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">
-            This system
+            {t('nav.thisSystem')}
           </div>
           <div className="flex flex-col gap-0.5 px-1.5">
             <NavButton
               active={location.pathname === `/systems/${systemId}`}
               onClick={() => onNav(`/systems/${systemId}`)}
               icon={TreePine}
-              label="Bidding tree"
+              label={t('nav.biddingTree')}
             />
             <NavButton
               active={location.pathname === `/systems/${systemId}/conventions`}
               onClick={() => onNav(`/systems/${systemId}/conventions`)}
               icon={Library}
-              label="Conventions"
+              label={t('nav.conventions')}
             />
           </div>
         </>
@@ -121,7 +149,7 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
 
       {/* Account section */}
       <div className="px-3 pb-1.5 pt-3.5 font-ui text-[11px] font-semibold uppercase tracking-[0.08em] text-fg-muted">
-        Account
+        {t('nav.account')}
       </div>
       <div className="flex flex-col gap-0.5 px-1.5">
         {user ? (
@@ -132,12 +160,15 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
               icon={User}
               label={user.displayName}
             />
-            <NavButton active={false} onClick={handleSignOut} icon={LogOut} label="Sign out" />
+            <NavButton active={false} onClick={handleSignOut} icon={LogOut} label={t('nav.signOut')} />
           </>
         ) : (
-          <NavButton active={false} onClick={() => onNav('/login')} icon={LogIn} label="Sign in" />
+          <NavButton active={false} onClick={() => onNav('/login')} icon={LogIn} label={t('nav.signIn')} />
         )}
       </div>
+
+      {/* Language switcher */}
+      <LanguageSwitcher />
     </nav>
   );
 }
@@ -145,6 +176,7 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
 export function AppShell() {
   const [navOpen, setNavOpen] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation('common');
 
   const handleNav = (route: string) => {
     navigate(route);
@@ -185,7 +217,7 @@ export function AppShell() {
           <button
             onClick={() => setNavOpen(true)}
             className="flex h-8 w-8 flex-col items-center justify-center gap-[5px] rounded text-fg-muted hover:text-fg"
-            aria-label="Open navigation"
+            aria-label={t('nav.openNavigation')}
           >
             <span className="block h-[2px] w-5 bg-current" />
             <span className="block h-[2px] w-5 bg-current" />

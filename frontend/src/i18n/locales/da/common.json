@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "systems": "Systemer",
+    "conventions": "Konventioner",
+    "partners": "Partnere",
+    "history": "Seneste redigeringer",
+    "workspace": "Arbejdsområde",
+    "thisSystem": "Dette system",
+    "account": "Konto",
+    "signOut": "Log ud",
+    "signIn": "Log ind",
+    "openNavigation": "Åbn navigation",
+    "biddingTree": "Budtræ",
+    "soon": "Snart"
+  },
+  "sort": {
+    "newest": "Nyeste",
+    "mostLiked": "Mest populær"
+  },
+  "tabs": {
+    "systems": "Systemer",
+    "conventions": "Konventioner"
+  },
+  "tag": {
+    "public": "Offentlig",
+    "owner": "Ejer",
+    "sharedBy": "Delt af {{username}} · {{permission}}"
+  },
+  "action": {
+    "cancel": "Annuller",
+    "close": "Luk",
+    "fork": "Fork",
+    "forking": "Forker…",
+    "like": "Synes godt om",
+    "unlike": "Fjern like"
+  },
+  "status": {
+    "loading": "Indlæser…",
+    "comingSoon": "Denne funktion er på vej."
+  },
+  "gallery": {
+    "publicSystems": "Offentlige systemer",
+    "publicConventions": "Offentlige konventioner",
+    "browseSystems": "Udforsk bud-systemer delt af fællesskabet.",
+    "browseConventions": "Udforsk konventioner delt af fællesskabet.",
+    "noPublicSystems": "Ingen offentlige systemer endnu — vær den første til at publicere et.",
+    "noPublicConventions": "Ingen offentlige konventioner endnu — vær den første til at publicere en.",
+    "mostLiked": "Mest populær"
+  },
+  "profile": {
+    "memberSince": "Medlem siden {{year}}",
+    "publicSystemCount_one": "{{count}} offentligt system",
+    "publicSystemCount_other": "{{count}} offentlige systemer",
+    "publicSystems": "Offentlige systemer",
+    "userNotFound": "Bruger ikke fundet.",
+    "noSystemsYet": "{{displayName}} har ikke publiceret nogen systemer endnu."
+  },
+  "language": {
+    "da": "Dansk",
+    "en": "English"
+  }
+}

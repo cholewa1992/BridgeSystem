@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 import type { BidNode, ConventionDef } from '../types';
 import type { ChainContext } from '../tree';
 import { resolveConventionChildren } from '../tree';
@@ -43,6 +44,7 @@ interface Props {
 }
 
 export function BidDetailPanel(props: Props) {
+  const { t } = useTranslation(['editor', 'common']);
   const { selected, breadcrumb } = props;
   const conventions = props.conventions ?? [];
   const fromConvention = props.fromConventionRef
@@ -55,9 +57,7 @@ export function BidDetailPanel(props: Props) {
     return (
       <div className="mt-20 text-center font-ui text-fg-subtle">
         <div className="mb-3 text-[36px] opacity-50">♣</div>
-        <p className="m-0 text-[15px]">
-          Select a bid to view its details, or add an opening bid to get started.
-        </p>
+        <p className="m-0 text-[15px]">{t('bidDetail.selectPrompt')}</p>
       </div>
     );
   }
@@ -92,7 +92,7 @@ export function BidDetailPanel(props: Props) {
               <div className="mb-1.5 flex flex-wrap gap-1.5">
                 {isOpp && (
                   <div className="inline-block rounded-full bg-surface-sunken px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
-                    Interference / opponent
+                    {t('bidDetail.interference')}
                   </div>
                 )}
                 {selected.alerted && (
@@ -115,23 +115,23 @@ export function BidDetailPanel(props: Props) {
                     >
                       !
                     </span>
-                    Alertable
+                    {t('bidDetail.alertable')}
                   </div>
                 )}
               </div>
               <div className="font-display text-[22px] font-semibold leading-[1.3] tracking-[-0.005em] text-fg">
                 {selected.meaning || (
-                  <em className="text-fg-muted opacity-50">No meaning defined</em>
+                  <em className="text-fg-muted opacity-50">{t('bidDetail.noMeaning')}</em>
                 )}
               </div>
             </div>
             {!props.readOnly && !fromConvention && (
               <div className="flex gap-1.5 pt-0.5">
                 <Button variant="secondary" onClick={props.onRequestEdit}>
-                  Edit
+                  {t('bidDetail.edit')}
                 </Button>
                 <Button variant="danger" onClick={props.onDelete}>
-                  Delete
+                  {t('bidDetail.delete')}
                 </Button>
               </div>
             )}
@@ -156,7 +156,7 @@ export function BidDetailPanel(props: Props) {
             <div className="mb-6 flex items-center gap-3 rounded-md border border-border bg-surface-sunken px-4 py-3">
               <div className="flex-1">
                 <span className="font-ui text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
-                  Defined in convention
+                  {t('bidDetail.definedInConvention')}
                 </span>
                 <div className="mt-0.5 font-display text-[15px] font-semibold text-fg">
                   {fromConvention.name}
@@ -164,7 +164,7 @@ export function BidDetailPanel(props: Props) {
               </div>
               {props.systemId && (
                 <Button variant="ghost" small onClick={props.onOpenConventionLibrary}>
-                  Edit in Library ↗
+                  {t('bidDetail.editInLibrary')}
                 </Button>
               )}
             </div>
@@ -179,7 +179,7 @@ export function BidDetailPanel(props: Props) {
                   <div className="mb-2 flex items-center justify-between gap-2">
                     <div>
                       <span className="font-ui text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
-                        Convention
+                        {t('bidDetail.convention')}
                       </span>
                       <div className="mt-0.5 font-display text-[15px] font-semibold text-fg">
                         {attachedConvention.name}
@@ -193,11 +193,11 @@ export function BidDetailPanel(props: Props) {
                     <div className="flex shrink-0 gap-1.5">
                       {props.onOpenConventionLibrary && (
                         <Button variant="secondary" small onClick={props.onOpenConventionLibrary}>
-                          Edit ↗
+                          {t('bidDetail.editConvention')}
                         </Button>
                       )}
                       <Button variant="danger" small onClick={props.onDetachConvention}>
-                        Detach
+                        {t('bidDetail.detach')}
                       </Button>
                     </div>
                   </div>
@@ -205,7 +205,7 @@ export function BidDetailPanel(props: Props) {
                   {(attachedConvention.parameters?.length ?? 0) > 0 && (
                     <div className="mt-3 border-t border-border pt-3">
                       <p className="mb-2 font-ui text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
-                        Parameters
+                        {t('bidDetail.parameters')}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {attachedConvention.parameters!.map((p) => {
@@ -257,7 +257,7 @@ export function BidDetailPanel(props: Props) {
                 /* ── Default: add / link buttons ── */
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" onClick={props.onRequestAdd}>
-                    + Add continuation
+                    {t('bidDetail.addContinuation')}
                   </Button>
                   {conventions.length > 0 && (
                     <Button
@@ -267,7 +267,7 @@ export function BidDetailPanel(props: Props) {
                         setShowConvPicker(true);
                       }}
                     >
-                      Link convention
+                      {t('bidDetail.linkConvention')}
                     </Button>
                   )}
                 </div>
@@ -279,9 +279,11 @@ export function BidDetailPanel(props: Props) {
           {effectiveChildren.length > 0 && (
             <div>
               <Label className="mb-2.5 block">
-                Continuations ({effectiveChildren.length})
+                {t('bidDetail.continuations', { count: effectiveChildren.length })}
                 {attachedConvention && (
-                  <span className="ml-1.5 font-normal text-fg-muted">(from convention)</span>
+                  <span className="ml-1.5 font-normal text-fg-muted">
+                    {t('bidDetail.fromConvention')}
+                  </span>
                 )}
               </Label>
               <div className="flex flex-wrap gap-1.5">
@@ -295,9 +297,7 @@ export function BidDetailPanel(props: Props) {
                         ? 'cursor-default rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold opacity-60'
                         : 'cursor-pointer rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold'
                     }
-                    title={
-                      attachedConvention ? `${c.meaning} (edit in Convention Library)` : c.meaning
-                    }
+                    title={c.meaning}
                   >
                     <BidLabel bids={c.bids} byOpponent={c.byOpponent} />
                   </button>
@@ -322,6 +322,7 @@ function ConventionPicker({
   onAttach: (convId: string, args: Record<string, string>) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation(['editor', 'common']);
   const [convId, setConvId] = useState(conventions[0]?.id ?? '');
   const [args, setArgs] = useState<Record<string, string>>(() =>
     defaultArgs(conventions, conventions[0]?.id ?? ''),
@@ -342,7 +343,7 @@ function ConventionPicker({
   return (
     <div className="rounded-md border border-border bg-surface-sunken px-4 py-4">
       <p className="mb-3 font-ui text-[11px] font-semibold uppercase tracking-wider text-fg-muted">
-        Link convention
+        {t('bidDetail.linkConvention')}
       </p>
 
       {/* Convention selector */}
@@ -355,7 +356,7 @@ function ConventionPicker({
           description: c.description,
           meta:
             (c.parameters?.length ?? 0) > 0
-              ? `${c.parameters!.length} param${c.parameters!.length !== 1 ? 's' : ''}`
+              ? t('bidDetail.paramCount', { count: c.parameters!.length })
               : undefined,
         }))}
         className="mb-4"
@@ -387,10 +388,10 @@ function ConventionPicker({
 
       <div className="flex gap-2">
         <Button variant="primary" disabled={!canLink} onClick={() => onAttach(convId, args)}>
-          Link
+          {t('bidDetail.link')}
         </Button>
         <Button variant="secondary" onClick={onCancel}>
-          Cancel
+          {t('common:action.cancel')}
         </Button>
       </div>
     </div>
