@@ -49,9 +49,7 @@ export function UserProfilePage() {
               <p className="mb-0 mt-1 font-ui text-[15px] text-fg-muted">@{profile.username}</p>
               <div className="mt-2 flex items-center gap-4 font-ui text-[13px] text-fg-muted">
                 <span>{t('profile.memberSince', { year: joinYear })}</span>
-                <span>
-                  {t('profile.publicSystemCount', { count: profile.publicSystemCount })}
-                </span>
+                <span>{t('profile.publicSystemCount', { count: profile.publicSystemCount })}</span>
               </div>
             </div>
 

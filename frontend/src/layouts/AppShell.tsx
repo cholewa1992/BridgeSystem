@@ -64,9 +64,7 @@ function LanguageSwitcher() {
             onClick={() => i18n.changeLanguage(lang)}
             className={
               'flex-1 rounded-sm px-2 py-1 font-ui text-[12px] font-medium transition-colors ' +
-              (current === lang
-                ? 'bg-accent text-white shadow-sm'
-                : 'text-fg-muted hover:text-fg')
+              (current === lang ? 'bg-accent text-white shadow-sm' : 'text-fg-muted hover:text-fg')
             }
           >
             {lang === 'da' ? 'Dansk' : 'English'}
@@ -160,10 +158,20 @@ function SidebarContent({ onNav }: { onNav: (route: string) => void }) {
               icon={User}
               label={user.displayName}
             />
-            <NavButton active={false} onClick={handleSignOut} icon={LogOut} label={t('nav.signOut')} />
+            <NavButton
+              active={false}
+              onClick={handleSignOut}
+              icon={LogOut}
+              label={t('nav.signOut')}
+            />
           </>
         ) : (
-          <NavButton active={false} onClick={() => onNav('/login')} icon={LogIn} label={t('nav.signIn')} />
+          <NavButton
+            active={false}
+            onClick={() => onNav('/login')}
+            icon={LogIn}
+            label={t('nav.signIn')}
+          />
         )}
       </div>
 

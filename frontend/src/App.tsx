@@ -65,7 +65,10 @@ function AppRoutes() {
         <Route path="/systems/:id/conventions" element={<Navigate to="/conventions" replace />} />
         <Route path="/gallery" element={<Navigate to="/" replace />} />
         <Route path="/users/:username" element={<UserProfilePage />} />
-        <Route path="/partners" element={<ComingSoonPage title={t('nav.partners')} icon={Users} />} />
+        <Route
+          path="/partners"
+          element={<ComingSoonPage title={t('nav.partners')} icon={Users} />}
+        />
         <Route path="/history" element={<ComingSoonPage title={t('nav.history')} icon={Clock} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

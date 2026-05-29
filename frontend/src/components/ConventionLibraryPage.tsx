@@ -103,7 +103,9 @@ export function ConventionLibraryPage() {
                 />
                 <div className="mt-1 flex gap-2">
                   <Button variant="primary" onClick={onCreate} disabled={createMut.isPending}>
-                    {createMut.isPending ? t('conventionList.creating') : t('conventionList.create')}
+                    {createMut.isPending
+                      ? t('conventionList.creating')
+                      : t('conventionList.create')}
                   </Button>
                   <Button
                     variant="secondary"
@@ -549,7 +551,9 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
               onClick={onToggleVisibility}
               loading={visibilityMut.isPending}
             >
-              {convention.isPublic ? t('conventionEditor.unpublish') : t('conventionEditor.publish')}
+              {convention.isPublic
+                ? t('conventionEditor.unpublish')
+                : t('conventionEditor.publish')}
             </Button>
           )}
           {convention.permission !== 'OWNER' && (

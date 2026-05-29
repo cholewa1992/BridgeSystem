@@ -47,9 +47,7 @@ export function ShareDialog({ systemId, onClose }: Props) {
             <h2 className="m-0 font-display text-[22px] font-semibold tracking-[-0.01em] text-fg">
               {t('share.title')}
             </h2>
-            <p className="mb-0 mt-1 font-ui text-[13px] text-fg-muted">
-              {t('share.subtitle')}
-            </p>
+            <p className="mb-0 mt-1 font-ui text-[13px] text-fg-muted">{t('share.subtitle')}</p>
           </div>
           <button
             onClick={onClose}
@@ -90,7 +88,9 @@ export function ShareDialog({ systemId, onClose }: Props) {
         {shares === undefined ? (
           <div className="text-[13px] text-fg-muted">{t('common:status.loading')}</div>
         ) : shares.length === 0 ? (
-          <div className="font-ui text-[13px] italic text-fg-muted">{t('share.noCollaborators')}</div>
+          <div className="font-ui text-[13px] italic text-fg-muted">
+            {t('share.noCollaborators')}
+          </div>
         ) : (
           <div className="flex flex-col overflow-hidden rounded-sm border border-border">
             {shares.map((s) => (
