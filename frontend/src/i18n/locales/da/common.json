@@ -10,12 +10,12 @@
     "signOut": "Log ud",
     "signIn": "Log ind",
     "openNavigation": "Åbn navigation",
-    "biddingTree": "Budtræ",
+    "biddingTree": "Meldetræ",
     "soon": "Snart"
   },
   "sort": {
     "newest": "Nyeste",
-    "mostLiked": "Mest populær"
+    "mostLiked": "Mest populære"
   },
   "tabs": {
     "systems": "Systemer",
@@ -32,7 +32,7 @@
     "fork": "Fork",
     "forking": "Forker…",
     "like": "Synes godt om",
-    "unlike": "Fjern like"
+    "unlike": "Fjern synes godt om"
   },
   "status": {
     "loading": "Indlæser…",
@@ -41,11 +41,11 @@
   "gallery": {
     "publicSystems": "Offentlige systemer",
     "publicConventions": "Offentlige konventioner",
-    "browseSystems": "Udforsk bud-systemer delt af fællesskabet.",
+    "browseSystems": "Udforsk meldesystemer delt af fællesskabet.",
     "browseConventions": "Udforsk konventioner delt af fællesskabet.",
-    "noPublicSystems": "Ingen offentlige systemer endnu — vær den første til at publicere et.",
-    "noPublicConventions": "Ingen offentlige konventioner endnu — vær den første til at publicere en.",
-    "mostLiked": "Mest populær"
+    "noPublicSystems": "Ingen offentlige systemer endnu — vær den første til at offentliggøre et.",
+    "noPublicConventions": "Ingen offentlige konventioner endnu — vær den første til at offentliggøre en.",
+    "mostLiked": "Mest populære"
   },
   "profile": {
     "memberSince": "Medlem siden {{year}}",
@@ -53,7 +53,7 @@
     "publicSystemCount_other": "{{count}} offentlige systemer",
     "publicSystems": "Offentlige systemer",
     "userNotFound": "Bruger ikke fundet.",
-    "noSystemsYet": "{{displayName}} har ikke publiceret nogen systemer endnu."
+    "noSystemsYet": "{{displayName}} har ikke offentliggjort nogen systemer endnu."
   },
   "language": {
     "da": "Dansk",

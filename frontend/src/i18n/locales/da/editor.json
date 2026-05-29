@@ -10,14 +10,14 @@
     "mySystems": "Mine systemer",
     "publicSystems": "Offentlige systemer",
     "noSystemsYet": "Ingen systemer endnu — opret ét for at begynde at dokumentere jeres aftaler.",
-    "noPublicSystems": "Ingen offentlige systemer endnu — vær den første til at publicere et."
+    "noPublicSystems": "Ingen offentlige systemer endnu — vær den første til at offentliggøre et."
   },
   "systemEditor": {
-    "biddingSequences": "Budsekvenser",
+    "biddingSequences": "Meldeforløb",
     "collapseAll": "Skjul alle",
     "expandAll": "Udvid alle",
-    "openingBid": "+ Åbningsbud",
-    "moveHereAsOpeningBid": "Flyt hertil som åbningsbud",
+    "openingBid": "+ Åbningsmelding",
+    "moveHereAsOpeningBid": "Flyt hertil som åbningsmelding",
     "backToList": "Tilbage til listen",
     "makePrivate": "Gør privat",
     "makePublic": "Gør offentlig",
@@ -26,13 +26,13 @@
     "clickToRename": "Klik for at omdøbe",
     "forkedFrom": "Forket fra \"{{name}}\" af",
     "deleteSystemConfirm": "Slet \"{{name}}\"? Dette kan ikke fortrydes.",
-    "deleteBidConfirm": "Slet dette bud og dets fortsættelser?"
+    "deleteBidConfirm": "Slet denne melding og dens fortsættelser?"
   },
   "saveIndicator": {
     "saving": "Gemmer…",
     "saved": "Gemt",
-    "unsavedChanges": "Ikke-gemte ændringer",
-    "saveFailed": "Gem mislykkedes",
+    "unsavedChanges": "Ugemte ændringer",
+    "saveFailed": "Kunne ikke gemme",
     "owner": "Ejer"
   },
   "conventionList": {
@@ -46,27 +46,27 @@
     "myConventions": "Mine konventioner",
     "publicConventions": "Offentlige konventioner",
     "noConventionsYet": "Ingen konventioner endnu — opret en for at komme i gang.",
-    "noPublicConventions": "Ingen offentlige konventioner endnu — vær den første til at publicere en.",
-    "paramCount_one": "{{count}} param",
-    "paramCount_other": "{{count}} params"
+    "noPublicConventions": "Ingen offentlige konventioner endnu — vær den første til at offentliggøre en.",
+    "paramCount_one": "{{count}} parameter",
+    "paramCount_other": "{{count}} parametre"
   },
   "conventionEditor": {
     "backToConventions": "← Konventioner",
     "clickToRename": "Klik for at omdøbe",
     "unpublish": "Afpublicér",
-    "publish": "Publicér",
-    "biddingSequences": "Budsekvenser",
-    "openingBid": "+ Åbningsbud",
-    "moveHereAsOpeningBid": "Flyt hertil som åbningsbud",
+    "publish": "Offentliggør",
+    "biddingSequences": "Meldeforløb",
+    "openingBid": "+ Åbningsmelding",
+    "moveHereAsOpeningBid": "Flyt hertil som åbningsmelding",
     "forkedFrom": "Forket fra \"{{name}}\"",
-    "deleteBidConfirm": "Slet dette bud og dets fortsættelser?"
+    "deleteBidConfirm": "Slet denne melding og dens fortsættelser?"
   },
   "parameterEditor": {
     "description": "Beskrivelse",
     "noDescription": "Ingen beskrivelse.",
     "descriptionPlaceholder": "Beskriv hvornår og hvordan denne konvention bruges…",
     "parameters": "Parametre",
-    "addParam": "+ Param",
+    "addParam": "+ Parameter",
     "noParameters": "Ingen parametre defineret.",
     "paramNamePlaceholder": "Navn",
     "paramDescPlaceholder": "Beskrivelse (valgfri)",
@@ -76,8 +76,8 @@
   },
   "bidDetail": {
     "interference": "Indblanding / modstander",
-    "alertable": "Alerterbart",
-    "noMeaning": "Ingen mening defineret",
+    "alertable": "Skal alerteres",
+    "noMeaning": "Ingen betydning defineret",
     "edit": "Rediger",
     "delete": "Slet",
     "definedInConvention": "Defineret i konvention",
@@ -91,9 +91,9 @@
     "link": "Tilknyt",
     "continuations": "Fortsættelser ({{count}})",
     "fromConvention": "(fra konvention)",
-    "selectPrompt": "Vælg et bud for at se dets detaljer, eller tilføj et åbningsbud for at komme i gang.",
-    "paramCount_one": "{{count}} param",
-    "paramCount_other": "{{count}} params"
+    "selectPrompt": "Vælg en melding for at se dens detaljer, eller tilføj en åbningsmelding for at komme i gang.",
+    "paramCount_one": "{{count}} parameter",
+    "paramCount_other": "{{count}} parametre"
   },
   "share": {
     "title": "Del dette system",
