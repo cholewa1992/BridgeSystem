@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { SystemSummary } from '../types';
 
 export interface SystemCardProps {
@@ -13,6 +14,7 @@ export interface SystemCardProps {
 }
 
 export function SystemCard({ system, showOwner, onLike, likeLoading, onClick }: SystemCardProps) {
+  const { t } = useTranslation('common');
   const heartFilled = system.likedByMe === true;
 
   return (
@@ -30,7 +32,7 @@ export function SystemCard({ system, showOwner, onLike, likeLoading, onClick }: 
           </h3>
           {system.isPublic && (
             <span className="rounded-full bg-accent-soft px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.05em] text-accent-ink">
-              Public
+              {t('tag.public')}
             </span>
           )}
         </div>
@@ -72,7 +74,7 @@ export function SystemCard({ system, showOwner, onLike, likeLoading, onClick }: 
               'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-ui text-[13px] transition-colors ' +
               (heartFilled ? 'text-suit-red' : 'text-fg-muted hover:text-suit-red')
             }
-            title={heartFilled ? 'Unlike' : 'Like'}
+            title={heartFilled ? t('action.unlike') : t('action.like')}
           >
             <span aria-hidden="true">{heartFilled ? '♥' : '♡'}</span>
             <span>{system.likeCount}</span>

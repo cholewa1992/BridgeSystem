@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useCreateSystem, usePublicSystems, useSystems, useToggleLike } from '../api/queries';
 import { Button, Card, Input, Label } from './ui';
 import { SystemCard } from './SystemCard';
@@ -9,6 +10,7 @@ type Sort = 'newest' | 'most_liked';
 
 export function SystemList() {
   const navigate = useNavigate();
+  const { t } = useTranslation(['editor', 'common']);
   const [sort, setSort] = useState<Sort>('newest');
 
   const { data: systems, error: loadError } = useSystems();
@@ -39,11 +41,11 @@ export function SystemList() {
       {/* Header */}
       <header className="flex items-center gap-3 border-b border-border bg-surface px-6 py-3">
         <h1 className="m-0 font-display text-lg font-semibold tracking-[-0.005em] text-fg">
-          Systems
+          {t('systemList.heading')}
         </h1>
         {!creating && (
           <Button variant="primary" className="ml-auto" onClick={() => setCreating(true)}>
-            New system
+            {t('systemList.newSystem')}
           </Button>
         )}
       </header>
@@ -59,22 +61,22 @@ export function SystemList() {
 
           {creating && (
             <Card className="mb-6 p-5">
-              <Label className="mb-3 block">New system</Label>
+              <Label className="mb-3 block">{t('systemList.newSystemLabel')}</Label>
               <div className="flex flex-col gap-2.5">
                 <Input
-                  placeholder="Name (e.g. 2/1 Game Force)"
+                  placeholder={t('systemList.namePlaceholder')}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   autoFocus
                 />
                 <Input
-                  placeholder="Description (optional)"
+                  placeholder={t('systemList.descriptionPlaceholder')}
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                 />
                 <div className="mt-1 flex gap-2">
                   <Button variant="primary" onClick={onCreate} disabled={createMut.isPending}>
-                    {createMut.isPending ? 'Creating…' : 'Create'}
+                    {createMut.isPending ? t('systemList.creating') : t('systemList.create')}
                   </Button>
                   <Button
                     variant="secondary"
@@ -84,7 +86,7 @@ export function SystemList() {
                       setNewDescription('');
                     }}
                   >
-                    Cancel
+                    {t('common:action.cancel')}
                   </Button>
                 </div>
               </div>
@@ -92,15 +94,13 @@ export function SystemList() {
           )}
 
           {/* My systems */}
-          <SectionHeading>My systems</SectionHeading>
+          <SectionHeading>{t('systemList.mySystems')}</SectionHeading>
           {systems === undefined ? (
-            <div className="text-[14px] text-fg-muted">Loading…</div>
+            <div className="text-[14px] text-fg-muted">{t('common:status.loading')}</div>
           ) : systems.length === 0 ? (
             <Card className="px-6 py-10 text-center text-fg-muted">
               <div className="mb-2.5 text-[32px] opacity-60">♣</div>
-              <p className="m-0 font-ui text-[15px]">
-                No systems yet — create one to start documenting your agreements.
-              </p>
+              <p className="m-0 font-ui text-[15px]">{t('systemList.noSystemsYet')}</p>
             </Card>
           ) : (
             <div className="flex flex-col gap-2.5">
@@ -115,9 +115,14 @@ export function SystemList() {
                       {s.name}
                     </h3>
                     <Tag tone={s.ownedByMe ? 'accent' : 'neutral'}>
-                      {s.ownedByMe ? 'Owner' : `Shared by ${s.ownerUsername} · ${s.permission}`}
+                      {s.ownedByMe
+                        ? t('common:tag.owner')
+                        : t('common:tag.sharedBy', {
+                            username: s.ownerUsername,
+                            permission: s.permission,
+                          })}
                     </Tag>
-                    {s.isPublic && <Tag tone="public">Public</Tag>}
+                    {s.isPublic && <Tag tone="public">{t('common:tag.public')}</Tag>}
                   </div>
                   {s.description && (
                     <p className="mb-0 mt-2 font-ui text-[14px] text-fg-body">{s.description}</p>
@@ -133,24 +138,22 @@ export function SystemList() {
 
           {/* Public systems */}
           <div className="mb-4 mt-10 flex items-center justify-between">
-            <SectionHeading>Public systems</SectionHeading>
+            <SectionHeading>{t('systemList.publicSystems')}</SectionHeading>
             <div className="flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
               <SortButton active={sort === 'newest'} onClick={() => setSort('newest')}>
-                Newest
+                {t('common:sort.newest')}
               </SortButton>
               <SortButton active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
-                Most liked
+                {t('common:sort.mostLiked')}
               </SortButton>
             </div>
           </div>
           {publicSystems === undefined ? (
-            <div className="text-[14px] text-fg-muted">Loading…</div>
+            <div className="text-[14px] text-fg-muted">{t('common:status.loading')}</div>
           ) : publicSystems.length === 0 ? (
             <Card className="px-6 py-10 text-center text-fg-muted">
               <div className="mb-2.5 text-[32px] opacity-60">♣</div>
-              <p className="m-0 font-ui text-[15px]">
-                No public systems yet — be the first to publish one.
-              </p>
+              <p className="m-0 font-ui text-[15px]">{t('systemList.noPublicSystems')}</p>
             </Card>
           ) : (
             <div className="flex flex-col gap-2.5">

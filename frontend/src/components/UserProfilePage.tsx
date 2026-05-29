@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useToggleLike, useUserProfile, useUserSystems } from '../api/queries';
 import { ApiError } from '../api/client';
@@ -10,6 +11,7 @@ export function UserProfilePage() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation('common');
   const { data: profile, error: profileError } = useUserProfile(username ?? '');
   const { data: systems } = useUserSystems(username ?? '');
 
@@ -22,7 +24,7 @@ export function UserProfilePage() {
           <Card className="px-6 py-10 text-center text-fg-muted">
             <div className="mb-2.5 text-[32px] opacity-60">♠</div>
             <p className="m-0 font-ui text-[15px]">
-              {is404 ? 'User not found.' : (profileError as Error).message}
+              {is404 ? t('profile.userNotFound') : (profileError as Error).message}
             </p>
           </Card>
         </main>
@@ -37,7 +39,7 @@ export function UserProfilePage() {
       <main className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[48px]">
         {/* Profile header section */}
         {profile === undefined ? (
-          <div className="text-[14px] text-fg-muted">Loading…</div>
+          <div className="text-[14px] text-fg-muted">{t('status.loading')}</div>
         ) : (
           <>
             <div className="mb-8">
@@ -46,25 +48,22 @@ export function UserProfilePage() {
               </h2>
               <p className="mb-0 mt-1 font-ui text-[15px] text-fg-muted">@{profile.username}</p>
               <div className="mt-2 flex items-center gap-4 font-ui text-[13px] text-fg-muted">
-                <span>Member since {joinYear}</span>
-                <span>
-                  {profile.publicSystemCount} public system
-                  {profile.publicSystemCount !== 1 ? 's' : ''}
-                </span>
+                <span>{t('profile.memberSince', { year: joinYear })}</span>
+                <span>{t('profile.publicSystemCount', { count: profile.publicSystemCount })}</span>
               </div>
             </div>
 
             <h3 className="mb-4 m-0 font-display text-[19px] font-semibold tracking-[-0.005em] text-fg">
-              Public systems
+              {t('profile.publicSystems')}
             </h3>
 
             {systems === undefined ? (
-              <div className="text-[14px] text-fg-muted">Loading…</div>
+              <div className="text-[14px] text-fg-muted">{t('status.loading')}</div>
             ) : systems.length === 0 ? (
               <Card className="px-6 py-10 text-center text-fg-muted">
                 <div className="mb-2.5 text-[32px] opacity-60">♣</div>
                 <p className="m-0 font-ui text-[15px]">
-                  {profile.displayName} hasn't published any systems yet.
+                  {t('profile.noSystemsYet', { displayName: profile.displayName })}
                 </p>
               </Card>
             ) : (

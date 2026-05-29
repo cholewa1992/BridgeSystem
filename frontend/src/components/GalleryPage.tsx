@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import {
   usePublicConventions,
@@ -18,6 +19,7 @@ type Tab = 'systems' | 'conventions';
 export function GalleryPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation('common');
   const [tab, setTab] = useState<Tab>('systems');
   const [sort, setSort] = useState<Sort>('newest');
   const { data: systems } = usePublicSystems(sort);
@@ -29,12 +31,10 @@ export function GalleryPage() {
         <div className="mb-7 flex items-end justify-between gap-4">
           <div>
             <h2 className="m-0 font-display text-[30px] font-semibold tracking-[-0.015em] text-fg">
-              {tab === 'systems' ? 'Public systems' : 'Public conventions'}
+              {tab === 'systems' ? t('gallery.publicSystems') : t('gallery.publicConventions')}
             </h2>
             <p className="mb-0 mt-1.5 font-ui text-[15px] text-fg-muted">
-              {tab === 'systems'
-                ? 'Browse bidding systems shared by the community.'
-                : 'Browse conventions shared by the community.'}
+              {tab === 'systems' ? t('gallery.browseSystems') : t('gallery.browseConventions')}
             </p>
           </div>
 
@@ -42,20 +42,20 @@ export function GalleryPage() {
             {/* Tab switcher */}
             <div className="flex items-center gap-1 rounded-md border border-border bg-surface p-1">
               <SortTab active={tab === 'systems'} onClick={() => setTab('systems')}>
-                Systems
+                {t('tabs.systems')}
               </SortTab>
               <SortTab active={tab === 'conventions'} onClick={() => setTab('conventions')}>
-                Conventions
+                {t('tabs.conventions')}
               </SortTab>
             </div>
 
             {/* Sort tabs */}
             <div className="flex items-center gap-1 rounded-md border border-border bg-surface p-1">
               <SortTab active={sort === 'newest'} onClick={() => setSort('newest')}>
-                Newest
+                {t('sort.newest')}
               </SortTab>
               <SortTab active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
-                Most Liked
+                {t('gallery.mostLiked')}
               </SortTab>
             </div>
           </div>
@@ -63,13 +63,11 @@ export function GalleryPage() {
 
         {tab === 'systems' ? (
           systems === undefined ? (
-            <div className="text-[14px] text-fg-muted">Loading…</div>
+            <div className="text-[14px] text-fg-muted">{t('status.loading')}</div>
           ) : systems.length === 0 ? (
             <Card className="px-6 py-10 text-center text-fg-muted">
               <div className="mb-2.5 text-[32px] opacity-60">♣</div>
-              <p className="m-0 font-ui text-[15px]">
-                No public systems yet — be the first to publish one.
-              </p>
+              <p className="m-0 font-ui text-[15px]">{t('gallery.noPublicSystems')}</p>
             </Card>
           ) : (
             <div className="flex flex-col gap-2.5">
@@ -85,13 +83,11 @@ export function GalleryPage() {
             </div>
           )
         ) : conventions === undefined ? (
-          <div className="text-[14px] text-fg-muted">Loading…</div>
+          <div className="text-[14px] text-fg-muted">{t('status.loading')}</div>
         ) : conventions.length === 0 ? (
           <Card className="px-6 py-10 text-center text-fg-muted">
             <div className="mb-2.5 text-[32px] opacity-60">♣</div>
-            <p className="m-0 font-ui text-[15px]">
-              No public conventions yet — be the first to publish one.
-            </p>
+            <p className="m-0 font-ui text-[15px]">{t('gallery.noPublicConventions')}</p>
           </Card>
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -178,6 +174,7 @@ function ConventionGalleryCard({
   onNavigateToConventions: () => void;
   isLoggedIn: boolean;
 }) {
+  const { t } = useTranslation('common');
   const likeMut = useToggleConventionLike(convention.id);
   const forkMut = useForkConvention();
   const heartFilled = convention.likedByMe === true;
@@ -215,7 +212,7 @@ function ConventionGalleryCard({
           </h3>
           {convention.isPublic && (
             <span className="rounded-full bg-accent-soft px-2 py-0.5 font-ui text-[11px] font-semibold uppercase tracking-[0.05em] text-accent-ink">
-              Public
+              {t('tag.public')}
             </span>
           )}
         </div>
@@ -250,7 +247,7 @@ function ConventionGalleryCard({
             'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-ui text-[13px] transition-colors ' +
             (heartFilled ? 'text-suit-red' : 'text-fg-muted hover:text-suit-red')
           }
-          title={heartFilled ? 'Unlike' : 'Like'}
+          title={heartFilled ? t('action.unlike') : t('action.like')}
         >
           <span aria-hidden="true">{heartFilled ? '♥' : '♡'}</span>
           <span>{convention.likeCount}</span>
@@ -262,7 +259,7 @@ function ConventionGalleryCard({
             disabled={forkMut.isPending}
             className="ml-auto rounded-sm border border-border px-2.5 py-1 font-ui text-[12px] text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
           >
-            Fork
+            {forkMut.isPending ? t('action.forking') : t('action.fork')}
           </button>
         )}
       </div>

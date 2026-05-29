@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { Alert, Button, Card, Field, Input } from './ui';
 import { BrandLockup } from './BrandLockup';
 
 export function LoginPage() {
   const { login, register } = useAuth();
+  const { t } = useTranslation('auth');
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -17,14 +19,14 @@ export function LoginPage() {
     try {
       if (mode === 'register') {
         if (!username.trim() || !displayName.trim()) {
-          throw new Error('Username and display name are required');
+          throw new Error(t('register.validationError'));
         }
         await register(username.trim(), displayName.trim());
       } else {
         await login(username.trim() || undefined);
       }
     } catch (e) {
-      setError((e as Error).message || 'Something went wrong');
+      setError((e as Error).message || t('error.generic'));
     } finally {
       setBusy(false);
     }
@@ -39,37 +41,35 @@ export function LoginPage() {
 
         <Card elevated className="px-9 pb-7 pt-9">
           <h1 className="m-0 font-display text-[28px] font-semibold tracking-[-0.015em] text-fg">
-            {mode === 'login' ? 'Welcome back' : 'Create your account'}
+            {mode === 'login' ? t('login.title') : t('register.title')}
           </h1>
           <p className="mb-7 mt-2 text-sm text-fg-muted">
-            {mode === 'login'
-              ? 'Sign in with your passkey to continue.'
-              : 'Set up a passkey — no passwords to remember.'}
+            {mode === 'login' ? t('login.subtitle') : t('register.subtitle')}
           </p>
 
           <div className="flex flex-col gap-3">
             {mode === 'register' && (
-              <Field label="Username">
+              <Field label={t('register.usernameLabel')}>
                 <Input
-                  placeholder="alice"
+                  placeholder={t('register.usernamePlaceholder')}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
               </Field>
             )}
             {mode === 'register' && (
-              <Field label="Display name">
+              <Field label={t('register.displayNameLabel')}>
                 <Input
-                  placeholder="Alice Chen"
+                  placeholder={t('register.displayNamePlaceholder')}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                 />
               </Field>
             )}
             {mode === 'login' && (
-              <Field label="Username" hint="Leave blank if your authenticator stores it">
+              <Field label={t('login.usernameLabel')} hint={t('login.usernameHint')}>
                 <Input
-                  placeholder="alice"
+                  placeholder={t('login.usernamePlaceholder')}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
@@ -82,7 +82,7 @@ export function LoginPage() {
               onClick={submit}
               className="mt-2 w-full justify-center px-[16px] py-[11px]"
             >
-              {mode === 'register' ? 'Create passkey' : 'Sign in with passkey'}
+              {mode === 'register' ? t('register.submitButton') : t('login.submitButton')}
             </Button>
 
             {error && <Alert>{error}</Alert>}
@@ -100,11 +100,13 @@ export function LoginPage() {
           >
             {mode === 'login' ? (
               <>
-                New here? <span className="ml-1 text-accent">Create an account</span>
+                {t('login.switchPrompt')}{' '}
+                <span className="ml-1 text-accent">{t('login.switchLink')}</span>
               </>
             ) : (
               <>
-                Already have a passkey? <span className="ml-1 text-accent">Sign in</span>
+                {t('register.switchPrompt')}{' '}
+                <span className="ml-1 text-accent">{t('register.switchLink')}</span>
               </>
             )}
           </Button>

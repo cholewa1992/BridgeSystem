@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { BidNode, ConventionDetail, ConventionParam, ConventionSummary } from '../types';
 import {
   useMyConventions,
@@ -37,6 +38,7 @@ type SaveState = 'idle' | 'saving' | 'dirty' | 'saved';
 
 export function ConventionLibraryPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation(['editor', 'common']);
   const [sort, setSort] = useState<'newest' | 'most_liked'>('newest');
 
   const { data: myConventions, error: loadError } = useMyConventions();
@@ -66,11 +68,11 @@ export function ConventionLibraryPage() {
     <div className="flex h-full flex-col bg-bg">
       <header className="flex items-center gap-3 border-b border-border bg-surface px-6 py-3">
         <h1 className="m-0 font-display text-lg font-semibold tracking-[-0.005em] text-fg">
-          Conventions
+          {t('conventionList.heading')}
         </h1>
         {!creating && (
           <Button variant="primary" className="ml-auto" onClick={() => setCreating(true)}>
-            New convention
+            {t('conventionList.newConvention')}
           </Button>
         )}
       </header>
@@ -85,23 +87,25 @@ export function ConventionLibraryPage() {
 
           {creating && (
             <div className="mb-6 rounded-md border border-border bg-surface p-5 shadow-sm">
-              <Label className="mb-3 block">New convention</Label>
+              <Label className="mb-3 block">{t('conventionList.newConventionLabel')}</Label>
               <div className="flex flex-col gap-2.5">
                 <Input
-                  placeholder="Name (e.g. Stayman)"
+                  placeholder={t('conventionList.namePlaceholder')}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && onCreate()}
                   autoFocus
                 />
                 <Input
-                  placeholder="Description (optional)"
+                  placeholder={t('conventionList.descriptionPlaceholder')}
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
                 />
                 <div className="mt-1 flex gap-2">
                   <Button variant="primary" onClick={onCreate} disabled={createMut.isPending}>
-                    {createMut.isPending ? 'Creating…' : 'Create'}
+                    {createMut.isPending
+                      ? t('conventionList.creating')
+                      : t('conventionList.create')}
                   </Button>
                   <Button
                     variant="secondary"
@@ -111,7 +115,7 @@ export function ConventionLibraryPage() {
                       setNewDesc('');
                     }}
                   >
-                    Cancel
+                    {t('common:action.cancel')}
                   </Button>
                 </div>
               </div>
@@ -119,15 +123,13 @@ export function ConventionLibraryPage() {
           )}
 
           {/* My conventions */}
-          <ConvSectionHeading>My conventions</ConvSectionHeading>
+          <ConvSectionHeading>{t('conventionList.myConventions')}</ConvSectionHeading>
           {myConventions === undefined ? (
-            <div className="text-[14px] text-fg-muted">Loading…</div>
+            <div className="text-[14px] text-fg-muted">{t('common:status.loading')}</div>
           ) : myConventions.length === 0 ? (
             <div className="rounded-md border border-border bg-surface px-6 py-10 text-center text-fg-muted">
               <div className="mb-2.5 text-[32px] opacity-60">♣</div>
-              <p className="m-0 font-ui text-[15px]">
-                No conventions yet — create one to get started.
-              </p>
+              <p className="m-0 font-ui text-[15px]">{t('conventionList.noConventionsYet')}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
@@ -143,24 +145,22 @@ export function ConventionLibraryPage() {
 
           {/* Public conventions */}
           <div className="mb-4 mt-10 flex items-center justify-between">
-            <ConvSectionHeading>Public conventions</ConvSectionHeading>
+            <ConvSectionHeading>{t('conventionList.publicConventions')}</ConvSectionHeading>
             <div className="flex items-center gap-1 rounded-md border border-border bg-surface-2 p-1">
               <ConvSortButton active={sort === 'newest'} onClick={() => setSort('newest')}>
-                Newest
+                {t('common:sort.newest')}
               </ConvSortButton>
               <ConvSortButton active={sort === 'most_liked'} onClick={() => setSort('most_liked')}>
-                Most liked
+                {t('common:sort.mostLiked')}
               </ConvSortButton>
             </div>
           </div>
           {publicConventions === undefined ? (
-            <div className="text-[14px] text-fg-muted">Loading…</div>
+            <div className="text-[14px] text-fg-muted">{t('common:status.loading')}</div>
           ) : publicConventions.length === 0 ? (
             <div className="rounded-md border border-border bg-surface px-6 py-10 text-center text-fg-muted">
               <div className="mb-2.5 text-[32px] opacity-60">♣</div>
-              <p className="m-0 font-ui text-[15px]">
-                No public conventions yet — be the first to publish one.
-              </p>
+              <p className="m-0 font-ui text-[15px]">{t('conventionList.noPublicConventions')}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2.5">
@@ -184,6 +184,7 @@ function MyConventionCard({
   convention: ConventionDetail;
   onClick: () => void;
 }) {
+  const { t } = useTranslation(['editor', 'common']);
   return (
     <button
       onClick={onClick}
@@ -195,10 +196,13 @@ function MyConventionCard({
         </h3>
         <ConvTag tone={convention.ownedByMe ? 'accent' : 'neutral'}>
           {convention.ownedByMe
-            ? 'Owner'
-            : `Shared by ${convention.ownerUsername} · ${convention.permission}`}
+            ? t('common:tag.owner')
+            : t('common:tag.sharedBy', {
+                username: convention.ownerUsername,
+                permission: convention.permission,
+              })}
         </ConvTag>
-        {convention.isPublic && <ConvTag tone="accent">Public</ConvTag>}
+        {convention.isPublic && <ConvTag tone="accent">{t('common:tag.public')}</ConvTag>}
       </div>
       {convention.description && (
         <p className="mb-0 mt-2 font-ui text-[14px] text-fg-body">{convention.description}</p>
@@ -207,9 +211,7 @@ function MyConventionCard({
         <span>♥ {convention.likeCount}</span>
         <span>⑂ {convention.forkCount}</span>
         {convention.parameters.length > 0 && (
-          <span>
-            {convention.parameters.length} param{convention.parameters.length !== 1 ? 's' : ''}
-          </span>
+          <span>{t('conventionList.paramCount', { count: convention.parameters.length })}</span>
         )}
       </div>
     </button>
@@ -219,6 +221,7 @@ function MyConventionCard({
 // ── PublicConventionCard ───────────────────────────────────────────────────
 
 function PublicConventionCard({ convention }: { convention: ConventionSummary }) {
+  const { t } = useTranslation(['editor', 'common']);
   const forkMut = useForkConvention();
   const likeMut = useToggleConventionLike(convention.id);
   const heartFilled = convention.likedByMe === true;
@@ -234,7 +237,7 @@ function PublicConventionCard({ convention }: { convention: ConventionSummary })
         by <span className="font-medium">@{convention.ownerUsername}</span>
         {convention.paramCount > 0 && (
           <span className="ml-2 text-fg-subtle">
-            · {convention.paramCount} param{convention.paramCount !== 1 ? 's' : ''}
+            · {t('conventionList.paramCount', { count: convention.paramCount })}
           </span>
         )}
       </p>
@@ -262,7 +265,7 @@ function PublicConventionCard({ convention }: { convention: ConventionSummary })
             disabled={forkMut.isPending}
             className="ml-auto rounded-sm border border-border px-2.5 py-1 font-ui text-[12px] text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
           >
-            {forkMut.isPending ? 'Forking…' : 'Fork'}
+            {forkMut.isPending ? t('common:action.forking') : t('common:action.fork')}
           </button>
         )}
       </div>
@@ -316,6 +319,7 @@ function ConvTag({ tone, children }: { tone: 'accent' | 'neutral'; children: Rea
 // ── ConventionEditor ───────────────────────────────────────────────────────
 
 export function ConventionEditor({ convention }: { convention: ConventionDetail }) {
+  const { t } = useTranslation(['editor', 'common']);
   const updateMut = useUpdateConvention(convention.id);
   const visibilityMut = useUpdateConventionVisibility(convention.id);
   const forkMut = useForkConvention();
@@ -372,15 +376,15 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
   // Debounced auto-save
   useEffect(() => {
     if (!dirty) return;
-    const t = window.setTimeout(() => persist(), 800);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => persist(), 800);
+    return () => window.clearTimeout(timer);
   }, [dirty, persist]);
 
   // Flash "Saved"
   useEffect(() => {
     if (!justSaved) return;
-    const t = window.setTimeout(() => setJustSaved(false), 1500);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setJustSaved(false), 1500);
+    return () => window.clearTimeout(timer);
   }, [justSaved]);
 
   // ── Derived ────────────────────────────────────────────────────────────
@@ -466,7 +470,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
 
   const deleteSelected = () => {
     if (!selected) return;
-    if (!confirm('Delete this bid and its continuations?')) return;
+    if (!confirm(t('conventionEditor.deleteBidConfirm'))) return;
     setRoot(treeDelete(root, selected));
     setSelected(null);
     setEditing(false);
@@ -513,7 +517,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
           onClick={() => navigate('/conventions')}
           className="shrink-0 font-ui text-[13px] text-fg-muted hover:text-fg"
         >
-          ← Conventions
+          {t('conventionEditor.backToConventions')}
         </button>
         <span className="text-border">|</span>
         {editingName && !readOnly ? (
@@ -532,7 +536,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
               'm-0 font-display text-base font-semibold tracking-[-0.005em] text-fg',
               readOnly ? 'cursor-default' : 'cursor-pointer',
             )}
-            title={readOnly ? '' : 'Click to rename'}
+            title={readOnly ? '' : t('conventionEditor.clickToRename')}
           >
             {convName}
           </h2>
@@ -547,12 +551,14 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
               onClick={onToggleVisibility}
               loading={visibilityMut.isPending}
             >
-              {convention.isPublic ? 'Unpublish' : 'Publish'}
+              {convention.isPublic
+                ? t('conventionEditor.unpublish')
+                : t('conventionEditor.publish')}
             </Button>
           )}
           {convention.permission !== 'OWNER' && (
             <Button variant="secondary" small onClick={onFork} loading={forkMut.isPending}>
-              Fork
+              {forkMut.isPending ? t('common:action.forking') : t('common:action.fork')}
             </Button>
           )}
         </div>
@@ -563,10 +569,10 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
         {/* Bid tree pane */}
         <div className="w-[420px] shrink-0 overflow-y-auto border-r border-border bg-surface px-[18px] py-5">
           <div className="mb-3">
-            <Label>Description</Label>
+            <Label>{t('parameterEditor.description')}</Label>
             {readOnly ? (
               <p className="mt-1 font-ui text-[13px] text-fg-muted">
-                {convDesc || <em>No description.</em>}
+                {convDesc || <em>{t('parameterEditor.noDescription')}</em>}
               </p>
             ) : (
               <Textarea
@@ -575,7 +581,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
                   setConvDesc(e.target.value);
                   markDirty();
                 }}
-                placeholder="Describe when and how to use this convention…"
+                placeholder={t('parameterEditor.descriptionPlaceholder')}
                 rows={2}
                 className="mt-1 w-full"
               />
@@ -592,10 +598,10 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
           />
 
           <div className="mb-[14px] mt-4 flex items-center justify-between">
-            <Label>Bidding sequences</Label>
+            <Label>{t('conventionEditor.biddingSequences')}</Label>
             {!readOnly && addingTo !== ROOT_ID && (
               <Button variant="secondary" small onClick={() => setAddingTo(ROOT_ID)}>
-                + Opening bid
+                {t('conventionEditor.openingBid')}
               </Button>
             )}
           </div>
@@ -621,7 +627,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
                   : 'border-border-strong bg-transparent',
               )}
             >
-              Move here as opening bid
+              {t('conventionEditor.moveHereAsOpeningBid')}
             </div>
           )}
 
@@ -655,8 +661,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
           <div className="max-w-[760px]">
             {convention.forkedFrom && (
               <div className="mb-4 rounded-sm border border-border bg-surface-sunken px-3 py-2 font-ui text-[13px] text-fg-muted">
-                Forked from{' '}
-                <span className="font-medium text-fg">"{convention.forkedFrom.name}"</span>
+                {t('conventionEditor.forkedFrom', { name: convention.forkedFrom.name })}
               </div>
             )}
             <BidDetailPanel
@@ -696,6 +701,8 @@ function ParameterEditor({
   readOnly: boolean;
   onChange: (params: ConventionParam[]) => void;
 }) {
+  const { t } = useTranslation('editor');
+
   const addParam = () => {
     onChange([...parameters, { id: newId(), name: '', description: '', defaultValue: '' }]);
   };
@@ -712,15 +719,15 @@ function ParameterEditor({
   return (
     <div className="mb-3">
       <div className="mb-1 flex items-center justify-between">
-        <Label>Parameters</Label>
+        <Label>{t('parameterEditor.parameters')}</Label>
         {!readOnly && (
           <Button variant="secondary" small onClick={addParam}>
-            + Param
+            {t('parameterEditor.addParam')}
           </Button>
         )}
       </div>
       {parameters.length === 0 ? (
-        <p className="font-ui text-[12px] text-fg-muted">No parameters defined.</p>
+        <p className="font-ui text-[12px] text-fg-muted">{t('parameterEditor.noParameters')}</p>
       ) : (
         <div className="flex flex-col gap-2">
           {parameters.map((param, i) => (
@@ -735,7 +742,7 @@ function ParameterEditor({
                   )}
                   {param.defaultValue && (
                     <div className="mt-0.5 font-ui text-[12px] text-fg-muted">
-                      Default: {param.defaultValue}
+                      {t('parameterEditor.paramDefault', { value: param.defaultValue })}
                     </div>
                   )}
                 </div>
@@ -743,7 +750,7 @@ function ParameterEditor({
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-2">
                     <Input
-                      placeholder="Name"
+                      placeholder={t('parameterEditor.paramNamePlaceholder')}
                       value={param.name}
                       onChange={(e) => updateParam(i, { name: e.target.value })}
                       className="flex-1 text-[12px]"
@@ -751,19 +758,19 @@ function ParameterEditor({
                     <button
                       onClick={() => removeParam(i)}
                       className="shrink-0 rounded-sm p-0.5 text-[12px] text-fg-muted hover:text-danger"
-                      title="Remove parameter"
+                      title={t('parameterEditor.removeParameter')}
                     >
                       ✕
                     </button>
                   </div>
                   <Input
-                    placeholder="Description (optional)"
+                    placeholder={t('parameterEditor.paramDescPlaceholder')}
                     value={param.description ?? ''}
                     onChange={(e) => updateParam(i, { description: e.target.value })}
                     className="text-[12px]"
                   />
                   <Input
-                    placeholder="Default value (optional)"
+                    placeholder={t('parameterEditor.paramDefaultPlaceholder')}
                     value={param.defaultValue ?? ''}
                     onChange={(e) => updateParam(i, { defaultValue: e.target.value })}
                     className="text-[12px]"
@@ -787,20 +794,21 @@ function ConventionSaveIndicator({
   state: SaveState;
   permission: ConventionDetail['permission'];
 }) {
+  const { t } = useTranslation('editor');
   let text: string;
   let colorClass: string;
 
   if (state === 'saving') {
-    text = 'Saving…';
+    text = t('saveIndicator.saving');
     colorClass = 'text-accent';
   } else if (state === 'saved') {
-    text = 'Saved';
+    text = t('saveIndicator.saved');
     colorClass = 'text-success';
   } else if (state === 'dirty') {
-    text = 'Unsaved changes';
+    text = t('saveIndicator.unsavedChanges');
     colorClass = 'text-accent';
   } else {
-    text = permission === 'OWNER' ? 'Owner' : permission;
+    text = permission === 'OWNER' ? t('saveIndicator.owner') : permission;
     colorClass = 'text-fg-muted';
   }
 

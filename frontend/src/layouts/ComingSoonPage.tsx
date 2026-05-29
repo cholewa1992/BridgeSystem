@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import type { LucideIcon } from 'lucide-react';
 
 export function ComingSoonPage({ title, icon: Icon }: { title: string; icon: LucideIcon }) {
+  const { t } = useTranslation('common');
   return (
     <div className="min-h-screen bg-bg p-12 text-center">
       <div className="mx-auto max-w-sm">
@@ -8,7 +10,7 @@ export function ComingSoonPage({ title, icon: Icon }: { title: string; icon: Luc
           <Icon size={48} />
         </div>
         <h2 className="mb-2 font-display text-[24px] text-fg">{title}</h2>
-        <p className="font-ui text-[15px] text-fg-muted">This feature is coming soon.</p>
+        <p className="font-ui text-[15px] text-fg-muted">{t('status.comingSoon')}</p>
       </div>
     </div>
   );
