@@ -500,6 +500,7 @@ export function SystemEditor() {
               onSubmitEdit={submitEdit}
               onDelete={deleteSelected}
               onSelect={select}
+              onSelectConventionChild={selectConventionChild}
               systemId={detail.id}
               conventions={myConventions}
               onAttachConvention={handleAttachConvention}

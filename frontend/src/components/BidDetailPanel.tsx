@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { BidNode, ConventionDef } from '../types';
 import type { ChainContext } from '../tree';
-import { resolveConventionChildren } from '../tree';
+import { resolveConventionChildren, findConvention, findNode } from '../tree';
 import { Button, Card, Input, Label, Select } from './ui';
 import { BidForm, type BidFormData } from './BidForm';
 import { BidLabel } from './BidLabel';
@@ -39,6 +39,8 @@ interface Props {
   onDetachConvention?: (convId: string) => void;
   /** Called when the user clicks "Edit in Convention Library". */
   onOpenConventionLibrary?: () => void;
+  /** Called when the user clicks a bid that is a convention child. */
+  onSelectConventionChild?: (node: BidNode, convRefId: string) => void;
   /** When set, this node was resolved from a convention — show read-only convention banner. */
   fromConventionRef?: string;
   /** Called on mobile when the user wants to navigate back to the tree pane. */
@@ -325,21 +327,31 @@ export function BidDetailPanel(props: Props) {
               </Label>
               <div className="flex flex-wrap gap-1.5">
                 {(attachedConventions.length > 0 ? effectiveChildren : selected.children).map(
-                  (c) => (
-                    <button
-                      key={c.id}
-                      onClick={() => !attachedConventions.length && props.onSelect(c.id)}
-                      disabled={attachedConventions.length > 0}
-                      className={
-                        attachedConventions.length > 0
-                          ? 'cursor-default rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold opacity-60'
-                          : 'cursor-pointer rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold'
-                      }
-                      title={c.meaning}
-                    >
-                      <BidLabel bids={c.bids} byOpponent={c.byOpponent} />
-                    </button>
-                  ),
+                  (c) => {
+                    const isConvChild = attachedConventions.length > 0;
+                    const handleClick = isConvChild
+                      ? () => {
+                          const owningRef = selected.conventionRefs?.find((r) => {
+                            const conv = findConvention(conventions, r.id);
+                            return conv && findNode(conv.root, c.id) !== null;
+                          });
+                          props.onSelectConventionChild?.(
+                            c,
+                            owningRef?.id ?? selected.conventionRefs?.[0]?.id ?? '',
+                          );
+                        }
+                      : () => props.onSelect(c.id);
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={handleClick}
+                        className="cursor-pointer rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold hover:bg-surface-hover"
+                        title={c.meaning}
+                      >
+                        <BidLabel bids={c.bids} byOpponent={c.byOpponent} />
+                      </button>
+                    );
+                  },
                 )}
               </div>
             </div>
