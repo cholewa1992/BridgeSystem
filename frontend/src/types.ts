@@ -1,3 +1,8 @@
+export interface ConventionRef {
+  id: string;
+  args?: Record<string, string>;
+}
+
 export interface BidNode {
   id: string;
   /**
@@ -12,15 +17,11 @@ export interface BidNode {
   byOpponent?: boolean;
   alerted?: boolean;
   /**
-   * If set, this node's children are resolved from the matching ConventionDef
+   * If set, this node's children are resolved from the matching ConventionDefs
    * rather than from the stored `children` array (which will be `[]`).
+   * Multiple conventions can be attached; their children are merged in order.
    */
-  conventionRef?: string;
-  /**
-   * Parameter values for the referenced convention, keyed by ConventionParam.name.
-   * Used to substitute `{{paramName}}` placeholders in the convention's subtree.
-   */
-  conventionArgs?: Record<string, string>;
+  conventionRefs?: ConventionRef[];
   children: BidNode[];
 }
 

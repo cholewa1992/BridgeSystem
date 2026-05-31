@@ -35,8 +35,8 @@ interface Props {
   conventions?: ConventionDef[];
   /** Called when the user attaches a convention to the selected node. */
   onAttachConvention?: (convId: string, args: Record<string, string>) => void;
-  /** Called when the user detaches the convention from the selected node. */
-  onDetachConvention?: () => void;
+  /** Called when the user detaches a convention from the selected node. */
+  onDetachConvention?: (convId: string) => void;
   /** Called when the user clicks "Edit in Convention Library". */
   onOpenConventionLibrary?: () => void;
   /** When set, this node was resolved from a convention — show read-only convention banner. */
@@ -63,9 +63,9 @@ export function BidDetailPanel(props: Props) {
   }
 
   const isOpp = !!selected.byOpponent;
-  const attachedConvention = selected.conventionRef
-    ? conventions.find((c) => c.id === selected.conventionRef)
-    : undefined;
+  const attachedConventions = (selected.conventionRefs ?? [])
+    .map((ref) => conventions.find((c) => c.id === ref.id))
+    .filter((c): c is ConventionDef => c !== undefined);
   const effectiveChildren = resolveConventionChildren(selected, conventions);
 
   return (
@@ -173,69 +173,86 @@ export function BidDetailPanel(props: Props) {
           {/* Add child / convention section */}
           {!props.readOnly && !fromConvention && (
             <div className="mb-8">
-              {attachedConvention ? (
-                /* ── Convention attached ── */
-                <div className="rounded-md border border-border bg-surface-sunken px-4 py-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <div>
-                      <span className="font-ui text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
-                        {t('bidDetail.convention')}
-                      </span>
-                      <div className="mt-0.5 font-display text-[15px] font-semibold text-fg">
-                        {attachedConvention.name}
-                      </div>
-                      {attachedConvention.description && (
-                        <div className="mt-0.5 font-ui text-[12px] text-fg-muted">
-                          {attachedConvention.description}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 gap-1.5">
-                      {props.onOpenConventionLibrary && (
-                        <Button variant="secondary" small onClick={props.onOpenConventionLibrary}>
-                          {t('bidDetail.editConvention')}
-                        </Button>
-                      )}
-                      <Button variant="danger" small onClick={props.onDetachConvention}>
-                        {t('bidDetail.detach')}
-                      </Button>
-                    </div>
-                  </div>
-                  {/* Show current param values if any */}
-                  {(attachedConvention.parameters?.length ?? 0) > 0 && (
-                    <div className="mt-3 border-t border-border pt-3">
-                      <p className="mb-2 font-ui text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
-                        {t('bidDetail.parameters')}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {attachedConvention.parameters!.map((p) => {
-                          const val = selected.conventionArgs?.[p.name] ?? p.defaultValue ?? '—';
-                          const suitColor =
-                            val === '♥' || val === '♦'
-                              ? 'var(--suit-red)'
-                              : val === '♠' || val === '♣'
-                                ? 'var(--suit-black)'
-                                : undefined;
-                          return (
-                            <div
-                              key={p.name}
-                              className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5"
-                            >
-                              <span className="font-ui text-[11px] text-fg-muted">{p.label}</span>
-                              <span
-                                className="font-display text-[15px] font-semibold leading-none"
-                                style={{ color: suitColor ?? 'var(--fg)' }}
-                              >
-                                {val}
-                              </span>
+              {/* List of attached conventions */}
+              {attachedConventions.length > 0 && (
+                <div className="mb-3 flex flex-col gap-2">
+                  {attachedConventions.map((conv) => {
+                    const ref = selected.conventionRefs!.find((r) => r.id === conv.id);
+                    return (
+                      <div
+                        key={conv.id}
+                        className="rounded-md border border-border bg-surface-sunken px-4 py-3"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <span className="font-ui text-[11px] font-semibold uppercase tracking-[0.06em] text-fg-muted">
+                              {t('bidDetail.convention')}
+                            </span>
+                            <div className="mt-0.5 font-display text-[15px] font-semibold text-fg">
+                              {conv.name}
                             </div>
-                          );
-                        })}
+                            {conv.description && (
+                              <div className="mt-0.5 font-ui text-[12px] text-fg-muted">
+                                {conv.description}
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 gap-1.5">
+                            {props.onOpenConventionLibrary && (
+                              <Button variant="secondary" small onClick={props.onOpenConventionLibrary}>
+                                {t('bidDetail.editConvention')}
+                              </Button>
+                            )}
+                            <Button
+                              variant="danger"
+                              small
+                              onClick={() => props.onDetachConvention?.(conv.id)}
+                            >
+                              {t('bidDetail.detach')}
+                            </Button>
+                          </div>
+                        </div>
+                        {/* Show current param values if any */}
+                        {(conv.parameters?.length ?? 0) > 0 && (
+                          <div className="mt-3 border-t border-border pt-3">
+                            <p className="mb-2 font-ui text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
+                              {t('bidDetail.parameters')}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {conv.parameters!.map((p) => {
+                                const val = ref?.args?.[p.name] ?? p.defaultValue ?? '—';
+                                const suitColor =
+                                  val === '♥' || val === '♦'
+                                    ? 'var(--suit-red)'
+                                    : val === '♠' || val === '♣'
+                                      ? 'var(--suit-black)'
+                                      : undefined;
+                                return (
+                                  <div
+                                    key={p.name}
+                                    className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5"
+                                  >
+                                    <span className="font-ui text-[11px] text-fg-muted">{p.label}</span>
+                                    <span
+                                      className="font-display text-[15px] font-semibold leading-none"
+                                      style={{ color: suitColor ?? 'var(--fg)' }}
+                                    >
+                                      {val}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-              ) : props.addingTo === selected.id && props.addChain ? (
+              )}
+
+              {/* Bid form OR convention picker OR action buttons */}
+              {props.addingTo === selected.id && props.addChain ? (
                 /* ── BidForm open ── */
                 <BidForm
                   mode="add"
@@ -256,9 +273,11 @@ export function BidDetailPanel(props: Props) {
               ) : (
                 /* ── Default: add / link buttons ── */
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" onClick={props.onRequestAdd}>
-                    {t('bidDetail.addContinuation')}
-                  </Button>
+                  {attachedConventions.length === 0 && (
+                    <Button variant="secondary" onClick={props.onRequestAdd}>
+                      {t('bidDetail.addContinuation')}
+                    </Button>
+                  )}
                   {conventions.length > 0 && (
                     <Button
                       variant="secondary"
@@ -280,20 +299,20 @@ export function BidDetailPanel(props: Props) {
             <div>
               <Label className="mb-2.5 block">
                 {t('bidDetail.continuations', { count: effectiveChildren.length })}
-                {attachedConvention && (
+                {attachedConventions.length > 0 && (
                   <span className="ml-1.5 font-normal text-fg-muted">
                     {t('bidDetail.fromConvention')}
                   </span>
                 )}
               </Label>
               <div className="flex flex-wrap gap-1.5">
-                {(attachedConvention ? effectiveChildren : selected.children).map((c) => (
+                {(attachedConventions.length > 0 ? effectiveChildren : selected.children).map((c) => (
                   <button
                     key={c.id}
-                    onClick={() => !attachedConvention && props.onSelect(c.id)}
-                    disabled={!!attachedConvention}
+                    onClick={() => !attachedConventions.length && props.onSelect(c.id)}
+                    disabled={attachedConventions.length > 0}
                     className={
-                      attachedConvention
+                      attachedConventions.length > 0
                         ? 'cursor-default rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold opacity-60'
                         : 'cursor-pointer rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold'
                     }

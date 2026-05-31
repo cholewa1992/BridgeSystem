@@ -399,7 +399,7 @@ describe('rootFromTree / treeFromRoot', () => {
     expect(tree.children[0].alerted).toBe(true);
   });
 
-  it('migrateNode preserves conventionRef and conventionArgs', () => {
+  it('migrateNode migrates old conventionRef/conventionArgs to conventionRefs', () => {
     const raw = {
       id: 't-conv',
       bids: ['4NT'],
@@ -410,8 +410,7 @@ describe('rootFromTree / treeFromRoot', () => {
     } as unknown as BidNode;
     const tree = rootFromTree({ children: [raw] });
     const node = tree.children[0];
-    expect(node.conventionRef).toBe('c1');
-    expect(node.conventionArgs).toEqual({ agreedSuit: '♠' });
+    expect(node.conventionRefs).toEqual([{ id: 'c1', args: { agreedSuit: '♠' } }]);
   });
 });
 
@@ -479,20 +478,18 @@ describe('resolveConventionChildren', () => {
   it('returns convention children when ref is set', () => {
     const convChild = n(['5♣'], [], { id: 'cc1', meaning: '1 or 4 KC' });
     const conv = makeConvention('rkcb', [convChild]);
-    const node = n(['4NT'], [], { id: 'p1' });
-    (node as BidNode & { conventionRef: string }).conventionRef = 'rkcb';
+    const node: BidNode = { ...n(['4NT'], [], { id: 'p1' }), conventionRefs: [{ id: 'rkcb' }] };
     const resolved = resolveConventionChildren(node, [conv]);
     expect(resolved).toHaveLength(1);
     expect(resolved[0].meaning).toBe('1 or 4 KC');
   });
 
-  it('applies param substitution when conventionArgs are present', () => {
+  it('applies param substitution when args are present', () => {
     const convChild = n(['5♣'], [], { id: 'cc1', meaning: '1 or 4 KC in {{suit}}' });
     const conv = makeConvention('rkcb', [convChild]);
     const node: BidNode = {
       ...n(['4NT'], [], { id: 'p1' }),
-      conventionRef: 'rkcb',
-      conventionArgs: { suit: '♠' },
+      conventionRefs: [{ id: 'rkcb', args: { suit: '♠' } }],
     };
     const resolved = resolveConventionChildren(node, [conv]);
     expect(resolved[0].meaning).toBe('1 or 4 KC in ♠');
@@ -500,8 +497,23 @@ describe('resolveConventionChildren', () => {
 
   it('falls back to stored children when convention is not found', () => {
     const child = n(['5♣'], [], { id: 'c1' });
-    const node: BidNode = { ...n(['4NT'], [child], { id: 'p1' }), conventionRef: 'missing' };
+    const node: BidNode = { ...n(['4NT'], [child], { id: 'p1' }), conventionRefs: [{ id: 'missing' }] };
     expect(resolveConventionChildren(node, [])).toEqual([child]);
+  });
+
+  it('merges children from multiple conventions', () => {
+    const child1 = n(['5♣'], [], { id: 'cc1', meaning: 'Conv1 response' });
+    const child2 = n(['5♦'], [], { id: 'cc2', meaning: 'Conv2 response' });
+    const conv1 = makeConvention('c1', [child1]);
+    const conv2 = makeConvention('c2', [child2]);
+    const node: BidNode = {
+      ...n(['4NT'], [], { id: 'p1' }),
+      conventionRefs: [{ id: 'c1' }, { id: 'c2' }],
+    };
+    const resolved = resolveConventionChildren(node, [conv1, conv2]);
+    expect(resolved).toHaveLength(2);
+    expect(resolved[0].meaning).toBe('Conv1 response');
+    expect(resolved[1].meaning).toBe('Conv2 response');
   });
 });
 
@@ -510,7 +522,7 @@ describe('canDropNode convention guard', () => {
     const convChild = n(['5♣'], [], { id: 'cc' });
     const conv = makeConvention('rkcb', [convChild]);
     // 4NT node has a convention ref — its children are from the convention.
-    const fourNT: BidNode = { ...n(['4NT'], [], { id: 'n4nt' }), conventionRef: 'rkcb' };
+    const fourNT: BidNode = { ...n(['4NT'], [], { id: 'n4nt' }), conventionRefs: [{ id: 'rkcb' }] };
     const fiveSpade = n(['5♠'], [], { id: 'n5s' });
     const r = root([fourNT, fiveSpade]);
     // Dropping 5♠ under 4NT should be disallowed (convention owns its children).

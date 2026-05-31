@@ -231,21 +231,19 @@ export function SystemEditor() {
     setRoot(
       updateNode(root, selected, (n) => ({
         ...n,
-        conventionRef: convId,
-        conventionArgs: Object.keys(args).length > 0 ? args : undefined,
-        children: [], // stored children cleared; effective children come from convention
+        conventionRefs: [...(n.conventionRefs ?? []), { id: convId, args: Object.keys(args).length > 0 ? args : undefined }],
+        children: [],
       })),
     );
     markDirty();
   };
 
-  const handleDetachConvention = () => {
+  const handleDetachConvention = (convId: string) => {
     if (!root || !selected) return;
     setRoot(
       updateNode(root, selected, (n) => ({
         ...n,
-        conventionRef: undefined,
-        conventionArgs: undefined,
+        conventionRefs: n.conventionRefs?.filter((r) => r.id !== convId) ?? [],
       })),
     );
     markDirty();

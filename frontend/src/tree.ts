@@ -64,13 +64,29 @@ function migrateNode(n: unknown): BidNode {
     notes: typeof raw.notes === 'string' && raw.notes ? raw.notes : undefined,
     byOpponent: raw.byOpponent === true ? true : undefined,
     alerted: raw.alerted === true ? true : undefined,
-    conventionRef: typeof raw.conventionRef === 'string' ? raw.conventionRef : undefined,
-    conventionArgs:
-      raw.conventionArgs !== null &&
-      typeof raw.conventionArgs === 'object' &&
-      !Array.isArray(raw.conventionArgs)
-        ? (raw.conventionArgs as Record<string, string>)
-        : undefined,
+    conventionRefs: (() => {
+      // New format
+      if (Array.isArray(raw.conventionRefs) && raw.conventionRefs.length > 0) {
+        return (raw.conventionRefs as Array<Record<string, unknown>>).map((r) => ({
+          id: typeof r.id === 'string' ? r.id : '',
+          args:
+            r.args !== null && typeof r.args === 'object' && !Array.isArray(r.args)
+              ? (r.args as Record<string, string>)
+              : undefined,
+        })).filter((r) => r.id);
+      }
+      // Migrate old single-ref format
+      if (typeof raw.conventionRef === 'string' && raw.conventionRef) {
+        const args =
+          raw.conventionArgs !== null &&
+          typeof raw.conventionArgs === 'object' &&
+          !Array.isArray(raw.conventionArgs)
+            ? (raw.conventionArgs as Record<string, string>)
+            : undefined;
+        return [{ id: raw.conventionRef as string, args }];
+      }
+      return undefined;
+    })(),
     children: Array.isArray(raw.children) ? raw.children.map(migrateNode) : [],
   };
 }
@@ -165,11 +181,15 @@ export function expandConventionParams(node: BidNode, args: Record<string, strin
  * the convention is not found.
  */
 export function resolveConventionChildren(node: BidNode, conventions: ConventionDef[]): BidNode[] {
-  if (!node.conventionRef) return node.children;
-  const conv = findConvention(conventions, node.conventionRef);
-  if (!conv) return node.children; // graceful fallback for dangling refs
-  const args = node.conventionArgs ?? {};
-  return conv.root.children.map((c) => expandConventionParams(c, args));
+  if (!node.conventionRefs?.length) return node.children;
+  const result: BidNode[] = [];
+  for (const ref of node.conventionRefs) {
+    const conv = findConvention(conventions, ref.id);
+    if (!conv) continue;
+    const args = ref.args ?? {};
+    result.push(...conv.root.children.map((c) => expandConventionParams(c, args)));
+  }
+  return result.length > 0 ? result : node.children;
 }
 
 /**
@@ -177,7 +197,7 @@ export function resolveConventionChildren(node: BidNode, conventions: Convention
  * Used to warn before deleting a convention that is still in use.
  */
 export function countConventionUsage(tree: BidNode, conventionId: string): number {
-  let n = tree.conventionRef === conventionId ? 1 : 0;
+  let n = tree.conventionRefs?.some((r) => r.id === conventionId) ? 1 : 0;
   for (const c of tree.children) n += countConventionUsage(c, conventionId);
   return n;
 }
@@ -192,7 +212,7 @@ export function canDropNode(root: BidNode, nodeId: string, targetParentId: strin
   if (path && path.length >= 2 && path[path.length - 2].id === targetParentId) return false;
   // Can't drop into a convention-ref node — its children are owned by the convention
   const targetNode = findNode(root, targetParentId);
-  if (targetNode?.conventionRef) return false;
+  if (targetNode?.conventionRefs?.length) return false;
   const ctx = addChainContext(root, targetParentId);
   return node.bids.every((bid) => isBidValidInContext(bid, ctx));
 }
