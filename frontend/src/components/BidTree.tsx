@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { clsx } from 'clsx';
 import type { BidNode, ConventionDef } from '../types';
-import { findNode, groupIntoSections, resolveConventionChildren } from '../tree';
+import { findConvention, findNode, groupIntoSections, resolveConventionChildren } from '../tree';
 import { BidLabel } from './BidLabel';
 import { BidTreeSection } from './BidTreeSection';
 
@@ -31,14 +31,14 @@ export function BidTree(props: Props) {
   const isConventionChild = props.isConventionChild ?? false;
 
   // Convention-ref nodes always start open so responses are visible.
-  const [open, setOpen] = useState(depth < 2 || !!node.conventionRef);
+  const [open, setOpen] = useState(depth < 2 || !!node.conventionRefs?.length);
   const [hovered, setHovered] = useState(false);
   const [dragOver, setDragOver] = useState(false);
 
   // Effective children: resolved from the convention when a ref is set.
   const effectiveChildren = resolveConventionChildren(node, conventions);
   const hasChildren = effectiveChildren.length > 0;
-  const hasConventionRef = !!node.conventionRef;
+  const hasConventionRef = !!node.conventionRefs?.length;
 
   const isDragging = props.draggingId === node.id;
   // canDrop reads from a ref in SystemEditor so it's always current,
@@ -202,7 +202,7 @@ export function BidTree(props: Props) {
         {/* Convention badge — small indicator that children come from a convention */}
         {hasConventionRef && !isConventionChild && (
           <span
-            title={`Responses from convention: ${conventions.find((c) => c.id === node.conventionRef)?.name ?? node.conventionRef}`}
+            title={`Responses from convention: ${node.conventionRefs?.map((r) => conventions.find((c) => c.id === r.id)?.name ?? r.id).join(', ')}`}
             className="ml-auto shrink-0 rounded-sm bg-surface-sunken px-1.5 py-0.5 font-ui text-[10px] font-semibold uppercase tracking-[0.05em] text-fg-muted"
           >
             conv
@@ -229,7 +229,16 @@ export function BidTree(props: Props) {
                 hasConventionRef
                   ? (id) => {
                       const found = findNode({ ...node, children: effectiveChildren }, id);
-                      if (found) props.onSelectConventionChild?.(found, node.conventionRef!);
+                      if (found) {
+                        const owningRef = node.conventionRefs?.find((r) => {
+                          const conv = findConvention(conventions, r.id);
+                          return conv && findNode(conv.root, id) !== null;
+                        });
+                        props.onSelectConventionChild?.(
+                          found,
+                          owningRef?.id ?? node.conventionRefs?.[0]?.id ?? '',
+                        );
+                      }
                     }
                   : props.onSelect
               }

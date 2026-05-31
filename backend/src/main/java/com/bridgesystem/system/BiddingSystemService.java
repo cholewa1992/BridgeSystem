@@ -191,6 +191,13 @@ public class BiddingSystemService {
         if (node.isArray()) {
             node.forEach(child -> refs.addAll(collectConventionRefs(child)));
         } else if (node.isObject()) {
+            // New array format: conventionRefs: [{id: "uuid", args: {...}}, ...]
+            if (node.has("conventionRefs") && node.get("conventionRefs").isArray()) {
+                node.get("conventionRefs").forEach(ref -> {
+                    if (ref.has("id")) refs.add(ref.get("id").asText());
+                });
+            }
+            // Legacy single-ref format: conventionRef: "uuid"
             if (node.has("conventionRef")) refs.add(node.get("conventionRef").asText());
             node.fields().forEachRemaining(e -> refs.addAll(collectConventionRefs(e.getValue())));
         }
