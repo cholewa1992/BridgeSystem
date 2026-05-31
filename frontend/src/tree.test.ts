@@ -497,7 +497,10 @@ describe('resolveConventionChildren', () => {
 
   it('falls back to stored children when convention is not found', () => {
     const child = n(['5♣'], [], { id: 'c1' });
-    const node: BidNode = { ...n(['4NT'], [child], { id: 'p1' }), conventionRefs: [{ id: 'missing' }] };
+    const node: BidNode = {
+      ...n(['4NT'], [child], { id: 'p1' }),
+      conventionRefs: [{ id: 'missing' }],
+    };
     expect(resolveConventionChildren(node, [])).toEqual([child]);
   });
 

@@ -199,7 +199,11 @@ export function BidDetailPanel(props: Props) {
                           </div>
                           <div className="flex shrink-0 gap-1.5">
                             {props.onOpenConventionLibrary && (
-                              <Button variant="secondary" small onClick={props.onOpenConventionLibrary}>
+                              <Button
+                                variant="secondary"
+                                small
+                                onClick={props.onOpenConventionLibrary}
+                              >
                                 {t('bidDetail.editConvention')}
                               </Button>
                             )}
@@ -232,7 +236,9 @@ export function BidDetailPanel(props: Props) {
                                     key={p.name}
                                     className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5"
                                   >
-                                    <span className="font-ui text-[11px] text-fg-muted">{p.label}</span>
+                                    <span className="font-ui text-[11px] text-fg-muted">
+                                      {p.label}
+                                    </span>
                                     <span
                                       className="font-display text-[15px] font-semibold leading-none"
                                       style={{ color: suitColor ?? 'var(--fg)' }}
@@ -306,21 +312,23 @@ export function BidDetailPanel(props: Props) {
                 )}
               </Label>
               <div className="flex flex-wrap gap-1.5">
-                {(attachedConventions.length > 0 ? effectiveChildren : selected.children).map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => !attachedConventions.length && props.onSelect(c.id)}
-                    disabled={attachedConventions.length > 0}
-                    className={
-                      attachedConventions.length > 0
-                        ? 'cursor-default rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold opacity-60'
-                        : 'cursor-pointer rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold'
-                    }
-                    title={c.meaning}
-                  >
-                    <BidLabel bids={c.bids} byOpponent={c.byOpponent} />
-                  </button>
-                ))}
+                {(attachedConventions.length > 0 ? effectiveChildren : selected.children).map(
+                  (c) => (
+                    <button
+                      key={c.id}
+                      onClick={() => !attachedConventions.length && props.onSelect(c.id)}
+                      disabled={attachedConventions.length > 0}
+                      className={
+                        attachedConventions.length > 0
+                          ? 'cursor-default rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold opacity-60'
+                          : 'cursor-pointer rounded-md border border-border bg-surface px-[12px] py-[6px] font-display text-[14px] font-semibold'
+                      }
+                      title={c.meaning}
+                    >
+                      <BidLabel bids={c.bids} byOpponent={c.byOpponent} />
+                    </button>
+                  ),
+                )}
               </div>
             </div>
           )}

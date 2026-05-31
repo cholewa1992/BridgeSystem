@@ -67,13 +67,15 @@ function migrateNode(n: unknown): BidNode {
     conventionRefs: (() => {
       // New format
       if (Array.isArray(raw.conventionRefs) && raw.conventionRefs.length > 0) {
-        return (raw.conventionRefs as Array<Record<string, unknown>>).map((r) => ({
-          id: typeof r.id === 'string' ? r.id : '',
-          args:
-            r.args !== null && typeof r.args === 'object' && !Array.isArray(r.args)
-              ? (r.args as Record<string, string>)
-              : undefined,
-        })).filter((r) => r.id);
+        return (raw.conventionRefs as Array<Record<string, unknown>>)
+          .map((r) => ({
+            id: typeof r.id === 'string' ? r.id : '',
+            args:
+              r.args !== null && typeof r.args === 'object' && !Array.isArray(r.args)
+                ? (r.args as Record<string, string>)
+                : undefined,
+          }))
+          .filter((r) => r.id);
       }
       // Migrate old single-ref format
       if (typeof raw.conventionRef === 'string' && raw.conventionRef) {

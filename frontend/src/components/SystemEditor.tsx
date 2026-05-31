@@ -231,7 +231,10 @@ export function SystemEditor() {
     setRoot(
       updateNode(root, selected, (n) => ({
         ...n,
-        conventionRefs: [...(n.conventionRefs ?? []), { id: convId, args: Object.keys(args).length > 0 ? args : undefined }],
+        conventionRefs: [
+          ...(n.conventionRefs ?? []),
+          { id: convId, args: Object.keys(args).length > 0 ? args : undefined },
+        ],
         children: [],
       })),
     );
