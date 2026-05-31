@@ -66,6 +66,7 @@ export function SystemEditor() {
   const [showShare, setShowShare] = useState(false);
   const [collapseVersion, setCollapseVersion] = useState(0);
   const [expandVersion, setExpandVersion] = useState(0);
+  const [mobilePane, setMobilePane] = useState<'tree' | 'detail'>('tree');
 
   // ── Seed local editable state once per system ─────────────────────────
   useEffect(() => {
@@ -289,6 +290,7 @@ export function SystemEditor() {
     setConvChildDetail(null);
     setEditing(false);
     setAddingTo(null);
+    setMobilePane('detail');
   };
 
   const selectConventionChild = (node: BidNode, fromConvRef: string) => {
@@ -296,6 +298,7 @@ export function SystemEditor() {
     setConvChildDetail({ node, convRef: fromConvRef });
     setEditing(false);
     setAddingTo(null);
+    setMobilePane('detail');
   };
 
   // ── Render ────────────────────────────────────────────────────────────
@@ -339,7 +342,9 @@ export function SystemEditor() {
           </h1>
         )}
         <div className="ml-auto flex items-center gap-3">
-          <SaveIndicator state={saveState} permission={detail.permission} />
+          <span className="hidden md:inline-flex">
+            <SaveIndicator state={saveState} permission={detail.permission} />
+          </span>
           {detail.permission === 'OWNER' && (
             <>
               <Button
@@ -347,13 +352,19 @@ export function SystemEditor() {
                 onClick={onToggleVisibility}
                 loading={visibilityMut.isPending}
                 small
+                className="hidden md:inline-flex"
               >
                 {detail.isPublic ? t('systemEditor.makePrivate') : t('systemEditor.makePublic')}
               </Button>
               <Button variant="secondary" onClick={() => setShowShare(true)}>
                 {t('systemEditor.share')}
               </Button>
-              <Button variant="danger" onClick={onDeleteSystem} disabled={deleteMut.isPending}>
+              <Button
+                variant="danger"
+                onClick={onDeleteSystem}
+                disabled={deleteMut.isPending}
+                className="hidden md:inline-flex"
+              >
                 {t('systemEditor.delete')}
               </Button>
             </>
@@ -361,7 +372,7 @@ export function SystemEditor() {
           {user && detail.permission !== 'OWNER' && (
             <>
               {forkMut.isError && (
-                <span className="font-ui text-[13px] text-danger">
+                <span className="hidden font-ui text-[13px] text-danger md:inline">
                   {(forkMut.error as Error)?.message ?? 'Fork failed'}
                 </span>
               )}
@@ -376,7 +387,13 @@ export function SystemEditor() {
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
         {/* Tree pane */}
-        <aside className="w-[460px] overflow-y-auto border-r border-border bg-surface px-[18px] py-5">
+        <aside
+          className={clsx(
+            'overflow-y-auto border-r border-border bg-surface px-[18px] py-5',
+            'w-full md:w-[460px] md:shrink-0',
+            mobilePane === 'detail' ? 'hidden md:block' : 'block',
+          )}
+        >
           <div className="mb-[14px] flex items-center gap-2">
             <Label className="flex-1">{t('systemEditor.biddingSequences')}</Label>
             <Button variant="ghost" small onClick={() => setCollapseVersion((v) => v + 1)}>
@@ -447,7 +464,12 @@ export function SystemEditor() {
         </aside>
 
         {/* Detail pane */}
-        <main className="flex-1 overflow-y-auto px-10 py-8">
+        <main
+          className={clsx(
+            'flex-1 overflow-y-auto px-4 py-4 md:px-10 md:py-8',
+            mobilePane === 'tree' ? 'hidden md:block' : 'block',
+          )}
+        >
           <div className="max-w-[760px]">
             {detail.forkedFrom && (
               <div className="mb-4 rounded-sm border border-border bg-surface-sunken px-3 py-2 font-ui text-[13px] text-fg-muted">
@@ -484,6 +506,7 @@ export function SystemEditor() {
               onDetachConvention={handleDetachConvention}
               onOpenConventionLibrary={() => navigate(`/systems/${detail.id}/conventions`)}
               fromConventionRef={convChildDetail?.convRef}
+              onMobileBack={() => setMobilePane('tree')}
             />
           </div>
         </main>
