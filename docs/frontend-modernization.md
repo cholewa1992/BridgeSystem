@@ -1,8 +1,17 @@
 # Frontend Modernization
 
-Execution doc for cleaning up the frontend. The UI is already polished; this
-work targets the *code* quality behind it. Track progress by checking off the
-boxes as each piece lands.
+This work is complete. The doc below records what was done and why — it is
+preserved as a historical reference, not an active checklist.
+
+**Features added after this work landed are documented separately:**
+- [Convention Library](convention-library.md) — reusable parametrized bid subtrees
+- [Gallery](gallery.md) — public browsing of systems and conventions
+- [i18n](i18n.md) — English and Danish translation
+- [Mobile layout](mobile-layout.md) — master/detail pane switching on small screens
+
+---
+
+The UI was already polished before this pass; the work targeted *code* quality.
 
 ## Why
 
@@ -95,7 +104,7 @@ survive a page refresh (now via `useUpdateSystem`).
 
 ### ESLint flat config + Prettier
 - [x] Add `eslint.config.js` (flat) wiring the already-installed plugins.
-- [x] Add `.prettierrc` + `format` / `lint` scripts; wire into CI.
+- [x] Add `.prettierrc.json` + `format` / `lint` scripts; wire into CI.
 
 ### Optional
 - [ ] `useCurrentUser()` query to back `AuthContext`, with logout-on-401.
