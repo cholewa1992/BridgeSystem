@@ -56,5 +56,13 @@ PostgreSQL + Flyway, Spring Session JDBC, WebAuthn passkeys via Yubico
 - Test: `mvn verify` (needs Docker — Testcontainers Postgres).
 - Local run expects Postgres on :5432; env defaults are in `application.properties`.
 
+## Docs are part of every task
+
+After every change, update `docs/` to reflect what you did. If the relevant doc
+doesn't exist, create it. If a doc is stale or sparse, flesh it out while you're
+there — don't leave it worse than you found it. Design decisions, data models,
+API contracts, migration notes, and architecture explanations all belong in
+`docs/`. Commit doc updates in the same commit as the code change.
+
 When you finish a change, build it. Report what you changed with file:line refs
 and call out any migration or security-config implications.

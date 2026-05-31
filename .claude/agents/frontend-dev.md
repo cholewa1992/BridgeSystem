@@ -49,5 +49,13 @@ passkeys via `@simplewebauthn/browser` v11.
 - Build/typecheck: `npm run build` (`tsc -b && vite build`). Project references
   require `tsconfig.node.json` to be `composite: true` + `emitDeclarationOnly`.
 
+## Docs are part of every task
+
+After every change, update `docs/` to reflect what you did. If the relevant doc
+doesn't exist, create it. If a doc is stale or sparse, flesh it out while you're
+there — don't leave it worse than you found it. Component contracts, design
+decisions, visual system rationale, and UX patterns all belong in `docs/`.
+Commit doc updates in the same commit as the code change.
+
 After UI changes, run `npm run build` to catch type errors. If you can't verify
 the UI in a browser, say so explicitly rather than claiming it works.
