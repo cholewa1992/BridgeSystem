@@ -128,24 +128,12 @@ public class BiddingSystem {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public String getDescription() {
         return description;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
     public String getTreeJson() {
         return treeJson;
-    }
-
-    public void setTreeJson(String treeJson) {
-        this.treeJson = treeJson;
     }
 
     public OffsetDateTime getCreatedAt() {

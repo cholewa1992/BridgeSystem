@@ -38,6 +38,7 @@ class BiddingSystemServiceTest {
     @Mock private SystemAccessGuard accessGuard;
     @Mock private ConventionRepository conventionRepository;
     @Mock private ConventionService conventionService;
+    @Mock private SystemSummaryMapper summaryMapper;
 
     private ObjectMapper objectMapper;
     private BiddingSystemService service;
@@ -51,7 +52,7 @@ class BiddingSystemServiceTest {
         objectMapper = new ObjectMapper();
         service = new BiddingSystemService(
                 systemRepository, shareRepository, likeRepository,
-                accessGuard, objectMapper, conventionRepository, conventionService);
+                accessGuard, objectMapper, conventionRepository, conventionService, summaryMapper);
 
         user = new AppUser(UUID.randomUUID(), "alice", "Alice", new byte[32]);
         systemId = UUID.randomUUID();
@@ -140,7 +141,7 @@ class BiddingSystemServiceTest {
         ObjectMapper brokenMapper = mock(ObjectMapper.class);
         BiddingSystemService svcWithBrokenMapper = new BiddingSystemService(
                 systemRepository, shareRepository, likeRepository,
-                accessGuard, brokenMapper, conventionRepository, conventionService);
+                accessGuard, brokenMapper, conventionRepository, conventionService, summaryMapper);
 
         when(accessGuard.requireAccess(systemId, user, Permission.WRITE)).thenReturn(system);
         JsonNode treeNode = mock(JsonNode.class);

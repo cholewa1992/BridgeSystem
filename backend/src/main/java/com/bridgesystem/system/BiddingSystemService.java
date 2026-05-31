@@ -4,7 +4,6 @@ import com.bridgesystem.convention.ConventionDtos;
 import com.bridgesystem.convention.ConventionRepository;
 import com.bridgesystem.convention.ConventionService;
 import com.bridgesystem.security.SystemAccessGuard;
-import com.bridgesystem.sharing.SystemShare;
 import com.bridgesystem.sharing.SystemLikeRepository;
 import com.bridgesystem.sharing.SystemShareRepository;
 import com.bridgesystem.user.AppUser;
@@ -22,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -32,8 +30,6 @@ public class BiddingSystemService {
 
     private static final String EMPTY_TREE = "{\"children\":[]}";
 
-    private record SystemStats(long likeCount, int forkCount, Boolean likedByMe) {}
-
     private final BiddingSystemRepository systemRepository;
     private final SystemShareRepository shareRepository;
     private final SystemLikeRepository likeRepository;
@@ -41,6 +37,7 @@ public class BiddingSystemService {
     private final ObjectMapper objectMapper;
     private final ConventionRepository conventionRepository;
     private final ConventionService conventionService;
+    private final SystemSummaryMapper summaryMapper;
 
     public BiddingSystemService(BiddingSystemRepository systemRepository,
                                 SystemShareRepository shareRepository,
@@ -48,7 +45,8 @@ public class BiddingSystemService {
                                 SystemAccessGuard accessGuard,
                                 ObjectMapper objectMapper,
                                 ConventionRepository conventionRepository,
-                                ConventionService conventionService) {
+                                ConventionService conventionService,
+                                SystemSummaryMapper summaryMapper) {
         this.systemRepository = systemRepository;
         this.shareRepository = shareRepository;
         this.likeRepository = likeRepository;
@@ -56,14 +54,15 @@ public class BiddingSystemService {
         this.objectMapper = objectMapper;
         this.conventionRepository = conventionRepository;
         this.conventionService = conventionService;
+        this.summaryMapper = summaryMapper;
     }
 
     @Transactional(readOnly = true)
     public List<BiddingSystemDtos.SystemSummary> listAccessible(AppUser user) {
         List<BiddingSystem> systems = systemRepository.findAccessibleBy(user.getId());
-        Map<UUID, SystemStats> stats = statsFor(systems, user);
+        Map<UUID, SystemSummaryMapper.SystemStats> stats = summaryMapper.statsFor(systems, user);
         return systems.stream()
-                .map(s -> toSummary(s, user, stats.get(s.getId())))
+                .map(s -> summaryMapper.toSummary(s, user, stats.get(s.getId())))
                 .toList();
     }
 
@@ -135,44 +134,6 @@ public class BiddingSystemService {
 
     // ── Mapping ────────────────────────────────────────────────────────────
 
-    private Map<UUID, SystemStats> statsFor(List<BiddingSystem> systems, @Nullable AppUser viewer) {
-        if (systems.isEmpty()) return Map.of();
-        List<UUID> ids = systems.stream().map(BiddingSystem::getId).toList();
-        Map<UUID, Long> likeCounts = likeRepository.countsBySystemIds(ids).stream()
-                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
-        Map<UUID, Long> forkCounts = systemRepository.forkCountsBySystemIds(ids).stream()
-                .collect(Collectors.toMap(r -> (UUID) r[0], r -> (Long) r[1]));
-        Set<UUID> likedIds = viewer != null
-                ? new HashSet<>(likeRepository.systemIdsLikedByUser(ids, viewer))
-                : Set.of();
-        return systems.stream().collect(Collectors.toMap(
-                BiddingSystem::getId,
-                s -> new SystemStats(
-                        likeCounts.getOrDefault(s.getId(), 0L),
-                        (int) (long) forkCounts.getOrDefault(s.getId(), 0L),
-                        viewer != null ? likedIds.contains(s.getId()) : null
-                )
-        ));
-    }
-
-    private BiddingSystemDtos.SystemSummary toSummary(BiddingSystem s, @Nullable AppUser viewer, SystemStats stats) {
-        boolean ownedByMe = viewer != null && s.getOwner().getId().equals(viewer.getId());
-        String permission = viewer != null ? permissionFor(s, viewer) : "NONE";
-        return new BiddingSystemDtos.SystemSummary(
-                s.getId(),
-                s.getName(),
-                s.getDescription(),
-                s.getOwner().getUsername(),
-                ownedByMe,
-                permission,
-                s.getUpdatedAt(),
-                s.isPublic(),
-                stats.likeCount(),
-                stats.forkCount(),
-                stats.likedByMe()
-        );
-    }
-
     private BiddingSystemDtos.SystemDetail toDetail(BiddingSystem s, @Nullable AppUser viewer) {
         JsonNode tree;
         try {
@@ -184,7 +145,7 @@ public class BiddingSystemService {
         int forkCount = (int) systemRepository.countByForkedFrom(s);
         Boolean likedByMe = viewer != null ? likeRepository.existsBySystemAndUser(s, viewer) : null;
         boolean ownedByMe = viewer != null && s.getOwner().getId().equals(viewer.getId());
-        String permission = viewer != null ? permissionFor(s, viewer) : "NONE";
+        String permission = viewer != null ? summaryMapper.permissionFor(s, viewer) : "NONE";
         BiddingSystemDtos.ForkedFromRef forkedFromRef = null;
         if (s.getForkedFrom() != null) {
             BiddingSystem ff = s.getForkedFrom();
@@ -234,13 +195,5 @@ public class BiddingSystemService {
             node.fields().forEachRemaining(e -> refs.addAll(collectConventionRefs(e.getValue())));
         }
         return refs;
-    }
-
-    private String permissionFor(BiddingSystem s, AppUser viewer) {
-        if (s.getOwner().getId().equals(viewer.getId())) return "OWNER";
-        return shareRepository.findBySystemAndSharedWith(s, viewer)
-                .map(SystemShare::getPermission)
-                .map(Enum::name)
-                .orElse(s.isPublic() ? "READ" : "NONE");
     }
 }
