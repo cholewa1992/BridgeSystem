@@ -55,11 +55,13 @@
     "clickToRename": "Klik for at omdøbe",
     "unpublish": "Afpublicér",
     "publish": "Offentliggør",
+    "delete": "Slet",
     "biddingSequences": "Meldeforløb",
     "openingBid": "+ Åbningsmelding",
     "moveHereAsOpeningBid": "Flyt hertil som åbningsmelding",
     "forkedFrom": "Forket fra \"{{name}}\"",
-    "deleteBidConfirm": "Slet denne melding og dens fortsættelser?"
+    "deleteBidConfirm": "Slet denne melding og dens fortsættelser?",
+    "deleteConventionConfirm": "Slet \"{{name}}\"? Dette kan ikke fortrydes."
   },
   "parameterEditor": {
     "description": "Beskrivelse",

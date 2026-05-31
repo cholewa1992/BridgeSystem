@@ -55,11 +55,13 @@
     "clickToRename": "Click to rename",
     "unpublish": "Unpublish",
     "publish": "Publish",
+    "delete": "Delete",
     "biddingSequences": "Bidding sequences",
     "openingBid": "+ Opening bid",
     "moveHereAsOpeningBid": "Move here as opening bid",
     "forkedFrom": "Forked from \"{{name}}\"",
-    "deleteBidConfirm": "Delete this bid and its continuations?"
+    "deleteBidConfirm": "Delete this bid and its continuations?",
+    "deleteConventionConfirm": "Delete \"{{name}}\"? This cannot be undone."
   },
   "parameterEditor": {
     "description": "Description",
