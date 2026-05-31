@@ -92,6 +92,7 @@
     "continuations": "Fortsættelser ({{count}})",
     "fromConvention": "(fra konvention)",
     "selectPrompt": "Vælg en melding for at se dens detaljer, eller tilføj en åbningsmelding for at komme i gang.",
+    "backToTree": "← Meldingstræ",
     "paramCount_one": "{{count}} parameter",
     "paramCount_other": "{{count}} parametre"
   },

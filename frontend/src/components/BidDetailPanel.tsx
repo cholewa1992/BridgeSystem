@@ -41,6 +41,8 @@ interface Props {
   onOpenConventionLibrary?: () => void;
   /** When set, this node was resolved from a convention — show read-only convention banner. */
   fromConventionRef?: string;
+  /** Called on mobile when the user wants to navigate back to the tree pane. */
+  onMobileBack?: () => void;
 }
 
 export function BidDetailPanel(props: Props) {
@@ -62,6 +64,15 @@ export function BidDetailPanel(props: Props) {
     );
   }
 
+  const MobileBackButton = props.onMobileBack ? (
+    <button
+      onClick={props.onMobileBack}
+      className="mb-5 flex items-center gap-1 font-ui text-[13px] text-fg-muted md:hidden"
+    >
+      {t('bidDetail.backToTree')}
+    </button>
+  ) : null;
+
   const isOpp = !!selected.byOpponent;
   const attachedConventions = (selected.conventionRefs ?? [])
     .map((ref) => conventions.find((c) => c.id === ref.id))
@@ -70,6 +81,7 @@ export function BidDetailPanel(props: Props) {
 
   return (
     <>
+      {MobileBackButton}
       {props.editing && !props.readOnly && props.editChain ? (
         <BidForm
           mode="edit"
@@ -126,7 +138,7 @@ export function BidDetailPanel(props: Props) {
               </div>
             </div>
             {!props.readOnly && !fromConvention && (
-              <div className="flex gap-1.5 pt-0.5">
+              <div className="hidden gap-1.5 pt-0.5 md:flex">
                 <Button variant="secondary" onClick={props.onRequestEdit}>
                   {t('bidDetail.edit')}
                 </Button>
@@ -172,7 +184,7 @@ export function BidDetailPanel(props: Props) {
 
           {/* Add child / convention section */}
           {!props.readOnly && !fromConvention && (
-            <div className="mb-8">
+            <div className="mb-8 hidden md:block">
               {/* List of attached conventions */}
               {attachedConventions.length > 0 && (
                 <div className="mb-3 flex flex-col gap-2">

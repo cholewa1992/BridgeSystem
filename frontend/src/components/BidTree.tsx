@@ -162,10 +162,10 @@ export function BidTree(props: Props) {
           !isConventionChild && props.draggingId && !isValidDrop && 'cursor-default',
         )}
       >
-        {/* Drag handle — visible on hover when editable */}
+        {/* Drag handle — visible on hover when editable, hidden on mobile */}
         <span
           className={clsx(
-            'w-[10px] shrink-0 cursor-grab text-2xs leading-none text-fg-subtle',
+            'hidden w-[10px] shrink-0 cursor-grab text-2xs leading-none text-fg-subtle md:inline-block',
             showHandle ? 'opacity-50' : 'opacity-0',
           )}
         >

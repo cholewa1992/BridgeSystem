@@ -92,6 +92,7 @@
     "continuations": "Continuations ({{count}})",
     "fromConvention": "(from convention)",
     "selectPrompt": "Select a bid to view its details, or add an opening bid to get started.",
+    "backToTree": "← Tree",
     "paramCount_one": "{{count}} param",
     "paramCount_other": "{{count}} params"
   },

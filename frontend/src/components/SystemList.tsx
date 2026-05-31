@@ -52,7 +52,7 @@ export function SystemList() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[32px]">
+        <div className="mx-auto max-w-[880px] px-4 pb-[80px] pt-6 md:px-[32px] md:pt-[32px]">
           {error && (
             <div className="mb-5 rounded-sm border border-[#e6c8c4] bg-danger-soft px-[12px] py-[10px] font-ui text-[13px] text-danger">
               {error.message}

@@ -78,7 +78,7 @@ export function ConventionLibraryPage() {
       </header>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-[880px] px-[32px] pb-[80px] pt-[32px]">
+        <div className="mx-auto max-w-[880px] px-4 pb-[80px] pt-6 md:px-[32px] md:pt-[32px]">
           {error && (
             <div className="mb-5 rounded-sm border border-[#e6c8c4] bg-danger-soft px-[12px] py-[10px] font-ui text-[13px] text-danger">
               {error.message}
@@ -346,6 +346,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const draggingIdRef = useRef<string | null>(null);
   const [rootDragOver, setRootDragOver] = useState(false);
+  const [mobilePane, setMobilePane] = useState<'tree' | 'detail'>('tree');
 
   const markDirty = () => setDirty(true);
 
@@ -481,6 +482,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
     setSelected(nodeId);
     setEditing(false);
     setAddingTo(null);
+    setMobilePane('detail');
   };
 
   const onRename = () => {
@@ -543,13 +545,16 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
         )}
 
         <div className="ml-auto flex items-center gap-3">
-          <ConventionSaveIndicator state={saveState} permission={convention.permission} />
+          <span className="hidden md:inline-flex">
+            <ConventionSaveIndicator state={saveState} permission={convention.permission} />
+          </span>
           {convention.permission === 'OWNER' && (
             <Button
               variant="secondary"
               small
               onClick={onToggleVisibility}
               loading={visibilityMut.isPending}
+              className="hidden md:inline-flex"
             >
               {convention.isPublic
                 ? t('conventionEditor.unpublish')
@@ -567,7 +572,13 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
       {/* Scrollable editor body */}
       <div className="flex flex-1 overflow-hidden">
         {/* Bid tree pane */}
-        <div className="w-[420px] shrink-0 overflow-y-auto border-r border-border bg-surface px-[18px] py-5">
+        <div
+          className={clsx(
+            'overflow-y-auto border-r border-border bg-surface px-[18px] py-5',
+            'w-full md:w-[420px] md:shrink-0',
+            mobilePane === 'detail' ? 'hidden md:block' : 'block',
+          )}
+        >
           <div className="mb-3">
             <Label>{t('parameterEditor.description')}</Label>
             {readOnly ? (
@@ -657,7 +668,12 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
         </div>
 
         {/* Detail pane */}
-        <div className="flex-1 overflow-y-auto px-10 py-8">
+        <div
+          className={clsx(
+            'flex-1 overflow-y-auto px-4 py-4 md:px-10 md:py-8',
+            mobilePane === 'tree' ? 'hidden md:block' : 'block',
+          )}
+        >
           <div className="max-w-[760px]">
             {convention.forkedFrom && (
               <div className="mb-4 rounded-sm border border-border bg-surface-sunken px-3 py-2 font-ui text-[13px] text-fg-muted">
@@ -682,6 +698,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
               onSubmitEdit={submitEdit}
               onDelete={deleteSelected}
               onSelect={select}
+              onMobileBack={() => setMobilePane('tree')}
             />
           </div>
         </div>
