@@ -9,6 +9,7 @@ import {
   useUpdateConvention,
   useUpdateConventionVisibility,
   useForkConvention,
+  useDeleteConvention,
   usePublicConventions,
   useToggleConventionLike,
 } from '../api/queries';
@@ -222,12 +223,16 @@ function MyConventionCard({
 
 function PublicConventionCard({ convention }: { convention: ConventionSummary }) {
   const { t } = useTranslation(['editor', 'common']);
+  const navigate = useNavigate();
   const forkMut = useForkConvention();
   const likeMut = useToggleConventionLike(convention.id);
   const heartFilled = convention.likedByMe === true;
 
   return (
-    <div className="rounded-md border border-border bg-surface px-[22px] py-[18px] font-ui shadow-sm transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md">
+    <div
+      onClick={() => navigate(`/conventions/${convention.id}`)}
+      className="cursor-pointer rounded-md border border-border bg-surface px-[22px] py-[18px] font-ui shadow-sm transition-[border-color,box-shadow] hover:border-border-strong hover:shadow-md"
+    >
       <div className="flex flex-wrap items-baseline gap-3">
         <h3 className="m-0 font-display text-[19px] font-semibold tracking-[-0.005em] text-fg">
           {convention.name}
@@ -249,7 +254,10 @@ function PublicConventionCard({ convention }: { convention: ConventionSummary })
       <div className="mt-3 flex items-center gap-4">
         <span className="font-ui text-[13px] text-fg-muted">⑂ {convention.forkCount}</span>
         <button
-          onClick={() => likeMut.mutate({ liked: heartFilled })}
+          onClick={(e) => {
+            e.stopPropagation();
+            likeMut.mutate({ liked: heartFilled });
+          }}
           disabled={likeMut.isPending}
           className={
             'inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 font-ui text-[13px] transition-colors ' +
@@ -261,7 +269,10 @@ function PublicConventionCard({ convention }: { convention: ConventionSummary })
         </button>
         {!convention.ownedByMe && (
           <button
-            onClick={() => forkMut.mutate(convention.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              forkMut.mutate(convention.id);
+            }}
             disabled={forkMut.isPending}
             className="ml-auto rounded-sm border border-border px-2.5 py-1 font-ui text-[12px] text-fg-muted transition-colors hover:border-border-strong hover:text-fg"
           >
@@ -323,6 +334,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
   const updateMut = useUpdateConvention(convention.id);
   const visibilityMut = useUpdateConventionVisibility(convention.id);
   const forkMut = useForkConvention();
+  const deleteMut = useDeleteConvention();
   const navigate = useNavigate();
 
   const readOnly = convention.permission !== 'OWNER' && convention.permission !== 'WRITE';
@@ -503,6 +515,16 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
     }
   };
 
+  const onDeleteConvention = async () => {
+    if (!confirm(t('conventionEditor.deleteConventionConfirm', { name: convName }))) return;
+    try {
+      await deleteMut.mutateAsync(convention.id);
+      navigate('/conventions');
+    } catch {
+      // surfaced via deleteMut.error
+    }
+  };
+
   const saveState: SaveState = updateMut.isPending
     ? 'saving'
     : dirty
@@ -549,17 +571,28 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
             <ConventionSaveIndicator state={saveState} permission={convention.permission} />
           </span>
           {convention.permission === 'OWNER' && (
-            <Button
-              variant="secondary"
-              small
-              onClick={onToggleVisibility}
-              loading={visibilityMut.isPending}
-              className="hidden md:inline-flex"
-            >
-              {convention.isPublic
-                ? t('conventionEditor.unpublish')
-                : t('conventionEditor.publish')}
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                small
+                onClick={onToggleVisibility}
+                loading={visibilityMut.isPending}
+                className="hidden md:inline-flex"
+              >
+                {convention.isPublic
+                  ? t('conventionEditor.unpublish')
+                  : t('conventionEditor.publish')}
+              </Button>
+              <Button
+                variant="danger"
+                small
+                onClick={onDeleteConvention}
+                disabled={deleteMut.isPending}
+                className="hidden md:inline-flex"
+              >
+                {t('conventionEditor.delete')}
+              </Button>
+            </>
           )}
           {convention.permission !== 'OWNER' && (
             <Button variant="secondary" small onClick={onFork} loading={forkMut.isPending}>
