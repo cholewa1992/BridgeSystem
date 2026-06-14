@@ -33,6 +33,7 @@ import { useBidClipboardShortcuts } from '../hooks/useBidClipboardShortcuts';
 import { Button, Input, Label, Textarea } from './ui';
 import { BidTree } from './BidTree';
 import { BidDetailPanel } from './BidDetailPanel';
+import { ClipboardBanner } from './ClipboardBanner';
 import { BidForm, type BidFormData } from './BidForm';
 
 // ── Types ─────────────────────────────────────────────────────────────────
@@ -709,6 +710,17 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
               )}
             </div>
           </div>
+
+          {!readOnly && clipboard && (
+            <ClipboardBanner
+              node={clipboard.node}
+              mode={clipboard.mode}
+              hasSelection={!!selected}
+              canPaste={!!selected && canPasteHere(selected)}
+              onPaste={() => selected && pasteInto(selected)}
+              onClear={() => setClipboard(null)}
+            />
+          )}
 
           {!readOnly && draggingId && canDropHere(ROOT_ID) && (
             <div

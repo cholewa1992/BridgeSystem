@@ -29,6 +29,16 @@
     "deleteSystemConfirm": "Slet \"{{name}}\"? Dette kan ikke fortrydes.",
     "deleteBidConfirm": "Slet denne melding og dens fortsættelser?"
   },
+  "clipboard": {
+    "copiedLabel": "Kopieret",
+    "cutLabel": "Klippet",
+    "paste": "Indsæt her",
+    "pasteMove": "Flyt hertil",
+    "clear": "Ryd",
+    "selectDestination": "Vælg en destinationsmelding, og indsæt så.",
+    "invalidTarget": "Kan ikke fortsætte den valgte melding — vælg en højere.",
+    "readyToPaste": "Indsæt som fortsættelse af den valgte melding."
+  },
   "saveIndicator": {
     "saving": "Gemmer…",
     "saved": "Gemt",
@@ -86,6 +96,7 @@
     "cut": "Klip",
     "paste": "Indsæt",
     "pasteCut": "Flyt",
+    "pasteUnavailable": "Kan ikke indsætte her — denne melding kan ikke fortsætte den valgte melding.",
     "delete": "Slet",
     "definedInConvention": "Defineret i konvention",
     "editInLibrary": "Rediger i bibliotek ↗",

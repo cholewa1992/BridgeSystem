@@ -33,6 +33,7 @@ import { Button, Input, Label } from './ui';
 import { useBidClipboardShortcuts } from '../hooks/useBidClipboardShortcuts';
 import { BidTree } from './BidTree';
 import { BidDetailPanel } from './BidDetailPanel';
+import { ClipboardBanner } from './ClipboardBanner';
 import { BidForm, type BidFormData } from './BidForm';
 import { ShareDialog } from './ShareDialog';
 
@@ -468,6 +469,17 @@ export function SystemEditor() {
               </Button>
             )}
           </div>
+
+          {!readOnly && clipboard && (
+            <ClipboardBanner
+              node={clipboard.node}
+              mode={clipboard.mode}
+              hasSelection={!!selected}
+              canPaste={!!selected && canPasteHere(selected)}
+              onPaste={() => selected && pasteInto(selected)}
+              onClear={() => setClipboard(null)}
+            />
+          )}
 
           {!readOnly && draggingId && canDropHere(ROOT_ID) && (
             <div
