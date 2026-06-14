@@ -23,7 +23,7 @@ export function LoginPage() {
         }
         await register(username.trim(), displayName.trim());
       } else {
-        await login(username.trim() || undefined);
+        await login();
       }
     } catch (e) {
       setError((e as Error).message || t('error.generic'));
@@ -66,16 +66,6 @@ export function LoginPage() {
                 />
               </Field>
             )}
-            {mode === 'login' && (
-              <Field label={t('login.usernameLabel')} hint={t('login.usernameHint')}>
-                <Input
-                  placeholder={t('login.usernamePlaceholder')}
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              </Field>
-            )}
-
             <Button
               variant="primary"
               loading={busy}

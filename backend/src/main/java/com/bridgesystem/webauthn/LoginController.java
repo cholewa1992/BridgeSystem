@@ -39,15 +39,12 @@ public class LoginController {
         this.objectMapper = objectMapper;
     }
 
-    public record StartRequest(String username) {}
     public record FinishRequest(
             PublicKeyCredential<AuthenticatorAssertionResponse, ClientAssertionExtensionOutputs> credential) {}
 
     @PostMapping("/start")
-    public JsonNode start(@RequestBody(required = false) StartRequest body, HttpSession session)
-            throws JsonProcessingException {
-        String username = body != null ? body.username() : null;
-        AssertionRequest request = webAuthnService.startAssertion(username);
+    public JsonNode start(HttpSession session) throws JsonProcessingException {
+        AssertionRequest request = webAuthnService.startAssertion();
         String json = webAuthnService.serializeAssertionRequest(request);
         session.setAttribute(SESSION_KEY, json);
         JsonNode tree = objectMapper.readTree(json);

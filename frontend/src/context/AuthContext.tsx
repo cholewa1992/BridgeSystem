@@ -11,7 +11,7 @@ import {
 interface AuthContextValue {
   user: CurrentUser | null;
   loading: boolean;
-  login: (username?: string) => Promise<void>;
+  login: () => Promise<void>;
   register: (username: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -29,8 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = useCallback(async (username?: string) => {
-    await loginPasskey(username);
+  const login = useCallback(async () => {
+    await loginPasskey();
     setUser(await fetchCurrentUser());
   }, []);
 

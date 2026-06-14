@@ -19,10 +19,10 @@ export async function registerPasskey(username: string, displayName: string): Pr
   });
 }
 
-export async function loginPasskey(username?: string): Promise<void> {
+export async function loginPasskey(): Promise<void> {
   const optionsJSON = await api<LoginOptionsJSON>('/api/auth/login/start', {
     method: 'POST',
-    body: JSON.stringify(username ? { username } : {}),
+    body: JSON.stringify({}),
   });
   const credential = await startAuthentication({ optionsJSON });
   await api('/api/auth/login/finish', {
