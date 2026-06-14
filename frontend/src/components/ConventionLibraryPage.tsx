@@ -29,6 +29,7 @@ import {
   rootFromTree,
   updateNode,
 } from '../tree';
+import { useBidClipboardShortcuts } from '../hooks/useBidClipboardShortcuts';
 import { Button, Input, Label, Textarea } from './ui';
 import { BidTree } from './BidTree';
 import { BidDetailPanel } from './BidDetailPanel';
@@ -531,6 +532,16 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
     if (clipboard.mode === 'cut') setClipboard(null);
     persist(newRoot);
   };
+
+  // Cmd/Ctrl + C / X / V on the selected bid.
+  useBidClipboardShortcuts({
+    disabled: readOnly,
+    selectedId: selected,
+    hasClipboard: !!clipboard,
+    onCopy: copySelected,
+    onPaste: pasteInto,
+    canPaste: canPasteHere,
+  });
 
   const select = (nodeId: string) => {
     setSelected(nodeId);

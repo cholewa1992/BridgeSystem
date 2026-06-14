@@ -30,6 +30,7 @@ import {
   updateNode,
 } from '../tree';
 import { Button, Input, Label } from './ui';
+import { useBidClipboardShortcuts } from '../hooks/useBidClipboardShortcuts';
 import { BidTree } from './BidTree';
 import { BidDetailPanel } from './BidDetailPanel';
 import { BidForm, type BidFormData } from './BidForm';
@@ -270,6 +271,16 @@ export function SystemEditor() {
     // Discrete action — persist immediately rather than waiting on the debounce.
     persist(newRoot);
   };
+
+  // Cmd/Ctrl + C / X / V on the selected bid.
+  useBidClipboardShortcuts({
+    disabled: readOnly,
+    selectedId: selected,
+    hasClipboard: !!clipboard,
+    onCopy: copySelected,
+    onPaste: pasteInto,
+    canPaste: canPasteHere,
+  });
 
   const handleAttachConvention = (convId: string, args: Record<string, string>) => {
     if (!root || !selected) return;
