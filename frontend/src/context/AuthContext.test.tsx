@@ -31,7 +31,7 @@ function TestConsumer() {
     <div>
       <span data-testid="loading">{String(loading)}</span>
       <span data-testid="user">{user ? user.username : 'null'}</span>
-      <button onClick={() => login('alice')}>login</button>
+      <button onClick={() => login()}>login</button>
       <button onClick={() => register('alice', 'Alice')}>register</button>
       <button onClick={() => logout()}>logout</button>
     </div>
@@ -79,7 +79,7 @@ describe('AuthContext', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'login' }));
 
-    expect(mockLoginPasskey).toHaveBeenCalledWith('alice');
+    expect(mockLoginPasskey).toHaveBeenCalledWith();
     await waitFor(() => expect(screen.getByTestId('user').textContent).toBe('alice'));
     expect(mockFetchCurrentUser).toHaveBeenCalledTimes(2);
   });

@@ -66,8 +66,8 @@ public class WebAuthnService {
                 StartRegistrationOptions.builder()
                         .user(identity)
                         .authenticatorSelection(AuthenticatorSelectionCriteria.builder()
-                                .residentKey(ResidentKeyRequirement.PREFERRED)
-                                .userVerification(UserVerificationRequirement.PREFERRED)
+                                .residentKey(ResidentKeyRequirement.REQUIRED)
+                                .userVerification(UserVerificationRequirement.REQUIRED)
                                 .build())
                         .build()
         );
@@ -118,14 +118,17 @@ public class WebAuthnService {
 
     // ── Assertion ─────────────────────────────────────────────────────────
 
-    /** Begin an assertion ceremony. The username is optional (resident keys). */
-    public AssertionRequest startAssertion(String username) {
-        StartAssertionOptions.StartAssertionOptionsBuilder builder = StartAssertionOptions.builder()
-                .userVerification(UserVerificationRequirement.PREFERRED);
-        if (username != null && !username.isBlank()) {
-            builder.username(username);
-        }
-        return relyingParty.startAssertion(builder.build());
+    /**
+     * Begin a usernameless assertion ceremony. No username is supplied, so the
+     * options carry an empty allowCredentials list and the authenticator picks
+     * the matching discoverable passkey (resident key) on its own.
+     */
+    public AssertionRequest startAssertion() {
+        return relyingParty.startAssertion(
+                StartAssertionOptions.builder()
+                        .userVerification(UserVerificationRequirement.REQUIRED)
+                        .build()
+        );
     }
 
     /** Finish an assertion. Returns the username of the authenticated user. */
