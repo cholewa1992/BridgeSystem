@@ -28,6 +28,18 @@ interface Props {
   onCancelEdit: () => void;
   onSubmitEdit: (data: BidFormData) => void;
   onDelete: () => void;
+  /** Copy the selected node's subtree to the clipboard. */
+  onCopy?: () => void;
+  /** Cut the selected node's subtree to the clipboard. */
+  onCut?: () => void;
+  /** Paste the clipboard subtree as a continuation of the selected node. Undefined when unavailable. */
+  onPaste?: () => void;
+  /** Whether the current clipboard contents can legally be pasted under the selected node. */
+  canPaste?: boolean;
+  /** The subtree currently on the clipboard, for previewing on the paste button. */
+  clipboardPreview?: BidNode | null;
+  /** Whether the clipboard holds a copy or a cut. */
+  clipboardMode?: 'copy' | 'cut' | null;
   onSelect: (id: string) => void;
   /** System ID — used for the "Edit in Convention Library" link. */
   systemId?: string;
@@ -144,6 +156,16 @@ export function BidDetailPanel(props: Props) {
                 <Button variant="secondary" onClick={props.onRequestEdit}>
                   {t('bidDetail.edit')}
                 </Button>
+                {props.onCopy && (
+                  <Button variant="secondary" onClick={props.onCopy}>
+                    {t('bidDetail.copy')}
+                  </Button>
+                )}
+                {props.onCut && (
+                  <Button variant="secondary" onClick={props.onCut}>
+                    {t('bidDetail.cut')}
+                  </Button>
+                )}
                 <Button variant="danger" onClick={props.onDelete}>
                   {t('bidDetail.delete')}
                 </Button>
@@ -298,6 +320,22 @@ export function BidDetailPanel(props: Props) {
                       {t('bidDetail.addContinuation')}
                     </Button>
                   )}
+                  {attachedConventions.length === 0 &&
+                    props.clipboardPreview &&
+                    props.onPaste &&
+                    props.canPaste && (
+                      <Button variant="secondary" onClick={props.onPaste}>
+                        <span className="inline-flex items-center gap-1.5">
+                          {props.clipboardMode === 'cut'
+                            ? t('bidDetail.pasteCut')
+                            : t('bidDetail.paste')}
+                          <BidLabel
+                            bids={props.clipboardPreview.bids}
+                            byOpponent={props.clipboardPreview.byOpponent}
+                          />
+                        </span>
+                      </Button>
+                    )}
                   {conventions.length > 0 && (
                     <Button
                       variant="secondary"

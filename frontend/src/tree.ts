@@ -234,13 +234,58 @@ function nodeSortKey(node: BidNode): number {
   return best ? bidRank(best) : Infinity;
 }
 
-export function moveNode(root: BidNode, nodeId: string, newParentId: string): BidNode {
-  const node = findNode(root, nodeId);
-  if (!node) return root;
-  return updateNode(deleteNode(root, nodeId), newParentId, (n) => ({
+/** Insert `node` under `parentId`, keeping the parent's children in bid-rank order. */
+export function insertChild(root: BidNode, parentId: string, node: BidNode): BidNode {
+  return updateNode(root, parentId, (n) => ({
     ...n,
     children: [...n.children, node].sort((a, b) => nodeSortKey(a) - nodeSortKey(b)),
   }));
+}
+
+export function moveNode(root: BidNode, nodeId: string, newParentId: string): BidNode {
+  const node = findNode(root, nodeId);
+  if (!node) return root;
+  return insertChild(deleteNode(root, nodeId), newParentId, node);
+}
+
+/**
+ * Deep-clone a subtree, assigning fresh ids to every node so the copy can be
+ * inserted alongside the original without id collisions. Convention refs and
+ * other optional fields are preserved.
+ */
+export function cloneSubtree(node: BidNode): BidNode {
+  return {
+    ...node,
+    id: newId(),
+    children: node.children.map(cloneSubtree),
+  };
+}
+
+/**
+ * Whether a detached subtree (e.g. from the clipboard) may be pasted as a child
+ * of `targetParentId`. Mirrors `canDropNode`: the target must not own its
+ * children via a convention, and the subtree's own bids must be legal in the
+ * target's chain context. When `sourceId` is given (a cut still living in the
+ * tree), pasting into its own subtree is rejected.
+ */
+export function canPasteNode(
+  root: BidNode,
+  node: BidNode,
+  targetParentId: string,
+  sourceId?: string,
+): boolean {
+  if (node.bids.length === 0) return false;
+  const targetNode = findNode(root, targetParentId);
+  if (targetParentId !== ROOT_ID && !targetNode) return false;
+  // Target's children come from a convention — can't add our own.
+  if (targetNode?.conventionRefs?.length) return false;
+  // A cut node can't be pasted into its own subtree.
+  if (sourceId) {
+    const source = findNode(root, sourceId);
+    if (source && findNode(source, targetParentId) !== null) return false;
+  }
+  const ctx = addChainContext(root, targetParentId);
+  return node.bids.every((bid) => isBidValidInContext(bid, ctx));
 }
 
 // ── Bid parsing / ordering ────────────────────────────────────────────────
@@ -410,7 +455,7 @@ export function editChainContext(root: BidNode, nodeId: string): ChainContext {
   return chainContextFromNodes(path.slice(0, -1).filter((n) => n.bids.length > 0));
 }
 
-function isBidValidInContext(bid: string, ctx: ChainContext): boolean {
+export function isBidValidInContext(bid: string, ctx: ChainContext): boolean {
   if (bid === 'P') return true;
   if (bid === 'X')
     return ctx.lastContractBid !== null && !ctx.hasActiveDouble && !ctx.hasActiveRedouble;
