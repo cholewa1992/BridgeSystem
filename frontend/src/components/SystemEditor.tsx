@@ -16,9 +16,12 @@ import {
   ROOT_ID,
   addChainContext,
   canDropNode,
+  canPasteNode,
+  cloneSubtree,
   deleteNode as treeDelete,
   editChainContext,
   findNode,
+  insertChild,
   moveNode,
   newId,
   pathTo,
@@ -59,6 +62,13 @@ export function SystemEditor() {
   );
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  // Copy/cut clipboard. `node` is a detached snapshot of the subtree; `sourceId`
+  // is the live node it came from (used to delete the original after a cut paste).
+  const [clipboard, setClipboard] = useState<{
+    node: BidNode;
+    mode: 'copy' | 'cut';
+    sourceId: string;
+  } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const draggingIdRef = useRef<string | null>(null);
   const [rootDragOver, setRootDragOver] = useState(false);
@@ -225,6 +235,40 @@ export function SystemEditor() {
     setSelected(null);
     setEditing(false);
     markDirty();
+  };
+
+  const copySelected = (mode: 'copy' | 'cut') => {
+    if (!root || !selected) return;
+    const node = findNode(root, selected);
+    if (!node || node.bids.length === 0) return;
+    setClipboard({ node, mode, sourceId: selected });
+  };
+
+  // Whether the clipboard subtree can be pasted under `parentId`.
+  const canPasteHere = (parentId: string): boolean => {
+    if (!root || !clipboard) return false;
+    return canPasteNode(
+      root,
+      clipboard.node,
+      parentId,
+      clipboard.mode === 'cut' ? clipboard.sourceId : undefined,
+    );
+  };
+
+  const pasteInto = (parentId: string) => {
+    if (!root || !clipboard || !canPasteHere(parentId)) return;
+    const fresh = cloneSubtree(clipboard.node);
+    // For a cut, remove the original before inserting the clone (a move).
+    const base = clipboard.mode === 'cut' ? treeDelete(root, clipboard.sourceId) : root;
+    const newRoot = insertChild(base, parentId, fresh);
+    setRoot(newRoot);
+    setSelected(fresh.id);
+    setConvChildDetail(null);
+    setAddingTo(null);
+    // A cut is consumed on paste; a copy stays on the clipboard for repeated pastes.
+    if (clipboard.mode === 'cut') setClipboard(null);
+    // Discrete action — persist immediately rather than waiting on the debounce.
+    persist(newRoot);
   };
 
   const handleAttachConvention = (convId: string, args: Record<string, string>) => {
@@ -402,6 +446,11 @@ export function SystemEditor() {
             <Button variant="ghost" small onClick={() => setExpandVersion((v) => v + 1)}>
               {t('systemEditor.expandAll')}
             </Button>
+            {!readOnly && clipboard && canPasteHere(ROOT_ID) && (
+              <Button variant="secondary" onClick={() => pasteInto(ROOT_ID)}>
+                {t('systemEditor.pasteAsOpeningBid')}
+              </Button>
+            )}
             {!readOnly && addingTo !== ROOT_ID && (
               <Button variant="secondary" onClick={() => setAddingTo(ROOT_ID)}>
                 {t('systemEditor.openingBid')}
@@ -442,6 +491,7 @@ export function SystemEditor() {
             onSelectConventionChild={selectConventionChild}
             readOnly={readOnly}
             draggingId={draggingId}
+            cutId={clipboard?.mode === 'cut' ? clipboard.sourceId : null}
             onDragStart={startDrag}
             onDragEnd={endDrag}
             onDrop={handleMove}
@@ -499,6 +549,12 @@ export function SystemEditor() {
               onCancelEdit={() => setEditing(false)}
               onSubmitEdit={submitEdit}
               onDelete={deleteSelected}
+              onCopy={() => copySelected('copy')}
+              onCut={() => copySelected('cut')}
+              onPaste={selected ? () => pasteInto(selected) : undefined}
+              canPaste={!!selected && canPasteHere(selected)}
+              clipboardPreview={clipboard ? clipboard.node : null}
+              clipboardMode={clipboard?.mode ?? null}
               onSelect={select}
               onSelectConventionChild={selectConventionChild}
               systemId={detail.id}

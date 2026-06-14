@@ -5,8 +5,11 @@ import {
   addChainContext,
   bidRank,
   canDropNode,
+  canPasteNode,
   chainContextFromNodes,
+  cloneSubtree,
   compareBids,
+  insertChild,
   conventionsFromTree,
   deleteNode,
   editChainContext,
@@ -315,6 +318,52 @@ describe('canDropNode / moveNode', () => {
   it('moveNode is a no-op for an unknown node', () => {
     const r = build();
     expect(moveNode(r, 'ghost', 'A')).toBe(r);
+  });
+});
+
+// ── Copy / cut / paste ───────────────────────────────────────────────────────
+
+describe('cloneSubtree / canPasteNode / insertChild', () => {
+  // root → A(1♣) → B(2♣) → C(3♣) ;  D(1♦)
+  function build() {
+    const C = n(['3♣'], [], { id: 'C', meaning: 'three' });
+    const B = n(['2♣'], [C], { id: 'B' });
+    const A = n(['1♣'], [B], { id: 'A' });
+    const D = n(['1♦'], [], { id: 'D' });
+    return root([A, D]);
+  }
+
+  it('cloneSubtree gives every node a fresh id but preserves content', () => {
+    const original = findNode(build(), 'A')!;
+    const clone = cloneSubtree(original);
+    expect(clone.id).not.toBe(original.id);
+    expect(clone.children[0].id).not.toBe(original.children[0].id);
+    expect(clone.children[0].children[0].id).not.toBe('C');
+    // Content carried over.
+    expect(clone.bids).toEqual(['1♣']);
+    expect(clone.children[0].children[0].meaning).toBe('three');
+  });
+
+  it('canPasteNode allows a legal paste and rejects an illegal one', () => {
+    const r = build();
+    const clip = cloneSubtree(findNode(r, 'D')!); // 1♦
+    expect(canPasteNode(r, clip, 'A')).toBe(true); // 1♦ outranks 1♣
+    const clipA = cloneSubtree(findNode(r, 'A')!); // 1♣
+    expect(canPasteNode(r, clipA, 'D')).toBe(false); // 1♣ ≤ 1♦
+  });
+
+  it('canPasteNode rejects pasting a cut into its own subtree', () => {
+    const r = build();
+    const clip = cloneSubtree(findNode(r, 'A')!);
+    // Cut A, attempt to paste into B (inside A's subtree).
+    expect(canPasteNode(r, clip, 'B', 'A')).toBe(false);
+  });
+
+  it('insertChild adds the clone in bid-rank order', () => {
+    const r = build();
+    const clip = cloneSubtree(findNode(r, 'D')!); // 1♦
+    const next = insertChild(r, 'A', clip); // A has B(2♣); 1♦ < 2♣
+    expect(findNode(next, 'A')?.children.map((c) => c.bids[0])).toEqual(['1♦', '2♣']);
   });
 });
 

@@ -14,6 +14,8 @@ interface Props {
   onSelectConventionChild?: (node: BidNode, fromConvRef: string) => void;
   readOnly?: boolean;
   draggingId?: string | null;
+  /** Id of a node currently held on the clipboard as a cut — rendered dimmed. */
+  cutId?: string | null;
   onDragStart?: (id: string) => void;
   onDragEnd?: () => void;
   onDrop?: (targetParentId: string) => void;
@@ -41,6 +43,7 @@ export function BidTree(props: Props) {
   const hasConventionRef = !!node.conventionRefs?.length;
 
   const isDragging = props.draggingId === node.id;
+  const isCut = props.cutId === node.id;
   // canDrop reads from a ref in SystemEditor so it's always current,
   // even before draggingId state has propagated through React.
   const isValidDrop = dragOver && (props.canDrop?.(node.id) ?? false);
@@ -99,7 +102,7 @@ export function BidTree(props: Props) {
     <div
       className={clsx(
         depth !== 0 && 'ml-4',
-        isDragging && 'opacity-40',
+        (isDragging || isCut) && 'opacity-40',
         isConventionChild && 'opacity-70',
       )}
     >

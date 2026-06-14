@@ -13,6 +13,8 @@ interface Props {
   onSelectConventionChild?: (node: BidNode, fromConvRef: string) => void;
   readOnly?: boolean;
   draggingId?: string | null;
+  /** Id of a node currently held on the clipboard as a cut — rendered dimmed. */
+  cutId?: string | null;
   onDragStart?: (id: string) => void;
   onDragEnd?: () => void;
   onDrop?: (targetParentId: string) => void;
