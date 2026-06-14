@@ -23,6 +23,8 @@ interface Props {
   conventions?: ConventionDef[];
   /** True when this node was resolved from a convention — renders read-only and dimmed. */
   isConventionChild?: boolean;
+  /** Display name(s) of the convention this node was resolved from — used for the badge tooltip. */
+  conventionLabel?: string;
 }
 
 export function BidTree(props: Props) {
@@ -39,6 +41,11 @@ export function BidTree(props: Props) {
   const effectiveChildren = resolveConventionChildren(node, conventions);
   const hasChildren = effectiveChildren.length > 0;
   const hasConventionRef = !!node.conventionRefs?.length;
+  // Name(s) of the convention this subtree belongs to — set on the linked node
+  // and propagated down to every resolved child for the badge tooltip.
+  const conventionLabel = hasConventionRef
+    ? node.conventionRefs!.map((r) => findConvention(conventions, r.id)?.name ?? r.id).join(', ')
+    : props.conventionLabel;
 
   const isDragging = props.draggingId === node.id;
   // canDrop reads from a ref in SystemEditor so it's always current,
@@ -70,6 +77,7 @@ export function BidTree(props: Props) {
               expandVersion={props.expandVersion ?? 0}
               selectedId={props.selectedId}
               onSelect={props.onSelect}
+              onSelectConventionChild={props.onSelectConventionChild}
               readOnly={props.readOnly}
               draggingId={props.draggingId}
               onDragStart={props.onDragStart}
@@ -199,10 +207,13 @@ export function BidTree(props: Props) {
           {node.meaning || <em className="text-fg-muted opacity-45">no meaning set</em>}
         </span>
 
-        {/* Convention badge — small indicator that children come from a convention */}
-        {hasConventionRef && !isConventionChild && (
+        {/* Convention badge — marks bids that are themselves resolved from a
+            linked convention (the responses), not the bid the convention is linked to. */}
+        {isConventionChild && (
           <span
-            title={`Responses from convention: ${node.conventionRefs?.map((r) => conventions.find((c) => c.id === r.id)?.name ?? r.id).join(', ')}`}
+            title={
+              conventionLabel ? `From convention: ${conventionLabel}` : 'From a linked convention'
+            }
             className="ml-auto shrink-0 rounded-sm bg-surface-sunken px-1.5 py-0.5 font-ui text-[10px] font-semibold uppercase tracking-[0.05em] text-fg-muted"
           >
             conv
@@ -225,6 +236,7 @@ export function BidTree(props: Props) {
               depth={depth + 1}
               conventions={conventions}
               isConventionChild={isConventionChild || hasConventionRef}
+              conventionLabel={conventionLabel}
               onSelect={
                 hasConventionRef
                   ? (id) => {

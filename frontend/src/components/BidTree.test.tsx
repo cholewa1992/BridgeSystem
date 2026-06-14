@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { BidNode } from '../types';
+import type { BidNode, ConventionDef } from '../types';
 import { ROOT_ID } from '../tree';
 import { BidTree } from './BidTree';
 
@@ -70,6 +70,69 @@ describe('BidTree', () => {
     render(<BidTree node={multiNode} selectedId={null} onSelect={vi.fn()} />);
     expect(screen.getByText('1♥')).toBeInTheDocument();
     expect(screen.getByText('1♠')).toBeInTheDocument();
+  });
+
+  // A 1NT opening lands in the "1NT System" section, forcing the grouped
+  // synthetic-root render path (BidTreeSection) rather than a flat list.
+  const stayman: ConventionDef = {
+    id: 'stayman',
+    name: 'Stayman',
+    root: {
+      id: 'conv-root',
+      bids: [],
+      meaning: '',
+      children: [{ id: 'c-2c', bids: ['2♣'], meaning: 'asks for a major', children: [] }],
+    },
+  };
+  const ntWithConvention: BidNode = {
+    id: ROOT_ID,
+    bids: [],
+    meaning: '',
+    children: [
+      {
+        id: 'nt',
+        bids: ['1NT'],
+        meaning: '15-17 balanced',
+        conventionRefs: [{ id: 'stayman' }],
+        children: [],
+      },
+    ],
+  };
+
+  it('routes convention-child clicks through onSelectConventionChild even when grouped into sections', async () => {
+    const onSelect = vi.fn();
+    const onSelectConventionChild = vi.fn();
+    render(
+      <BidTree
+        node={ntWithConvention}
+        selectedId={null}
+        onSelect={onSelect}
+        onSelectConventionChild={onSelectConventionChild}
+        conventions={[stayman]}
+      />,
+    );
+    await userEvent.click(screen.getByText('asks for a major'));
+    expect(onSelectConventionChild).toHaveBeenCalledTimes(1);
+    expect(onSelectConventionChild.mock.calls[0][0].bids).toEqual(['2♣']);
+    expect(onSelectConventionChild.mock.calls[0][1]).toBe('stayman');
+    expect(onSelect).not.toHaveBeenCalledWith('c-2c');
+  });
+
+  it('shows the conv badge on the resolved response, not on the linked bid', () => {
+    render(
+      <BidTree
+        node={ntWithConvention}
+        selectedId={null}
+        onSelect={vi.fn()}
+        onSelectConventionChild={vi.fn()}
+        conventions={[stayman]}
+      />,
+    );
+    // Exactly one badge, attached to the 2♣ response row.
+    const badges = screen.getAllByText('conv');
+    expect(badges).toHaveLength(1);
+    const responseRow = screen.getByText('asks for a major').closest('div');
+    expect(responseRow).toContainElement(badges[0]);
   });
 
   it('renders an opponent bid in italic style (byOpponent)', () => {
