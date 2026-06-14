@@ -17,9 +17,12 @@ import {
   ROOT_ID,
   addChainContext,
   canDropNode,
+  canPasteNode,
+  cloneSubtree,
   deleteNode as treeDelete,
   editChainContext,
   findNode,
+  insertChild,
   moveNode,
   newId,
   pathTo,
@@ -355,6 +358,13 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
   const [selected, setSelected] = useState<string | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  // Copy/cut clipboard. `node` is a detached snapshot of the subtree; `sourceId`
+  // is the live node it came from (used to delete the original after a cut paste).
+  const [clipboard, setClipboard] = useState<{
+    node: BidNode;
+    mode: 'copy' | 'cut';
+    sourceId: string;
+  } | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const draggingIdRef = useRef<string | null>(null);
   const [rootDragOver, setRootDragOver] = useState(false);
@@ -488,6 +498,38 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
     setSelected(null);
     setEditing(false);
     markDirty();
+  };
+
+  const copySelected = (mode: 'copy' | 'cut') => {
+    if (!selected) return;
+    const node = findNode(root, selected);
+    if (!node || node.bids.length === 0) return;
+    setClipboard({ node, mode, sourceId: selected });
+  };
+
+  // Whether the clipboard subtree can be pasted under `parentId`.
+  const canPasteHere = (parentId: string): boolean => {
+    if (!clipboard) return false;
+    return canPasteNode(
+      root,
+      clipboard.node,
+      parentId,
+      clipboard.mode === 'cut' ? clipboard.sourceId : undefined,
+    );
+  };
+
+  const pasteInto = (parentId: string) => {
+    if (!clipboard || !canPasteHere(parentId)) return;
+    const fresh = cloneSubtree(clipboard.node);
+    // For a cut, remove the original before inserting the clone (a move).
+    const base = clipboard.mode === 'cut' ? treeDelete(root, clipboard.sourceId) : root;
+    const newRoot = insertChild(base, parentId, fresh);
+    setRoot(newRoot);
+    setSelected(fresh.id);
+    setAddingTo(null);
+    // A cut is consumed on paste; a copy stays for repeated pastes.
+    if (clipboard.mode === 'cut') setClipboard(null);
+    persist(newRoot);
   };
 
   const select = (nodeId: string) => {
@@ -643,11 +685,18 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
 
           <div className="mb-[14px] mt-4 flex items-center justify-between">
             <Label>{t('conventionEditor.biddingSequences')}</Label>
-            {!readOnly && addingTo !== ROOT_ID && (
-              <Button variant="secondary" small onClick={() => setAddingTo(ROOT_ID)}>
-                {t('conventionEditor.openingBid')}
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {!readOnly && clipboard && canPasteHere(ROOT_ID) && (
+                <Button variant="secondary" small onClick={() => pasteInto(ROOT_ID)}>
+                  {t('systemEditor.pasteAsOpeningBid')}
+                </Button>
+              )}
+              {!readOnly && addingTo !== ROOT_ID && (
+                <Button variant="secondary" small onClick={() => setAddingTo(ROOT_ID)}>
+                  {t('conventionEditor.openingBid')}
+                </Button>
+              )}
+            </div>
           </div>
 
           {!readOnly && draggingId && canDropHere(ROOT_ID) && (
@@ -682,6 +731,7 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
             onSelect={select}
             readOnly={readOnly}
             draggingId={draggingId}
+            cutId={clipboard?.mode === 'cut' ? clipboard.sourceId : null}
             onDragStart={startDrag}
             onDragEnd={endDrag}
             onDrop={handleMove}
@@ -730,6 +780,12 @@ export function ConventionEditor({ convention }: { convention: ConventionDetail 
               onCancelEdit={() => setEditing(false)}
               onSubmitEdit={submitEdit}
               onDelete={deleteSelected}
+              onCopy={() => copySelected('copy')}
+              onCut={() => copySelected('cut')}
+              onPaste={selected ? () => pasteInto(selected) : undefined}
+              canPaste={!!selected && canPasteHere(selected)}
+              clipboardPreview={clipboard ? clipboard.node : null}
+              clipboardMode={clipboard?.mode ?? null}
               onSelect={select}
               onMobileBack={() => setMobilePane('tree')}
             />
