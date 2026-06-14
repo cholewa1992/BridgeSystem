@@ -12,23 +12,20 @@ function fire(key: string, opts: Partial<KeyboardEventInit> = {}, target?: Event
 function setup(overrides: Partial<Parameters<typeof useBidClipboardShortcuts>[0]> = {}) {
   const onCopy = vi.fn();
   const onPaste = vi.fn();
-  const canPaste = vi.fn(() => true);
   renderHook(() =>
     useBidClipboardShortcuts({
       selectedId: 'n1',
-      hasClipboard: true,
+      rootId: 'root',
       onCopy,
       onPaste,
-      canPaste,
       ...overrides,
     }),
   );
-  return { onCopy, onPaste, canPaste };
+  return { onCopy, onPaste };
 }
 
 describe('useBidClipboardShortcuts', () => {
   beforeEach(() => {
-    // jsdom has no real selection; default to empty.
     vi.spyOn(window, 'getSelection').mockReturnValue(null);
   });
   afterEach(() => vi.restoreAllMocks());
@@ -45,6 +42,18 @@ describe('useBidClipboardShortcuts', () => {
     const { onPaste } = setup();
     fire('v');
     expect(onPaste).toHaveBeenCalledWith('n1');
+  });
+
+  it('pastes at the root when nothing is selected', () => {
+    const { onPaste } = setup({ selectedId: null });
+    fire('v');
+    expect(onPaste).toHaveBeenCalledWith('root');
+  });
+
+  it('does not copy when nothing is selected', () => {
+    const { onCopy } = setup({ selectedId: null });
+    fire('c');
+    expect(onCopy).not.toHaveBeenCalled();
   });
 
   it('does nothing without the modifier key', () => {
@@ -76,11 +85,5 @@ describe('useBidClipboardShortcuts', () => {
     const e = fire('c');
     expect(onCopy).not.toHaveBeenCalled();
     expect(e.defaultPrevented).toBe(false);
-  });
-
-  it('does not paste when the target is illegal', () => {
-    const { onPaste } = setup({ canPaste: () => false });
-    fire('v');
-    expect(onPaste).not.toHaveBeenCalled();
   });
 });

@@ -132,6 +132,16 @@ export function rootFromTree(root: BidTreeRoot): BidNode {
 }
 
 /**
+ * Normalise an untrusted raw object (e.g. parsed from the OS clipboard) into a
+ * valid BidNode subtree, dropping unknown fields and coercing the shape. Returns
+ * null when the payload has no calls (only the synthetic root may be bid-less).
+ */
+export function sanitizeBidNode(raw: unknown): BidNode | null {
+  const node = migrateNode(raw);
+  return node.bids.length > 0 ? node : null;
+}
+
+/**
  * Migrate the `conventions` array from the raw tree blob. Returns an empty
  * array if none are present (backwards-compatible with old system blobs).
  */
