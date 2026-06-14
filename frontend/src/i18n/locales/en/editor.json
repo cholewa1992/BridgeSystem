@@ -29,6 +29,16 @@
     "deleteSystemConfirm": "Delete \"{{name}}\"? This cannot be undone.",
     "deleteBidConfirm": "Delete this bid and its continuations?"
   },
+  "clipboard": {
+    "copiedLabel": "Copied",
+    "cutLabel": "Cut",
+    "paste": "Paste here",
+    "pasteMove": "Move here",
+    "clear": "Clear",
+    "selectDestination": "Select a destination bid, then paste.",
+    "invalidTarget": "Can't continue the selected bid — pick a higher one.",
+    "readyToPaste": "Paste as a continuation of the selected bid."
+  },
   "saveIndicator": {
     "saving": "Saving…",
     "saved": "Saved",
@@ -86,6 +96,7 @@
     "cut": "Cut",
     "paste": "Paste",
     "pasteCut": "Move",
+    "pasteUnavailable": "Can't paste here — this bid can't continue the selected bid.",
     "delete": "Delete",
     "definedInConvention": "Defined in convention",
     "editInLibrary": "Edit in Library ↗",

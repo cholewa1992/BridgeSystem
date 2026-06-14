@@ -320,22 +320,24 @@ export function BidDetailPanel(props: Props) {
                       {t('bidDetail.addContinuation')}
                     </Button>
                   )}
-                  {attachedConventions.length === 0 &&
-                    props.clipboardPreview &&
-                    props.onPaste &&
-                    props.canPaste && (
-                      <Button variant="secondary" onClick={props.onPaste}>
-                        <span className="inline-flex items-center gap-1.5">
-                          {props.clipboardMode === 'cut'
-                            ? t('bidDetail.pasteCut')
-                            : t('bidDetail.paste')}
-                          <BidLabel
-                            bids={props.clipboardPreview.bids}
-                            byOpponent={props.clipboardPreview.byOpponent}
-                          />
-                        </span>
-                      </Button>
-                    )}
+                  {attachedConventions.length === 0 && props.clipboardPreview && props.onPaste && (
+                    <Button
+                      variant="secondary"
+                      onClick={props.onPaste}
+                      disabled={!props.canPaste}
+                      title={props.canPaste ? '' : t('bidDetail.pasteUnavailable')}
+                    >
+                      <span className="inline-flex items-center gap-1.5">
+                        {props.clipboardMode === 'cut'
+                          ? t('bidDetail.pasteCut')
+                          : t('bidDetail.paste')}
+                        <BidLabel
+                          bids={props.clipboardPreview.bids}
+                          byOpponent={props.clipboardPreview.byOpponent}
+                        />
+                      </span>
+                    </Button>
+                  )}
                   {conventions.length > 0 && (
                     <Button
                       variant="secondary"
